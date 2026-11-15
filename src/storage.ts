@@ -63,27 +63,29 @@ export async function saveData(data: AppData): Promise<AppData> {
   const tmp = tmpFile();
   if (tmp.exists) tmp.delete();
   tmp.create();
-  tmp.write(json);
+  // write/copy/move are async in expo-file-system: every one must be awaited,
+  // otherwise we would validate/delete while the previous step is still running.
+  await tmp.write(json);
   if (!(await tryRead(tmp))) throw new Error('Falha ao validar gravação');
 
   const main = mainFile();
   if (main.exists && (await tryRead(main))) {
     const prev = prevFile();
     if (prev.exists) prev.delete();
-    main.copy(prev);
+    await main.copy(prev);
   }
   if (main.exists) main.delete();
-  tmp.move(main);
+  await tmp.move(main);
 
-  snapshotDaily(json);
+  await snapshotDaily(json);
   return next;
 }
 
-function snapshotDaily(json: string) {
+async function snapshotDaily(json: string) {
   const name = `${new Date().toISOString().slice(0, 10)}.json`;
   const snap = new File(backupsDir(), name);
   if (!snap.exists) snap.create();
-  snap.write(json); // one per day, latest state of that day
+  await snap.write(json); // one per day, latest state of that day
   listBackups().slice(MAX_BACKUPS).forEach((f) => f.delete());
 }
 
