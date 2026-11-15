@@ -9,7 +9,7 @@ export async function exportBackup(data: AppData): Promise<void> {
   const f = new File(Paths.cache, `finance-control-backup-${new Date().toISOString().slice(0, 10)}.json`);
   if (f.exists) f.delete();
   f.create();
-  f.write(JSON.stringify(data, null, 2));
+  await f.write(JSON.stringify(data, null, 2)); // async: must finish before sharing
   if (!(await Sharing.isAvailableAsync())) throw new Error('Compartilhamento indisponível neste dispositivo');
   await Sharing.shareAsync(f.uri, { mimeType: 'application/json', dialogTitle: 'Salvar backup' });
 }
