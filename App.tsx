@@ -147,21 +147,6 @@ function Main() {
     return { income, expense, balance: income - expense };
   }, [rows]);
 
-  // spending per card for the selected month (expenses only)
-  const cardTotals = useMemo(() => {
-    const byId = new Map<string, { count: number; cents: number }>();
-    rows.forEach((t) => {
-      if (t.type !== 'expense') return;
-      const key = t.cardId ?? '';
-      const cur = byId.get(key) ?? { count: 0, cents: 0 };
-      byId.set(key, { count: cur.count + 1, cents: cur.cents + t.amountCents });
-    });
-    const list = (data?.cards ?? []).map((c) => ({ key: c.id, name: c.name, ...(byId.get(c.id) ?? { count: 0, cents: 0 }) }));
-    const none = byId.get('');
-    if (none) list.push({ key: '', name: 'Sem cartão', ...none });
-    return list;
-  }, [rows, data]);
-
   // active tab: falls back to "Geral" if its card is gone
   const activeCard = data?.cards.find((c) => c.id === tab) ?? null;
   const onCard = activeCard !== null;
@@ -308,34 +293,6 @@ function Main() {
       </View>
       <Text style={s.hint}>Segure uma linha para excluir</Text>
 
-      {/* Gastos por cartão (mês selecionado) — só na aba Geral */}
-      {!onCard && (
-        <View style={[s.grid, { marginBottom: 10, maxHeight: 150 }]}>
-          <View style={[s.gridRow, s.headRow]}>
-            <Text style={[s.hCell, s.flex1, s.bRight]}>GASTOS POR CARTÃO</Text>
-            <Text style={[s.hCell, s.cCount, s.bRight]}>LANÇ.</Text>
-            <Text style={[s.hCell, s.cVal, s.right]}>TOTAL</Text>
-          </View>
-          <ScrollView>
-            {cardTotals.length === 0 ? (
-              <Text style={s.emptySmall}>Nenhum cartão cadastrado. Crie um em “Novo” → Cartão.</Text>
-            ) : (
-              cardTotals.map((c, i) => (
-                <View key={c.key || 'none'} style={[s.gridRow, i % 2 === 1 && s.zebra]}>
-                  <Text style={[s.cell, s.flex1, s.bRight]} numberOfLines={1}>
-                    💳 {c.name}
-                  </Text>
-                  <Text style={[s.cell, s.cCount, s.bRight, s.muted, s.right]}>{c.count}</Text>
-                  <Text style={[s.cell, s.cVal, s.right, s.bold, { color: c.cents > 0 ? RED : '#94a3b8' }]} numberOfLines={1}>
-                    {brl(c.cents)}
-                  </Text>
-                </View>
-              ))
-            )}
-          </ScrollView>
-        </View>
-      )}
-
       <View style={s.footer}>
         <Pressable style={[s.footBtn, s.bRight]} onPress={() => exportBackup(data).catch((e) => Alert.alert('Erro', String(e?.message ?? e)))}>
           <Text style={s.link}>⬇ Exportar backup</Text>
@@ -398,7 +355,6 @@ const s = StyleSheet.create({
   catText: { fontSize: 13 },
   cardText: { fontSize: 10, color: BLUE, fontWeight: '600', marginTop: 1 },
   instText: { fontSize: 10, color: '#b45309', fontWeight: '700', marginTop: 1 },
-  emptySmall: { textAlign: 'center', color: '#94a3b8', fontSize: 12, padding: 10 },
   empty: { textAlign: 'center', color: '#94a3b8', marginTop: 24, paddingHorizontal: 12, lineHeight: 20 },
   totalRow: { backgroundColor: '#e2e8f0', borderTopWidth: 1, borderTopColor: '#94a3b8', borderBottomWidth: 0 },
   hint: { textAlign: 'center', fontSize: 11, color: '#94a3b8', paddingVertical: 4 },
