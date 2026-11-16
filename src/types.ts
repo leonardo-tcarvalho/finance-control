@@ -22,6 +22,8 @@ export interface Transaction {
   method?: Method; // expenses only, when paid without a card
   /** Set on every row of an installment purchase; `groupId` ties the rows together. */
   installment?: { n: number; of: number; groupId: string };
+  /** Set on every row of a monthly series that repeats the same amount (boleto, rent, subscription). */
+  recurring?: { n: number; of: number; groupId: string };
   createdAt: string;
 }
 

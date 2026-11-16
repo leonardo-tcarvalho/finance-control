@@ -15,3 +15,16 @@ export function totalsOf(rows: Transaction[]) {
   }
   return { income, expense, balance: income - expense };
 }
+
+/**
+ * Limit used by a card. Installments count in full (the whole purchase is already committed); other rows,
+ * including a recurring series, count only once their date has come. Months before the current one are
+ * assumed paid.
+ */
+export function committedOnCard(list: Transaction[], cardId: string, todayIso: string) {
+  const from = todayIso.slice(0, 7);
+  return list.reduce(
+    (sum, x) => (x.cardId === cardId && x.date.slice(0, 7) >= from && (x.installment || x.date <= todayIso) ? sum + spendOf(x) : sum),
+    0,
+  );
+}
