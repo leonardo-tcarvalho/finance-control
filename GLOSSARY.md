@@ -39,7 +39,7 @@ As receitas do mês menos os gastos do mês que não estão pendentes; muda conf
 _Evitar_: Balanço, resultado
 
 **Compra parcelada**:
-Um gasto cujo valor total é dividido em vários meses, uma parcela por mês.
+Um gasto cujo valor total é dividido em vários meses, uma parcela por mês. Se parte já estava paga ao cadastrar, o app cria só as parcelas que faltam, numeradas a partir da próxima.
 _Evitar_: Parcelamento
 
 **Lançamento recorrente**:
@@ -52,7 +52,7 @@ _Evitar_: Assinatura, fixo
 Cartão de crédito cadastrado, com nome, limite, dia de fechamento e dia de vencimento, todos obrigatórios.
 
 **Fatura**:
-O conjunto de compras de um cartão que fecham no mesmo mês; uma compra feita depois do dia de fechamento entra na fatura seguinte.
+O conjunto de compras de um cartão que fecham no mesmo mês; uma compra feita depois do dia de fechamento entra na fatura seguinte. A compra aparece no mês da sua fatura, e não no mês em que foi cadastrada.
 _Evitar_: Extrato, boleto do cartão
 
 ### Navegação

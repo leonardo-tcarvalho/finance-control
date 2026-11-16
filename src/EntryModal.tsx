@@ -18,6 +18,8 @@ export interface EntryValues {
   /** once = a single row; installment = total split over N months; recurring = same amount for N months */
   repeat: Repeat;
   times: string;
+  /** installments already paid before registering the purchase ('' = none) */
+  paidInstallments: string;
   cardId: string | null;
   method: Method | null;
   /** ISO vencimento, or '' when not informed (the entry date then applies) */
@@ -59,6 +61,7 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
   const [newCategory, setNewCategory] = useState<string | null>(null); // null = not typing a new category
   const [repeat, setRepeat] = useState<Repeat>('once');
   const [times, setTimes] = useState('');
+  const [paidText, setPaidText] = useState('');
   const [cardId, setCardId] = useState<string | null>(null);
   const [method, setMethod] = useState<Method | null>(null);
 
@@ -75,6 +78,7 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
       setNewCategory(null);
       setRepeat('once');
       setTimes('');
+      setPaidText('');
       setCardId(editing.cardId ?? null);
       setMethod(editing.method ?? null);
       return;
@@ -88,6 +92,7 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
     setNewCategory(null);
     setRepeat('once');
     setTimes('');
+    setPaidText('');
     setCardId(lockedCard?.id ?? null);
     setMethod(null);
   }, [visible, lockedCard?.id, editing?.id]);
@@ -105,6 +110,9 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
   const canRepeat = type === 'expense';
   const effRepeat: Repeat = (repeat === 'installment' && !canSplit) || (repeat === 'recurring' && !canRepeat) ? 'once' : repeat;
   const nTimes = effRepeat === 'once' ? 1 : Math.max(1, Math.floor(Number(times) || 1));
+  // installments already paid: only meaningful for an installment purchase, and at least one must remain
+  const paidN = effRepeat === 'installment' ? Math.min(Math.max(0, Math.floor(Number(paidText) || 0)), Math.max(0, nTimes - 1)) : 0;
+  const remaining = nTimes - paidN;
   const cents = parseMoneyToCents(amount);
   const selectedCard = cardId && cards.some((c) => c.id === cardId) ? cardId : null;
   const selectedMethod = selectedCard ? null : method;
@@ -138,7 +146,7 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
       if (!parsed) return Alert.alert('Vencimento inválido', 'Use o formato DD/MM/AAAA, ou deixe em branco para usar a data do lançamento.');
       due = parsed;
     }
-    if (onSubmit({ type, amount, desc, date, category: isExpense ? selectedCategory : INCOME_CATEGORY, repeat: effRepeat, times, cardId: lockedCard ? lockedCard.id : selectedCard, method: lockedCard ? null : selectedMethod, due })) onClose();
+    if (onSubmit({ type, amount, desc, date, category: isExpense ? selectedCategory : INCOME_CATEGORY, repeat: effRepeat, times, paidInstallments: effRepeat === 'installment' ? paidText : '', cardId: lockedCard ? lockedCard.id : selectedCard, method: lockedCard ? null : selectedMethod, due })) onClose();
   };
 
   return (
@@ -220,9 +228,24 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
           style={{ width: 190 }}
         />
       )}
+      {effRepeat === 'installment' && !editing && (
+        <View>
+          <Field
+            label="Parcelas já pagas (opcional)"
+            suffix="pagas"
+            placeholder="0"
+            keyboardType="number-pad"
+            maxLength={2}
+            value={paidText}
+            onChangeText={(v) => setPaidText(v.replace(/\D/g, ''))}
+            style={{ width: 230 }}
+          />
+          <Text style={s.help}>Se a compra já estava em andamento, diga quantas já foram pagas. O app cria só as que faltam, e a data abaixo passa a ser a da próxima parcela.</Text>
+        </View>
+      )}
       {nTimes > 1 && Number.isFinite(cents) && cents >= nTimes && effRepeat === 'installment' && (
         <Text style={s.preview}>
-          {nTimes}x de {brl(Math.floor(cents / nTimes))} · {monthYear(startDate)} a {monthYear(addMonths(startDate, nTimes - 1))}
+          {paidN > 0 ? `Faltam ${remaining} de ${nTimes}` : `${nTimes}x`} de {brl(Math.floor(cents / nTimes))} · {monthYear(startDate)} a {monthYear(addMonths(startDate, remaining - 1))}
         </Text>
       )}
       {nTimes > 1 && Number.isFinite(cents) && cents > 0 && effRepeat === 'recurring' && (
@@ -239,7 +262,7 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
       />
 
       <View style={s.dateRow}>
-        <Field label="Data" placeholder="DD/MM/AAAA" keyboardType="number-pad" maxLength={10} value={dateText} onChangeText={(v) => setDateText(maskDate(v))} style={{ flex: 1 }} />
+        <Field label={paidN > 0 ? 'Data da próxima parcela' : 'Data'} placeholder="DD/MM/AAAA" keyboardType="number-pad" maxLength={10} value={dateText} onChangeText={(v) => setDateText(maskDate(v))} style={{ flex: 1 }} />
         <Pressable onPress={() => setDateText(formatDateBR(today()))} style={s.quick}>
           <Text style={s.quickText}>Hoje</Text>
         </Pressable>

@@ -123,13 +123,18 @@ function Main() {
       }
     }
     const mode = v.repeat === 'recurring' ? 'recurring' : 'installment';
+    const paidCount = mode === 'installment' ? Math.floor(Number(v.paidInstallments) || 0) : 0;
+    if (paidCount < 0 || paidCount >= times) {
+      Alert.alert('Parcelas pagas inválidas', `Informe de 0 a ${times - 1}: precisa sobrar pelo menos uma parcela a pagar.`);
+      return false;
+    }
     if (mode === 'installment' && Math.floor(cents / times) < 1) {
       Alert.alert('Valor pequeno demais', 'Cada parcela precisa ter pelo menos R$ 0,01.');
       return false;
     }
     const groupId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const created = buildEntries(
-      { type: v.type, amountCents: cents, description: v.desc.trim(), category: v.category, date: v.date, cardId, method: v.method ?? undefined, due: v.due || undefined, times, mode },
+      { type: v.type, amountCents: cents, description: v.desc.trim(), category: v.category, date: v.date, cardId, method: v.method ?? undefined, due: v.due || undefined, times, mode, paidCount },
       groupId,
       new Date().toISOString(),
     );

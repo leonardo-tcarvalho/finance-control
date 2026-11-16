@@ -11,7 +11,7 @@ App mobile (React Native + Expo, Android e iOS) de controle de gastos.
 ## O que o app faz
 
 - **Principal:** Receitas, Gastos e Saldo do mês, lista de lançamentos com busca e filtro por categoria, aviso de vencidos.
-- **Lançamentos:** gasto e receita, com data, categoria e forma de pagamento (Pix, Débito, Dinheiro, Boleto, Outro ou cartão). Podem ser parcelados ou recorrentes por um número de meses.
+- **Lançamentos:** gasto e receita, com data, categoria e forma de pagamento (Pix, Débito, Dinheiro, Boleto, Outro ou cartão). Podem ser parcelados (informando quantas parcelas já foram pagas, se a compra já estava em andamento) ou recorrentes por um número de meses. Uma compra no cartão aparece no mês da fatura.
 - **Pendente e pago:** todo gasto nasce pendente. Gastos sem cartão podem ser marcados como pagos e ter vencimento; passado o vencimento sem pagar, a linha fica vermelha.
 - **Cartões:** limite, dia de fechamento e dia de vencimento obrigatórios. Cada cartão mostra a fatura do mês, o limite disponível e um botão para marcar a fatura como paga; uma compra no cartão só deixa de ser pendente quando a fatura é paga.
 - **Relatórios:** gastos por categoria, por forma de pagamento e dos últimos meses.
