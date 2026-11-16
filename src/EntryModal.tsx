@@ -1,7 +1,7 @@
-import { ComponentRef, useEffect, useRef, useState } from 'react';
+import { ComponentRef, useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, KeyboardTypeOptions, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BLUE, GREEN, INK, LINE, RED } from './theme';
+import { Theme, useTheme } from './theme';
 import { CATEGORIES, Card, TxType } from './types';
 import { addMonths, brl, monthYear, today } from './utils';
 
@@ -27,7 +27,14 @@ interface Props {
   onRemoveCard: (card: Card) => void;
 }
 
+function useStyles() {
+  const t = useTheme();
+  return useMemo(() => makeStyles(t), [t]);
+}
+
 export default function EntryModal({ visible, cards, lockedCard, onClose, onSubmit, onCreateCard, onRemoveCard }: Props) {
+  const t = useTheme();
+  const s = useStyles();
   const insets = useSafeAreaInsets();
   const [type, setType] = useState<TxType>('expense');
   const [amount, setAmount] = useState('');
@@ -67,7 +74,7 @@ export default function EntryModal({ visible, cards, lockedCard, onClose, onSubm
   }, [visible, lockedCard?.id]);
 
   const isExpense = type === 'expense';
-  const accent = isExpense ? RED : GREEN;
+  const accent = isExpense ? t.redStrong : t.greenStrong;
   const nInst = isExpense ? Math.max(1, Math.floor(Number(installments) || 1)) : 1;
   const cents = Math.round(parseFloat(amount.replace(',', '.')) * 100);
   const selectedCard = cardId && cards.some((c) => c.id === cardId) ? cardId : null;
@@ -105,8 +112,8 @@ export default function EntryModal({ visible, cards, lockedCard, onClose, onSubm
               <View>
                 <Text style={s.label}>Tipo do lançamento</Text>
                 <View style={s.typeRow}>
-                  <TypeButton title="Gasto" hint="Dinheiro que saiu" color={RED} selected={isExpense} onPress={() => setType('expense')} />
-                  <TypeButton title="Receita" hint="Dinheiro que entrou" color={GREEN} selected={!isExpense} onPress={() => setType('income')} />
+                  <TypeButton title="Gasto" hint="Dinheiro que saiu" color={t.redStrong} selected={isExpense} onPress={() => setType('expense')} />
+                  <TypeButton title="Receita" hint="Dinheiro que entrou" color={t.greenStrong} selected={!isExpense} onPress={() => setType('income')} />
                 </View>
               </View>
             )}
@@ -139,7 +146,7 @@ export default function EntryModal({ visible, cards, lockedCard, onClose, onSubm
               <Text style={s.label}>Categoria</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                 {CATEGORIES.map((c) => (
-                  <Pressable key={c} onPress={() => setCategory(c)} style={[s.chip, category === c && { backgroundColor: INK, borderColor: INK }]}>
+                  <Pressable key={c} onPress={() => setCategory(c)} style={[s.chip, category === c && s.chipOn]}>
                     <Text style={[s.chipText, category === c && s.chipTextOn]}>{c}</Text>
                   </Pressable>
                 ))}
@@ -150,22 +157,17 @@ export default function EntryModal({ visible, cards, lockedCard, onClose, onSubm
               <View>
                 <Text style={s.label}>Cartão</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ alignItems: 'center' }}>
-                  <Pressable onPress={() => setCardId(null)} style={[s.chip, selectedCard === null && { backgroundColor: INK, borderColor: INK }]}>
+                  <Pressable onPress={() => setCardId(null)} style={[s.chip, selectedCard === null && s.chipOn]}>
                     <Text style={[s.chipText, selectedCard === null && s.chipTextOn]}>Nenhum</Text>
                   </Pressable>
                   {cards.map((c) => (
-                    <Pressable
-                      key={c.id}
-                      onPress={() => setCardId(c.id)}
-                      onLongPress={() => onRemoveCard(c)}
-                      style={[s.chip, selectedCard === c.id && { backgroundColor: INK, borderColor: INK }]}
-                    >
+                    <Pressable key={c.id} onPress={() => setCardId(c.id)} onLongPress={() => onRemoveCard(c)} style={[s.chip, selectedCard === c.id && s.chipOn]}>
                       <Text style={[s.chipText, selectedCard === c.id && s.chipTextOn]}>💳 {c.name}</Text>
                     </Pressable>
                   ))}
                   {newCard === null ? (
-                    <Pressable onPress={() => setNewCard('')} style={[s.chip, { borderColor: BLUE, borderStyle: 'dashed' }]}>
-                      <Text style={[s.chipText, { color: BLUE, fontWeight: '700' }]}>+ Novo cartão</Text>
+                    <Pressable onPress={() => setNewCard('')} style={[s.chip, { borderColor: t.link, borderStyle: 'dashed' }]}>
+                      <Text style={[s.chipText, { color: t.link, fontWeight: '700' }]}>+ Novo cartão</Text>
                     </Pressable>
                   ) : (
                     <View style={s.newCardBox}>
@@ -173,14 +175,14 @@ export default function EntryModal({ visible, cards, lockedCard, onClose, onSubm
                         autoFocus
                         style={s.newCardInput}
                         placeholder="Nome do cartão"
-                        placeholderTextColor="#94a3b8"
+                        placeholderTextColor={t.textFaint}
                         value={newCard}
                         onChangeText={setNewCard}
                         onSubmitEditing={createCard}
                         returnKeyType="done"
                       />
                       <Pressable onPress={createCard} hitSlop={8}>
-                        <Text style={{ color: BLUE, fontWeight: '800' }}>OK</Text>
+                        <Text style={{ color: t.link, fontWeight: '800' }}>OK</Text>
                       </Pressable>
                     </View>
                   )}
@@ -205,16 +207,15 @@ export default function EntryModal({ visible, cards, lockedCard, onClose, onSubm
 }
 
 function TypeButton({ title, hint, color, selected, onPress }: { title: string; hint: string; color: string; selected: boolean; onPress: () => void }) {
+  const s = useStyles();
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="radio"
       accessibilityState={{ selected }}
-      style={[s.typeBtn, selected ? { backgroundColor: color, borderColor: color } : { borderColor: LINE }]}
+      style={[s.typeBtn, selected && { backgroundColor: color, borderColor: color }]}
     >
-      <View style={[s.radio, selected ? { backgroundColor: '#fff', borderColor: '#fff' } : { borderColor: '#94a3b8' }]}>
-        {selected && <Text style={[s.radioCheck, { color }]}>✓</Text>}
-      </View>
+      <View style={[s.radio, selected && { backgroundColor: '#fff', borderColor: '#fff' }]}>{selected && <Text style={[s.radioCheck, { color }]}>✓</Text>}</View>
       <View style={{ flex: 1 }}>
         <Text style={[s.typeTitle, selected && { color: '#fff' }]}>{title}</Text>
         <Text style={[s.typeHint, selected && { color: '#ffffffcc' }]}>{hint}</Text>
@@ -237,8 +238,10 @@ interface FieldProps {
   style?: object;
 }
 
-// bordered, labelled input; the border turns blue while it is being edited
+// bordered, labelled input; the border highlights while it is being edited
 function Field({ label, prefix, suffix, big, style, ...input }: FieldProps) {
+  const t = useTheme();
+  const s = useStyles();
   const [focused, setFocused] = useState(false);
   return (
     <View style={style}>
@@ -247,7 +250,7 @@ function Field({ label, prefix, suffix, big, style, ...input }: FieldProps) {
         {prefix && <Text style={s.affix}>{prefix}</Text>}
         <TextInput
           {...input}
-          placeholderTextColor="#94a3b8"
+          placeholderTextColor={t.textFaint}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           style={[s.fieldInput, big && s.fieldInputBig]}
@@ -258,43 +261,45 @@ function Field({ label, prefix, suffix, big, style, ...input }: FieldProps) {
   );
 }
 
-const s = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(15,23,42,0.55)' },
-  backdropTap: { flex: 1 },
-  sheet: { backgroundColor: '#fff', borderTopLeftRadius: 18, borderTopRightRadius: 18, maxHeight: '92%', paddingTop: 6 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 10 },
-  title: { fontSize: 18, fontWeight: '800', color: INK, flex: 1 },
-  closeBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center' },
-  closeText: { fontSize: 14, fontWeight: '800', color: '#334155' },
-  body: { paddingHorizontal: 16, paddingBottom: 8, gap: 14 },
-  row: { flexDirection: 'row', gap: 10 },
-  label: { fontSize: 13, fontWeight: '700', color: '#334155', marginBottom: 6 },
-  help: { fontSize: 11, color: '#94a3b8', marginTop: 6 },
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+    backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: t.overlay },
+    backdropTap: { flex: 1 },
+    sheet: { backgroundColor: t.surface, borderTopLeftRadius: 18, borderTopRightRadius: 18, maxHeight: '92%', paddingTop: 6 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 10 },
+    title: { fontSize: 18, fontWeight: '800', color: t.text, flex: 1 },
+    closeBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: t.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+    closeText: { fontSize: 14, fontWeight: '800', color: t.text },
+    body: { paddingHorizontal: 16, paddingBottom: 8, gap: 14 },
+    row: { flexDirection: 'row', gap: 10 },
+    label: { fontSize: 13, fontWeight: '700', color: t.text, marginBottom: 6 },
+    help: { fontSize: 11, color: t.textFaint, marginTop: 6 },
 
-  typeRow: { flexDirection: 'row', gap: 10 },
-  typeBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 2, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12, backgroundColor: '#fff', elevation: 1 },
-  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  radioCheck: { fontSize: 13, fontWeight: '900', marginTop: -1 },
-  typeTitle: { fontSize: 16, fontWeight: '800', color: INK },
-  typeHint: { fontSize: 11, color: '#64748b', marginTop: 1 },
+    typeRow: { flexDirection: 'row', gap: 10 },
+    typeBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 2, borderColor: t.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12, backgroundColor: t.surface, elevation: 1 },
+    radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: t.textFaint, alignItems: 'center', justifyContent: 'center' },
+    radioCheck: { fontSize: 13, fontWeight: '900', marginTop: -1 },
+    typeTitle: { fontSize: 16, fontWeight: '800', color: t.text },
+    typeHint: { fontSize: 11, color: t.textMuted, marginTop: 1 },
 
-  field: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: '#94a3b8', borderRadius: 10, backgroundColor: '#fff', paddingHorizontal: 12, minHeight: 50 },
-  fieldFocus: { borderColor: BLUE, backgroundColor: '#f8fbff' },
-  fieldInput: { flex: 1, fontSize: 16, color: INK, paddingVertical: 8 },
-  fieldInputBig: { fontSize: 20, fontWeight: '700' },
-  affix: { fontSize: 15, fontWeight: '700', color: '#64748b', marginHorizontal: 4 },
+    field: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: t.borderStrong, borderRadius: 10, backgroundColor: t.surface, paddingHorizontal: 12, minHeight: 50 },
+    fieldFocus: { borderColor: t.link, backgroundColor: t.focusBg },
+    fieldInput: { flex: 1, fontSize: 16, color: t.text, paddingVertical: 8 },
+    fieldInputBig: { fontSize: 20, fontWeight: '700' },
+    affix: { fontSize: 15, fontWeight: '700', color: t.textMuted, marginHorizontal: 4 },
 
-  preview: { fontSize: 13, fontWeight: '700', color: '#b45309', backgroundColor: '#fffbeb', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, marginTop: -4 },
+    preview: { fontSize: 13, fontWeight: '700', color: t.amber, backgroundColor: t.amberSoft, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, marginTop: -4 },
 
-  chip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20, borderWidth: 1.5, borderColor: LINE, backgroundColor: '#fff', marginRight: 8 },
-  chipText: { fontSize: 14, color: '#334155', fontWeight: '600' },
-  chipTextOn: { color: '#fff', fontWeight: '800' },
-  newCardBox: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderColor: BLUE, borderRadius: 20, paddingHorizontal: 14, backgroundColor: '#fff' },
-  newCardInput: { minWidth: 130, fontSize: 14, paddingVertical: 6, color: INK },
+    chip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20, borderWidth: 1.5, borderColor: t.border, backgroundColor: t.surface, marginRight: 8 },
+    chipOn: { backgroundColor: t.primary, borderColor: t.primary },
+    chipText: { fontSize: 14, color: t.text, fontWeight: '600' },
+    chipTextOn: { color: t.onPrimary, fontWeight: '800' },
+    newCardBox: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderColor: t.link, borderRadius: 20, paddingHorizontal: 14, backgroundColor: t.surface },
+    newCardInput: { minWidth: 130, fontSize: 14, paddingVertical: 6, color: t.text },
 
-  actions: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#e2e8f0' },
-  btn: { flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 12, paddingVertical: 14 },
-  btnGhost: { borderWidth: 1.5, borderColor: LINE, backgroundColor: '#fff' },
-  btnGhostText: { fontSize: 15, fontWeight: '700', color: '#334155' },
-  btnText: { fontSize: 15, fontWeight: '800', color: '#fff' },
-});
+    actions: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingTop: 10, borderTopWidth: 1, borderTopColor: t.border },
+    btn: { flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 12, paddingVertical: 14 },
+    btnGhost: { borderWidth: 1.5, borderColor: t.border, backgroundColor: t.surface },
+    btnGhostText: { fontSize: 15, fontWeight: '700', color: t.text },
+    btnText: { fontSize: 15, fontWeight: '800', color: '#fff' },
+  });
