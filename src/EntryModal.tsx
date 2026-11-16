@@ -4,7 +4,9 @@ import Field, { Label } from './Field';
 import Sheet from './Sheet';
 import { Theme, useTheme } from './theme';
 import { CATEGORIES, Card, METHODS, Method, Transaction, TxType } from './types';
-import { addDays, addMonths, brl, centsToField, formatDateBR, maskDate, monthYear, parseDateBR, parseMoneyToCents, today } from './utils';
+import { MAX_INSTALLMENTS, MAX_RECURRING, addDays, addMonths, brl, centsToField, formatDateBR, maskDate, monthYear, parseDateBR, parseMoneyToCents, today } from './utils';
+
+export type Repeat = 'once' | 'installment' | 'recurring';
 
 export interface EntryValues {
   type: TxType;
@@ -13,7 +15,9 @@ export interface EntryValues {
   /** ISO yyyy-mm-dd of the purchase (first installment) */
   date: string;
   category: string;
-  installments: string;
+  /** once = a single row; installment = total split over N months; recurring = same amount for N months */
+  repeat: Repeat;
+  times: string;
   cardId: string | null;
   method: Method | null;
 }
@@ -38,7 +42,7 @@ interface Props {
 export default function EntryModal({ visible, cards, lockedCard: pinned, editing, onDelete, onClose, onSubmit, onCreateCard, onRemoveCard }: Props) {
   // a pinned card only applies to new entries; editing shows every control so the card can be changed
   const lockedCard = editing ? null : pinned;
-  const inst = editing?.installment;
+  const inst = editing?.installment ?? editing?.recurring;
   const t = useTheme();
   const s = useMemo(() => makeStyles(t), [t]);
   const [type, setType] = useState<TxType>('expense');
@@ -46,7 +50,8 @@ export default function EntryModal({ visible, cards, lockedCard: pinned, editing
   const [desc, setDesc] = useState('');
   const [dateText, setDateText] = useState(formatDateBR(today()));
   const [category, setCategory] = useState(CATEGORIES[0]);
-  const [installments, setInstallments] = useState(''); // empty = 1x (à vista)
+  const [repeat, setRepeat] = useState<Repeat>('once');
+  const [times, setTimes] = useState('');
   const [cardId, setCardId] = useState<string | null>(null);
   const [method, setMethod] = useState<Method | null>(null);
   const [newCard, setNewCard] = useState<string | null>(null); // null = not typing a new card
@@ -60,7 +65,8 @@ export default function EntryModal({ visible, cards, lockedCard: pinned, editing
       setDesc(editing.description);
       setDateText(formatDateBR(editing.date));
       setCategory(editing.category);
-      setInstallments('');
+      setRepeat('once');
+      setTimes('');
       setCardId(editing.cardId ?? null);
       setMethod(editing.method ?? null);
       setNewCard(null);
@@ -71,7 +77,8 @@ export default function EntryModal({ visible, cards, lockedCard: pinned, editing
     setDesc('');
     setDateText(formatDateBR(today()));
     setCategory(CATEGORIES[0]);
-    setInstallments('');
+    setRepeat('once');
+    setTimes('');
     setCardId(lockedCard?.id ?? null);
     setMethod(null);
     setNewCard(null);
@@ -81,7 +88,11 @@ export default function EntryModal({ visible, cards, lockedCard: pinned, editing
   const isExpense = type === 'expense';
   const usesPayment = type !== 'income'; // a refund goes back to a card or method too
   const accent = isExpense ? t.redStrong : t.greenStrong;
-  const nInst = isExpense ? Math.max(1, Math.floor(Number(installments) || 1)) : 1;
+  // only purchases can be installments; income and expenses can repeat monthly; refunds are always single
+  const canSplit = type === 'expense';
+  const canRepeat = type !== 'refund';
+  const effRepeat: Repeat = (repeat === 'installment' && !canSplit) || (repeat === 'recurring' && !canRepeat) ? 'once' : repeat;
+  const nTimes = effRepeat === 'once' ? 1 : Math.max(1, Math.floor(Number(times) || 1));
   const cents = parseMoneyToCents(amount);
   const selectedCard = cardId && cards.some((c) => c.id === cardId) ? cardId : null;
   const selectedMethod = selectedCard ? null : method;
@@ -101,7 +112,7 @@ export default function EntryModal({ visible, cards, lockedCard: pinned, editing
   const submit = () => {
     const date = parseDateBR(dateText);
     if (!date) return Alert.alert('Data inválida', 'Use o formato DD/MM/AAAA, por exemplo 15/11/2026.');
-    if (onSubmit({ type, amount, desc, date, category, installments, cardId: lockedCard ? lockedCard.id : selectedCard, method: lockedCard ? null : selectedMethod })) onClose();
+    if (onSubmit({ type, amount, desc, date, category, repeat: effRepeat, times, cardId: lockedCard ? lockedCard.id : selectedCard, method: lockedCard ? null : selectedMethod })) onClose();
   };
 
   return (
@@ -123,7 +134,7 @@ export default function EntryModal({ visible, cards, lockedCard: pinned, editing
     >
       {inst && (
         <Text style={s.note}>
-          Compra parcelada · parcela {inst.n}/{inst.of}. Descrição, categoria e cartão valem para todas as parcelas; valor e data valem só para esta.
+          {editing?.recurring ? 'Lançamento recorrente' : 'Compra parcelada'} · {inst.n}/{inst.of}. Descrição, categoria e pagamento valem para todos; valor e data valem só para este.
         </Text>
       )}
 
@@ -138,25 +149,60 @@ export default function EntryModal({ visible, cards, lockedCard: pinned, editing
         </View>
       )}
 
-      <View style={s.row}>
-        <Field label={inst ? 'Valor desta parcela' : nInst > 1 ? 'Valor total' : 'Valor'} prefix="R$" placeholder="0,00" keyboardType="decimal-pad" value={amount} onChangeText={setAmount} autoFocus style={{ flex: 1 }} big />
-        {isExpense && !editing && (
-          <Field
-            label="Parcelas"
-            suffix="x"
-            placeholder="1"
-            keyboardType="number-pad"
-            maxLength={2}
-            value={installments}
-            onChangeText={(v) => setInstallments(v.replace(/\D/g, ''))}
-            style={{ width: 104 }}
-            big
-          />
-        )}
-      </View>
-      {nInst > 1 && Number.isFinite(cents) && cents >= nInst && (
+      <Field
+        label={inst ? (editing?.recurring ? 'Valor deste mês' : 'Valor desta parcela') : effRepeat === 'installment' ? 'Valor total' : effRepeat === 'recurring' ? 'Valor por mês' : 'Valor'}
+        prefix="R$"
+        placeholder="0,00"
+        keyboardType="decimal-pad"
+        value={amount}
+        onChangeText={setAmount}
+        autoFocus
+        big
+      />
+
+      {!editing && (canSplit || canRepeat) && (
+        <View>
+          <Label>Repetição</Label>
+          <View style={s.repeatRow}>
+            <Pressable onPress={() => setRepeat('once')} style={[s.chip, effRepeat === 'once' && s.chipOn]}>
+              <Text style={[s.chipText, effRepeat === 'once' && s.chipTextOn]}>Uma vez</Text>
+            </Pressable>
+            {canSplit && (
+              <Pressable onPress={() => setRepeat('installment')} style={[s.chip, effRepeat === 'installment' && s.chipOn]}>
+                <Text style={[s.chipText, effRepeat === 'installment' && s.chipTextOn]}>Parcelado</Text>
+              </Pressable>
+            )}
+            {canRepeat && (
+              <Pressable onPress={() => setRepeat('recurring')} style={[s.chip, effRepeat === 'recurring' && s.chipOn]}>
+                <Text style={[s.chipText, effRepeat === 'recurring' && s.chipTextOn]}>Recorrente</Text>
+              </Pressable>
+            )}
+          </View>
+          {effRepeat === 'installment' && <Text style={s.help}>O valor informado é o total e é dividido entre os meses.</Text>}
+          {effRepeat === 'recurring' && <Text style={s.help}>O mesmo valor se repete todo mês: boleto parcelado, aluguel, assinatura.</Text>}
+        </View>
+      )}
+
+      {effRepeat !== 'once' && (
+        <Field
+          label={effRepeat === 'recurring' ? 'Por quantos meses' : 'Número de parcelas'}
+          suffix={effRepeat === 'recurring' ? 'meses' : 'x'}
+          placeholder="Ex.: 6"
+          keyboardType="number-pad"
+          maxLength={2}
+          value={times}
+          onChangeText={(v) => setTimes(v.replace(/\D/g, ''))}
+          style={{ width: 190 }}
+        />
+      )}
+      {nTimes > 1 && Number.isFinite(cents) && cents >= nTimes && effRepeat === 'installment' && (
         <Text style={s.preview}>
-          {nInst}x de {brl(Math.floor(cents / nInst))} · {monthYear(startDate)} a {monthYear(addMonths(startDate, nInst - 1))}
+          {nTimes}x de {brl(Math.floor(cents / nTimes))} · {monthYear(startDate)} a {monthYear(addMonths(startDate, nTimes - 1))}
+        </Text>
+      )}
+      {nTimes > 1 && Number.isFinite(cents) && cents > 0 && effRepeat === 'recurring' && (
+        <Text style={s.preview}>
+          {nTimes} meses de {brl(cents)} (total {brl(cents * nTimes)}) · {monthYear(startDate)} a {monthYear(addMonths(startDate, nTimes - 1))}
         </Text>
       )}
 
@@ -282,6 +328,7 @@ function TypeButton({ title, hint, color, selected, onPress }: { title: string; 
 const makeStyles = (t: Theme) =>
   StyleSheet.create({
     row: { flexDirection: 'row', gap: 10 },
+    repeatRow: { flexDirection: 'row' },
     dateRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
     quick: { minHeight: 50, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1.5, borderColor: t.border, backgroundColor: t.surface, alignItems: 'center', justifyContent: 'center' },
     quickText: { fontSize: 14, fontWeight: '700', color: t.link },
