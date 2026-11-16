@@ -5,8 +5,9 @@ import { Alert, FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, Vi
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { exportBackup, pickBackup } from './src/backup';
 import CardModal, { CardValues } from './src/CardModal';
+import Drawer, { DrawerDivider, DrawerItem, DrawerSection } from './src/Drawer';
 import EntryModal, { EntryValues } from './src/EntryModal';
-import { committedOnCard, dueDate, filterRows, invoiceRows, isPaid, monthlySeries, spendByCategory, spendByPayment, spendOf } from './src/calc';
+import { committedOnCard, sortCardsByLimit, dueDate, filterRows, invoiceRows, isPaid, monthlySeries, spendByCategory, spendByPayment, spendOf } from './src/calc';
 import { applyEdit, buildEntries, groupOf } from './src/ops';
 import { loadData, saveData } from './src/storage';
 import { dueOf, isOverdue, isPending, monthTotals, movedIntoPaidInvoice, overdueSummary, payKind } from './src/status';
@@ -27,6 +28,7 @@ function Main() {
   const [data, setData] = useState<AppData | null>(null);
   const [month, setMonth] = useState(today().slice(0, 7));
   const [tab, setTab] = useState('all'); // 'all', 'summary' or a card id
+  const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [catFilter, setCatFilter] = useState<string | null>(null);
   const [entryForm, setEntryForm] = useState<{ tx: Transaction | null } | null>(null); // null = closed; tx null = new entry
@@ -258,6 +260,17 @@ function Main() {
 
   // search + category chip narrow only the list; the summary cards keep showing the whole month
   const inSummary = tab === 'summary';
+  const sortedCards = useMemo(() => sortCardsByLimit(data?.cards ?? []), [data]);
+  /** navigate and close the menu */
+  const go = (id: string) => {
+    setTab(id);
+    setMenuOpen(false);
+  };
+  /** open the card form from the menu (null = a new card) */
+  const openCardForm = (card: Card | null) => {
+    setMenuOpen(false);
+    setCardForm({ card });
+  };
   const byCategory = useMemo(() => spendByCategory(rows), [rows]);
   const series = useMemo(() => monthlySeries(data?.transactions ?? [], month, 6), [data, month]);
   const cardNameOf = (id?: string) => data?.cards.find((c) => c.id === id)?.name ?? '';
@@ -300,7 +313,14 @@ function Main() {
 
         {/* Barra superior: título + seletor de mês */}
         <View style={s.topBar}>
-          <Text style={s.title}>Controle de Gastos</Text>
+          <View style={s.titleRow}>
+            <Pressable onPress={() => setMenuOpen(true)} hitSlop={10} style={s.menuBtn} accessibilityRole="button" accessibilityLabel="Abrir menu">
+              <Text style={s.menuIcon}>☰</Text>
+            </Pressable>
+            <Text style={s.title} numberOfLines={1}>
+              {inSummary ? 'Relatórios' : activeCard ? activeCard.name : 'Principal'}
+            </Text>
+          </View>
           <View style={s.monthNav}>
             <Pressable hitSlop={8} onPress={() => setMonth(shiftMonth(month, -1))} style={s.navBtn}>
               <Text style={s.navArrow}>‹</Text>
@@ -310,25 +330,6 @@ function Main() {
               <Text style={s.navArrow}>›</Text>
             </Pressable>
           </View>
-        </View>
-
-        {/* Menu de navegação: Geral + uma aba por cartão */}
-        <View style={s.tabBar}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={s.tabScroll}>
-            {[{ id: 'all', label: 'Geral' }, { id: 'summary', label: '📊 Resumo' }, ...data.cards.map((c) => ({ id: c.id, label: `💳 ${c.name}` }))].map((item) => {
-              const on = (inSummary ? 'summary' : (activeCard?.id ?? 'all')) === item.id;
-              return (
-                <Pressable key={item.id} onPress={() => setTab(item.id)} style={[s.tab, on && s.tabOn]}>
-                  <Text style={[s.tabText, on && s.tabTextOn]} numberOfLines={1}>
-                    {item.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-            <Pressable onPress={() => setCardForm({ card: null })} style={[s.tab, s.tabAdd]} accessibilityLabel="Cadastrar cartão">
-              <Text style={[s.tabText, { color: t.link }]}>＋ Cartão</Text>
-            </Pressable>
-          </ScrollView>
         </View>
 
         {/* Aviso de vencidos (qualquer mês) */}
@@ -540,17 +541,34 @@ function Main() {
         )}
         {!inSummary && <Text style={s.hint}>Toque para editar · segure para excluir · a bolinha marca como pago</Text>}
 
-        <View style={s.footer}>
-          <Pressable style={[s.footBtn, s.bRight]} onPress={() => exportBackup(data).catch((e) => Alert.alert('Erro', String(e?.message ?? e)))}>
-            <Text style={s.link}>⬇ Exportar</Text>
-          </Pressable>
-          <Pressable style={[s.footBtn, s.bRight]} onPress={restore}>
-            <Text style={s.link}>⬆ Restaurar</Text>
-          </Pressable>
-          <Pressable style={s.footBtn} onPress={toggleTheme} accessibilityLabel="Alternar tema claro e escuro">
-            <Text style={s.link}>{t.dark ? '☀️ Tema claro' : '🌙 Tema escuro'}</Text>
-          </Pressable>
-        </View>
+        <Drawer visible={menuOpen} onClose={() => setMenuOpen(false)}>
+          <Text style={s.drawerTitle}>Controle de Gastos</Text>
+
+          <DrawerSection title="Navegar" />
+          <DrawerItem icon="🏠" label="Principal" active={!inSummary && !onCard} onPress={() => go('all')} />
+          <DrawerItem icon="📊" label="Relatórios" active={inSummary} onPress={() => go('summary')} />
+
+          <DrawerSection title="Cartões" />
+          {sortedCards.map((c) => (
+            <DrawerItem
+              key={c.id}
+              icon="💳"
+              label={c.name}
+              sub={c.limitCents ? `Limite ${brl(c.limitCents)}` : 'Sem limite · toque para informar'}
+              active={activeCard?.id === c.id}
+              onPress={() => (c.limitCents ? go(c.id) : openCardForm(c))}
+            />
+          ))}
+          {sortedCards.length === 0 && <Text style={s.drawerEmpty}>Nenhum cartão cadastrado ainda.</Text>}
+          <DrawerItem icon="＋" label="Novo cartão" onPress={() => openCardForm(null)} />
+
+          <DrawerDivider />
+          <DrawerSection title="Opções" />
+          <DrawerItem icon={t.dark ? '☀️' : '🌙'} label={t.dark ? 'Tema claro' : 'Tema escuro'} onPress={toggleTheme} />
+          <DrawerItem icon="⬇" label="Exportar backup" onPress={() => { setMenuOpen(false); exportBackup(data).catch((e) => Alert.alert('Erro', String(e?.message ?? e))); }} />
+          <DrawerItem icon="⬆" label="Restaurar backup" onPress={() => { setMenuOpen(false); restore(); }} />
+          <DrawerItem icon="🌐" label="Idioma" sub="Em breve" onPress={() => Alert.alert('Idioma', 'Escolher o idioma ainda não está disponível. Fica para uma próxima versão.')} />
+        </Drawer>
 
         <CardModal
           visible={cardForm !== null}
@@ -608,6 +626,11 @@ const makeStyles = (t: Theme) =>
     navArrow: { fontSize: 20, fontWeight: '700', color: t.primary },
     monthText: { fontSize: 12, fontWeight: '700', color: t.text, minWidth: 100, textAlign: 'center' },
 
+    titleRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, paddingRight: 8 },
+    menuBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: t.surface, borderWidth: 1, borderColor: t.border, alignItems: 'center', justifyContent: 'center' },
+    menuIcon: { fontSize: 20, color: t.text, marginTop: -1 },
+    drawerTitle: { fontSize: 20, fontWeight: '800', color: t.text, letterSpacing: -0.3, paddingHorizontal: 12, paddingTop: 8, paddingBottom: 4 },
+    drawerEmpty: { fontSize: 12, color: t.textFaint, paddingHorizontal: 12, paddingVertical: 6 },
     tabBar: { paddingVertical: 6 },
     tabScroll: { paddingHorizontal: 16, gap: 8 },
     tab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: t.surface, borderWidth: 1, borderColor: t.border, maxWidth: 190 },
