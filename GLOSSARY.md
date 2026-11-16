@@ -19,7 +19,7 @@ Lançamento de dinheiro que entrou. Só é registrada quando o dinheiro realment
 _Evitar_: Entrada, ganho
 
 **Pendente**:
-Situação de um gasto que ainda não foi pago. Todo gasto nasce pendente, exceto os pagos por Pix, que nascem pagos. Receitas não têm situação.
+Situação de um gasto que ainda não foi pago. Todo gasto nasce pendente, inclusive o pago por Pix. Receitas não têm situação.
 _Evitar_: A pagar, em aberto
 
 **Pago**:
@@ -27,7 +27,7 @@ Situação de um gasto cujo dinheiro já saiu. Uma compra no cartão de crédito
 _Evitar_: Quitado, liquidado
 
 **Vencimento**:
-A data em que um gasto deve ser pago. Numa compra no cartão é sempre o vencimento da fatura; nos demais gastos a pessoa pode informá-lo, e o Pix não tem.
+A data em que um gasto deve ser pago. Numa compra no cartão é sempre o vencimento da fatura; nos demais gastos a pessoa pode informá-lo; sem ele vale a data do lançamento.
 _Evitar_: Prazo, data de pagamento
 
 **Vencido**:

@@ -164,7 +164,7 @@ function Main() {
     persist({ ...data, cards: data.cards.map((c) => (c.id === card.id ? { ...c, paid: paid ? [...list, month] : list } : c)) });
   };
 
-  /** Toggles a non-card, non-Pix expense between pending and paid. */
+  /** Toggles an expense paid outside a card between pending and paid. */
   const togglePaid = (tx: Transaction) => {
     if (!data || payKind(tx) !== 'other') return;
     const paid = tx.paid === false; // pending -> paid; paid -> pending again

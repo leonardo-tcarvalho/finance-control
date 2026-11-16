@@ -1,17 +1,17 @@
 import { dueDate, invoiceKey, isPaid, incomeOf, spendOf } from './calc';
 import { Card, Transaction } from './types';
 
-/** What decides whether an entry is paid: nothing (income), its card's invoice, Pix, or its own flag. */
-export type PayKind = 'none' | 'card' | 'pix' | 'other';
+/** What decides whether an entry is paid: nothing (income), its card's invoice, or its own flag. */
+export type PayKind = 'none' | 'card' | 'other';
 
 export const payKind = (t: Pick<Transaction, 'type' | 'cardId' | 'method'>): PayKind =>
-  t.type !== 'expense' ? 'none' : t.cardId ? 'card' : t.method === 'pix' ? 'pix' : 'other';
+  t.type !== 'expense' ? 'none' : t.cardId ? 'card' : 'other';
 
 const cardOf = (cards: Card[], id?: string) => cards.find((c) => c.id === id);
 
 /**
  * An expense that is still to be paid. A card purchase is pending until its whole invoice is marked paid; any other
- * non-Pix expense carries its own flag. Income and Pix are never pending.
+ * other expense (Pix included) carries its own flag. Income is never pending.
  */
 export function isPending(t: Transaction, cards: Card[]): boolean {
   const kind = payKind(t);
@@ -23,7 +23,7 @@ export function isPending(t: Transaction, cards: Card[]): boolean {
   return false;
 }
 
-/** When the expense must be paid: the card's invoice due date, or the vencimento chosen for it. Null for Pix. */
+/** When the expense must be paid: the card's invoice due date, or the vencimento chosen for it (the entry date when none was). */
 export function dueOf(t: Transaction, cards: Card[]): string | null {
   const kind = payKind(t);
   if (kind === 'other') return t.due ?? t.date;
@@ -31,7 +31,7 @@ export function dueOf(t: Transaction, cards: Card[]): string | null {
     const card = cardOf(cards, t.cardId);
     return card ? dueDate(card, invoiceKey(card, t.date)) : null;
   }
-  return null;
+  return null; // income
 }
 
 /** Pending and past its due date. A card without a due day never becomes overdue. */

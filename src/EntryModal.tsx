@@ -108,8 +108,8 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
   const cents = parseMoneyToCents(amount);
   const selectedCard = cardId && cards.some((c) => c.id === cardId) ? cardId : null;
   const selectedMethod = selectedCard ? null : method;
-  // the vencimento is asked only for expenses that are neither on a card (its invoice decides) nor Pix (paid at once)
-  const showDue = type === 'expense' && !lockedCard && !selectedCard && selectedMethod !== 'pix';
+  // the vencimento is asked for every expense that is not on a card (a card purchase follows its invoice)
+  const showDue = type === 'expense' && !lockedCard && !selectedCard;
 
   const createCategory = () => {
     const name = (newCategory ?? '').trim();

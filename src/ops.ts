@@ -11,7 +11,7 @@ export interface EntryInput {
   date: string;
   cardId?: string;
   method?: Method;
-  /** vencimento of the first row (non-card, non-Pix expenses); it moves one month per row in a series */
+  /** vencimento of the first row (expenses without a card); it moves one month per row in a series */
   due?: string;
   /** how many months the entry covers; 1 = a single entry */
   times: number;
@@ -24,13 +24,12 @@ export const groupOf = (t: Transaction) => t.installment?.groupId ?? t.recurring
 
 /**
  * Makes paid and due consistent with how the row is paid. Income and card purchases carry no status of
- * their own (a card purchase follows its invoice); Pix is paid at once; any other expense is pending, except when it
- * stays in that same group (`prev`) and already has a status, which is kept (an old row without one counts as paid).
+ * their own (a card purchase follows its invoice); any other expense, Pix included, is pending, except when it stays
+ * an expense paid outside a card (`prev`) and already has a status, which is kept (an old row without one counts as paid).
  */
 function settle(x: Transaction, prev: PayKind | null): Transaction {
   const kind = payKind(x);
   if (kind === 'none' || kind === 'card') return { ...x, paid: undefined, due: undefined };
-  if (kind === 'pix') return { ...x, paid: true, due: undefined };
   return { ...x, paid: prev === 'other' ? (x.paid ?? true) : false };
 }
 
@@ -79,8 +78,8 @@ export interface EditInput {
 /**
  * Applies an edit to one row. Rows of an installment purchase or a recurring series belong together: description,
  * category, card and method change on every row of the group, while amount, date and vencimento change only on the
- * row being edited. The type of a row that belongs to a group cannot be changed. Changing how a row is paid resets
- * its status (Pix becomes paid, anything else without a card becomes pending); otherwise the status is kept.
+ * row being edited. The type of a row that belongs to a group cannot be changed. Moving a row onto or off a card, or
+ * turning income into an expense, resets its status (pending); otherwise the status is kept.
  */
 export function applyEdit(list: Transaction[], original: Transaction, e: EditInput): Transaction[] {
   const gid = groupOf(original);
