@@ -26,6 +26,10 @@ export interface Transaction {
   date: string; // ISO yyyy-mm-dd
   cardId?: string; // expenses only; missing = no card
   method?: Method; // expenses only, when paid without a card
+  /** Expenses without a card: false while still to be paid (Pix is created paid). Missing, as in old files, means paid. */
+  paid?: boolean;
+  /** Expenses without a card, except Pix: the day it must be paid (vencimento). Defaults to the entry date. */
+  due?: string;
   /** Set on every row of an installment purchase; `groupId` ties the rows together. */
   installment?: { n: number; of: number; groupId: string };
   /** Set on every row of a monthly series that repeats the same amount (boleto, rent, subscription). */
