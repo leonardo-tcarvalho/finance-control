@@ -4,37 +4,9 @@ import { Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, ScrollView,
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { exportBackup, pickBackup } from './src/backup';
 import { loadData, saveData } from './src/storage';
+import { GREEN, LINE, RED } from './src/theme';
 import { AppData, CATEGORIES, Card, Transaction, TxType, emptyData } from './src/types';
-
-const GREEN = '#15803d';
-const RED = '#b91c1c';
-const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-
-const brl = (cents: number) => (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const MAX_INSTALLMENTS = 48;
-const pad = (n: number) => String(n).padStart(2, '0');
-// local date (toISOString would be UTC and flip to "tomorrow" after 21h in Brazil)
-const today = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-};
-// same day `k` months later, clamped to the month's last day (31/01 + 1 -> 28/02)
-const addMonths = (iso: string, k: number) => {
-  const y = Number(iso.slice(0, 4));
-  const m = Number(iso.slice(5, 7)) - 1 + k;
-  const d = Number(iso.slice(8, 10));
-  const ty = y + Math.floor(m / 12);
-  const tm = ((m % 12) + 12) % 12;
-  const last = new Date(ty, tm + 1, 0).getDate();
-  return `${ty}-${pad(tm + 1)}-${pad(Math.min(d, last))}`;
-};
-const shortDate = (iso: string) => iso.slice(8, 10) + '/' + iso.slice(5, 7);
-const monthYear = (iso: string) => `${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
-const monthLabel =(key: string) => `${MONTHS[Number(key.slice(5, 7)) - 1]} ${key.slice(0, 4)}`;
-const shiftMonth = (key: string, delta: number) => {
-  const d = new Date(Number(key.slice(0, 4)), Number(key.slice(5, 7)) - 1 + delta, 1);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-};
+import { MAX_INSTALLMENTS, addMonths, brl, monthLabel, monthYear, shiftMonth, shortDate, today } from './src/utils';
 
 export default function App() {
   return (
@@ -424,8 +396,6 @@ function Main() {
     </SafeAreaView>
   );
 }
-
-const LINE = '#cbd5e1';
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#eef2f7' },
