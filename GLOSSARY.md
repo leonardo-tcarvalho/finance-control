@@ -26,6 +26,10 @@ _Evitar_: A pagar, em aberto
 Situação de um gasto cujo dinheiro já saiu. Uma compra no cartão de crédito só fica paga quando a fatura inteira é marcada como paga.
 _Evitar_: Quitado, liquidado
 
+**Vencimento**:
+A data em que um gasto deve ser pago. Numa compra no cartão é sempre o vencimento da fatura; nos demais gastos a pessoa pode informá-lo, e o Pix não tem.
+_Evitar_: Prazo, data de pagamento
+
 **Vencido**:
 Gasto pendente cuja data de vencimento já passou.
 _Evitar_: Atrasado
