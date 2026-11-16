@@ -63,20 +63,16 @@ export const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').to
 
 export interface RowFilter {
   query: string;
-  /** exact category name, or null for all */
-  category: string | null;
 }
 
 /**
  * Keeps the rows that match the typed text (description, category, card name, payment method label)
- * and the chosen category. Every word typed must match somewhere, so "mercado pix" narrows down.
+ * Every word typed must match somewhere, so "mercado pix" narrows down.
  */
 export function filterRows(rows: Transaction[], f: RowFilter, cardName: (id?: string) => string, methodName: (m?: string) => string): Transaction[] {
   const words = fold(f.query).split(/\s+/).filter(Boolean);
-  if (!words.length && !f.category) return rows;
+  if (!words.length) return rows;
   return rows.filter((t) => {
-    if (f.category && t.category !== f.category) return false;
-    if (!words.length) return true;
     const hay = fold([t.description, t.category, cardName(t.cardId), methodName(t.method)].join(' '));
     return words.every((w) => hay.includes(w));
   });

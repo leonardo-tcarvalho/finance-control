@@ -33,7 +33,6 @@ function Main() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [actionsFor, setActionsFor] = useState<Transaction | null>(null); // row whose options are open
   const [query, setQuery] = useState('');
-  const [catFilter, setCatFilter] = useState<string | null>(null);
   const [entryForm, setEntryForm] = useState<{ tx: Transaction | null } | null>(null); // null = closed; tx null = new entry
   const [cardForm, setCardForm] = useState<{ card: Card | null; onCreated?: (id: string) => void } | null>(null); // null = closed; card null = new
   const queue = useRef<Promise<unknown>>(Promise.resolve());
@@ -261,7 +260,7 @@ function Main() {
   );
   const cardSpend = tabRows.reduce((sum, x) => sum + spendOf(x), 0);
 
-  // search + category chip narrow only the list; the summary cards keep showing the whole month
+  // the search narrows only the list; the summary cards keep showing the whole month
   const inSummary = tab === 'summary';
   const sortedCards = useMemo(() => sortCardsByLimit(data?.cards ?? []), [data]);
   /** navigate and close the menu */
@@ -278,13 +277,11 @@ function Main() {
   const series = useMemo(() => monthlySeries(data?.transactions ?? [], month, 6), [data, month]);
   const cardNameOf = (id?: string) => data?.cards.find((c) => c.id === id)?.name ?? '';
   const methodNameOf = (m?: string) => (m ? methodLabel(m as never) : '');
-  const monthCategories = useMemo(() => Array.from(new Set(tabRows.map((x) => x.category))).sort((a, b) => a.localeCompare(b)), [tabRows]);
-  const activeCat = catFilter && monthCategories.includes(catFilter) ? catFilter : null;
   const shownRows = useMemo(
-    () => filterRows(tabRows, { query, category: activeCat }, cardNameOf, methodNameOf),
-    [tabRows, query, activeCat, data],
+    () => filterRows(tabRows, { query }, cardNameOf, methodNameOf),
+    [tabRows, query, data],
   );
-  const filtering = query.trim() !== '' || activeCat !== null;
+  const filtering = query.trim() !== '';
   const shownTotals = monthTotals(shownRows, data?.cards ?? []);
   const byPayment = useMemo(() => spendByPayment(rows, cardNameOf, methodNameOf), [rows, data]);
 
@@ -428,18 +425,6 @@ function Main() {
                   </Pressable>
                 )}
               </View>
-              {monthCategories.length > 1 && (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={s.catRow}>
-                  <Pressable onPress={() => setCatFilter(null)} style={[s.catChip, activeCat === null && s.catChipOn]}>
-                    <Text style={[s.catChipText, activeCat === null && s.catChipTextOn]}>Todas</Text>
-                  </Pressable>
-                  {monthCategories.map((c) => (
-                    <Pressable key={c} onPress={() => setCatFilter(activeCat === c ? null : c)} style={[s.catChip, activeCat === c && s.catChipOn]}>
-                      <Text style={[s.catChipText, activeCat === c && s.catChipTextOn]}>{c}</Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              )}
             </View>
           )}
 
@@ -677,11 +662,6 @@ const makeStyles = (t: Theme) =>
     searchIcon: { fontSize: 14, marginRight: 8 },
     searchInput: { flex: 1, fontSize: 14, color: t.text, paddingVertical: 9 },
     searchClear: { fontSize: 14, fontWeight: '800', color: t.textMuted, paddingLeft: 8 },
-    catRow: { gap: 6 },
-    catChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: t.border, backgroundColor: t.surface },
-    catChipOn: { backgroundColor: t.primarySoft, borderColor: t.primary },
-    catChipText: { fontSize: 12, fontWeight: '600', color: t.textMuted },
-    catChipTextOn: { color: t.link, fontWeight: '800' },
     listWrap: { flex: 1, marginHorizontal: 16, marginTop: 12 },
     listCard: { flex: 1, backgroundColor: t.surface, borderRadius: 18, borderWidth: 1, borderColor: t.border, overflow: 'hidden' },
     listHead: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, backgroundColor: t.surfaceAlt },
