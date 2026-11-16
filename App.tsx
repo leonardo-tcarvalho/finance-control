@@ -6,6 +6,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { exportBackup, pickBackup } from './src/backup';
 import CardModal, { CardValues } from './src/CardModal';
 import Drawer, { DrawerDivider, DrawerItem, DrawerSection } from './src/Drawer';
+import { PlusIcon, TrayArrow } from './src/Icons';
 import EntryModal, { EntryValues } from './src/EntryModal';
 import { committedOnCard, sortCardsByLimit, dueDate, filterRows, invoiceRows, isPaid, monthlySeries, spendByCategory, spendByPayment, spendOf } from './src/calc';
 import { applyEdit, buildEntries, groupOf } from './src/ops';
@@ -560,13 +561,13 @@ function Main() {
             />
           ))}
           {sortedCards.length === 0 && <Text style={s.drawerEmpty}>Nenhum cartão cadastrado ainda.</Text>}
-          <DrawerItem icon="＋" label="Novo cartão" onPress={() => openCardForm(null)} />
+          <DrawerItem icon={<PlusIcon color={t.text} />} label="Novo cartão" onPress={() => openCardForm(null)} />
 
           <DrawerDivider />
           <DrawerSection title="Opções" />
           <DrawerItem icon={t.dark ? '☀️' : '🌙'} label={t.dark ? 'Tema claro' : 'Tema escuro'} onPress={toggleTheme} />
-          <DrawerItem icon="⬇" label="Exportar backup" onPress={() => { setMenuOpen(false); exportBackup(data).catch((e) => Alert.alert('Erro', String(e?.message ?? e))); }} />
-          <DrawerItem icon="⬆" label="Restaurar backup" onPress={() => { setMenuOpen(false); restore(); }} />
+          <DrawerItem icon={<TrayArrow dir="up" color={t.text} />} label="Exportar backup" onPress={() => { setMenuOpen(false); exportBackup(data).catch((e) => Alert.alert('Erro', String(e?.message ?? e))); }} />
+          <DrawerItem icon={<TrayArrow dir="down" color={t.text} />} label="Restaurar backup" onPress={() => { setMenuOpen(false); restore(); }} />
           <DrawerItem icon="🌐" label="Idioma" sub="Em breve" onPress={() => Alert.alert('Idioma', 'Escolher o idioma ainda não está disponível. Fica para uma próxima versão.')} />
         </Drawer>
 

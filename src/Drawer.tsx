@@ -63,7 +63,8 @@ export function DrawerSection({ title }: { title: string }) {
 }
 
 interface ItemProps {
-  icon: string;
+  /** an emoji, or any element (e.g. a drawn icon) */
+  icon: ReactNode;
   label: string;
   /** second line, smaller */
   sub?: string;
@@ -79,7 +80,7 @@ export function DrawerItem({ icon, label, sub, trailing, active, onPress }: Item
   const s = useMemo(() => makeStyles(t), [t]);
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [s.item, active && s.itemOn, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityState={{ selected: !!active }}>
-      <Text style={s.icon}>{icon}</Text>
+      {typeof icon === 'string' ? <Text style={s.icon}>{icon}</Text> : <View style={s.iconBox}>{icon}</View>}
       <View style={s.itemText}>
         <Text style={[s.label, active && s.labelOn]} numberOfLines={1}>
           {label}
@@ -115,6 +116,7 @@ const makeStyles = (t: Theme) =>
     item: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingVertical: 12, borderRadius: 12 },
     itemOn: { backgroundColor: t.primarySoft },
     icon: { fontSize: 18, width: 26, textAlign: 'center' },
+    iconBox: { width: 26, alignItems: 'center', justifyContent: 'center' },
     itemText: { flex: 1 },
     label: { fontSize: 15, fontWeight: '600', color: t.text },
     labelOn: { color: t.link, fontWeight: '800' },
