@@ -10,7 +10,7 @@ import EntryModal, { EntryValues } from './src/EntryModal';
 import { budgetStatus, committedOnCard, dueDate, filterRows, invoiceRows, isPaid, monthlySeries, spendByCategory, spendByPayment, spendOf } from './src/calc';
 import { applyEdit, buildEntries, groupOf } from './src/ops';
 import { loadData, saveData } from './src/storage';
-import { monthTotals, movedIntoPaidInvoice } from './src/status';
+import { isPending, monthTotals, movedIntoPaidInvoice, payKind } from './src/status';
 import Summary from './src/Summary';
 import { Theme, ThemeContext, darkTheme, lightTheme } from './src/theme';
 import { AppData, Card, DEFAULT_CATEGORIES, Transaction, emptyData, methodLabel } from './src/types';
@@ -177,6 +177,13 @@ function Main() {
     if (!data) return;
     const list = (card.paid ?? []).filter((m) => m !== month);
     persist({ ...data, cards: data.cards.map((c) => (c.id === card.id ? { ...c, paid: paid ? [...list, month] : list } : c)) });
+  };
+
+  /** Toggles a non-card, non-Pix expense between pending and paid. */
+  const togglePaid = (tx: Transaction) => {
+    if (!data || payKind(tx) !== 'other') return;
+    const paid = tx.paid === false; // pending -> paid; paid -> pending again
+    persist({ ...data, transactions: data.transactions.map((x) => (x.id === tx.id ? { ...x, paid } : x)) });
   };
 
   const removeCard = (card: Card, onDone?: () => void) => {
@@ -482,6 +489,8 @@ function Main() {
                 }
                 renderItem={({ item }) => {
                   const card = item.cardId ? data.cards.find((c) => c.id === item.cardId) : undefined;
+                  const kind = payKind(item);
+                  const pending = isPending(item, data.cards);
                   const parts = [
                     item.description ? { k: 'cat', text: item.category, color: t.textMuted } : null,
                     card ? { k: 'card', text: `💳 ${card.name}`, color: t.link } : null,
@@ -489,9 +498,28 @@ function Main() {
                     !card && item.method ? { k: 'method', text: methodLabel(item.method), color: t.textMuted } : null,
                     item.installment ? { k: 'inst', text: `Parcela ${item.installment.n}/${item.installment.of}`, color: t.amber } : null,
                     item.recurring ? { k: 'rec', text: `Recorrente ${item.recurring.n}/${item.recurring.of}`, color: t.amber } : null,
+                    kind === 'other' && pending ? { k: 'pend', text: 'Pendente', color: t.amber } : null,
                   ].filter((x): x is { k: string; text: string; color: string } => x !== null);
                   return (
-                    <Pressable onPress={() => setEntryForm({ tx: item })} onLongPress={() => remove(item)} style={({ pressed }) => [s.row, pressed && { backgroundColor: t.surfaceAlt }]}>
+                    <Pressable
+                      onPress={() => setEntryForm({ tx: item })}
+                      onLongPress={() => remove(item)}
+                      style={({ pressed }) => [s.row, pressed && { backgroundColor: t.surfaceAlt }]}
+                    >
+                      {kind === 'other' ? (
+                        <Pressable
+                          onPress={() => togglePaid(item)}
+                          hitSlop={10}
+                          style={[s.check, !pending && s.checkOn]}
+                          accessibilityRole="checkbox"
+                          accessibilityState={{ checked: !pending }}
+                          accessibilityLabel={pending ? 'Marcar como pago' : 'Marcar como pendente'}
+                        >
+                          {!pending && <Text style={s.checkMark}>✓</Text>}
+                        </Pressable>
+                      ) : (
+                        <View style={s.checkSpace} />
+                      )}
                       <Text style={s.rowDate}>{shortDate(item.date)}</Text>
                       <View style={s.flex1}>
                         <Text style={s.rowTitle} numberOfLines={1}>
@@ -532,7 +560,7 @@ function Main() {
           </View>
           </>
         )}
-        {!inSummary && <Text style={s.hint}>Toque numa linha para editar · segure para excluir</Text>}
+        {!inSummary && <Text style={s.hint}>Toque para editar · segure para excluir · a bolinha marca como pago</Text>}
 
         <View style={s.footer}>
           <Pressable style={[s.footBtn, s.bRight]} onPress={() => exportBackup(data).catch((e) => Alert.alert('Erro', String(e?.message ?? e)))}>
@@ -646,6 +674,10 @@ const makeStyles = (t: Theme) =>
     listHead: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, backgroundColor: t.surfaceAlt },
     th: { fontSize: 10, fontWeight: '800', color: t.textMuted, letterSpacing: 0.6 },
     row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth * 2, borderBottomColor: t.border },
+    check: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: t.amber, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+    checkOn: { backgroundColor: t.greenStrong, borderColor: t.greenStrong },
+    checkMark: { color: '#fff', fontSize: 13, fontWeight: '900', marginTop: -1 },
+    checkSpace: { width: 34 },
     rowDate: { width: 48, fontSize: 12, fontWeight: '600', color: t.textMuted },
     rowTitle: { fontSize: 15, fontWeight: '600', color: t.text },
     rowSub: { fontSize: 11, marginTop: 2, color: t.textMuted },
