@@ -8,11 +8,10 @@ import { centsToField, parseMoneyToCents } from './utils';
 
 export interface CardValues {
   name: string;
-  /** null = no limit set */
-  limitCents: number | null;
-  /** null = not informed */
-  closingDay: number | null;
-  dueDay: number | null;
+  limitCents: number;
+  /** day of the month, 1 to 31 */
+  closingDay: number;
+  dueDay: number;
 }
 
 interface Props {
@@ -47,25 +46,16 @@ export default function CardModal({ visible, card, onClose, onSave, onDelete }: 
   const submit = () => {
     const trimmed = name.trim();
     if (!trimmed) return Alert.alert('Nome do cartão', 'Informe um nome para o cartão.');
-    let limitCents: number | null = null;
-    if (limit.trim() !== '') {
-      const cents = parseMoneyToCents(limit);
-      if (!Number.isFinite(cents) || cents <= 0) return Alert.alert('Limite inválido', 'Informe um valor maior que zero, ou deixe em branco.');
-      limitCents = cents;
-    }
-    const day = (text: string, label: string): number | null | undefined => {
-      if (text.trim() === '') return null;
+    const limitCents = parseMoneyToCents(limit);
+    if (!Number.isFinite(limitCents) || limitCents <= 0) return Alert.alert('Limite obrigatório', 'Informe o limite do cartão, um valor maior que zero.');
+    const day = (text: string): number | null => {
       const n = Number(text);
-      if (!Number.isInteger(n) || n < 1 || n > 31) {
-        Alert.alert(`${label} inválido`, 'Informe um dia do mês entre 1 e 31, ou deixe em branco.');
-        return undefined;
-      }
-      return n;
+      return text.trim() !== '' && Number.isInteger(n) && n >= 1 && n <= 31 ? n : null;
     };
-    const closingDay = day(closing, 'Dia de fechamento');
-    if (closingDay === undefined) return;
-    const dueDay = day(due, 'Dia de vencimento');
-    if (dueDay === undefined) return;
+    const closingDay = day(closing);
+    if (closingDay === null) return Alert.alert('Fechamento obrigatório', 'Informe o dia do mês em que a fatura fecha (de 1 a 31).');
+    const dueDay = day(due);
+    if (dueDay === null) return Alert.alert('Vencimento obrigatório', 'Informe o dia do mês em que a fatura vence (de 1 a 31).');
     if (onSave({ name: trimmed, limitCents, closingDay, dueDay })) onClose();
   };
 
@@ -87,14 +77,14 @@ export default function CardModal({ visible, card, onClose, onSave, onDelete }: 
       }
     >
       <Field label="Nome do cartão" placeholder="Ex.: Nubank, Itaú, Riachuelo…" value={name} onChangeText={setName} autoFocus={!card} />
-      <Field label="Limite (opcional)" prefix="R$" placeholder="0,00" keyboardType="decimal-pad" value={limit} onChangeText={setLimit} big />
-      <Text style={s.help}>Com o limite informado, a aba do cartão mostra quanto ainda está disponível.</Text>
+      <Field label="Limite" prefix="R$" placeholder="0,00" keyboardType="decimal-pad" value={limit} onChangeText={setLimit} big />
+      <Text style={s.help}>Usado para mostrar quanto ainda está disponível no cartão.</Text>
 
       <View style={s.daysRow}>
         <Field label="Fecha no dia" placeholder="Ex.: 10" keyboardType="number-pad" maxLength={2} value={closing} onChangeText={(v) => setClosing(v.replace(/\D/g, ''))} style={{ flex: 1 }} />
         <Field label="Vence no dia" placeholder="Ex.: 17" keyboardType="number-pad" maxLength={2} value={due} onChangeText={(v) => setDue(v.replace(/\D/g, ''))} style={{ flex: 1 }} />
       </View>
-      <Text style={s.help}>Compras depois do dia de fechamento entram na fatura seguinte. Sem o dia, a fatura é o mês do calendário.</Text>
+      <Text style={s.help}>Compras feitas depois do dia de fechamento entram na fatura seguinte. O vencimento define quando a fatura fica vencida.</Text>
 
       {card && onDelete && (
         <Pressable onPress={onDelete} style={s.delete}>

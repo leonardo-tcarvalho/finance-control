@@ -30,7 +30,7 @@ function Main() {
   const [query, setQuery] = useState('');
   const [catFilter, setCatFilter] = useState<string | null>(null);
   const [entryForm, setEntryForm] = useState<{ tx: Transaction | null } | null>(null); // null = closed; tx null = new entry
-  const [cardForm, setCardForm] = useState<{ card: Card | null } | null>(null); // null = closed; card null = new
+  const [cardForm, setCardForm] = useState<{ card: Card | null; onCreated?: (id: string) => void } | null>(null); // null = closed; card null = new
   const queue = useRef<Promise<unknown>>(Promise.resolve());
 
   // theme: the saved choice wins, otherwise follow the device
@@ -135,32 +135,20 @@ function Main() {
     return true;
   };
 
-  /** Creates the card, or returns the id of an existing one with the same name. */
-  const createCard = (name: string): string | null => {
-    if (!data) return null;
-    const existing = data.cards.find((c) => c.name.toLowerCase() === name.toLowerCase());
-    if (existing) return existing.id;
-    const card: Card = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name };
-    persist({ ...data, cards: [...data.cards, card] });
-    return card.id;
-  };
-
   /** Registers a new card or updates the one being edited. Returns true when saved. */
-  const saveCard = (v: CardValues, editing: Card | null): boolean => {
+  const saveCard = (v: CardValues, editing: Card | null, onCreated?: (id: string) => void): boolean => {
     if (!data) return false;
     if (data.cards.some((c) => c.id !== editing?.id && c.name.toLowerCase() === v.name.toLowerCase())) {
       Alert.alert('Cartão repetido', `Já existe um cartão chamado "${v.name}".`);
       return false;
     }
-    const limitCents = v.limitCents ?? undefined;
-    const closingDay = v.closingDay ?? undefined;
-    const dueDay = v.dueDay ?? undefined;
+    const { limitCents, closingDay, dueDay } = v;
     if (editing) {
       persist({ ...data, cards: data.cards.map((c) => (c.id === editing.id ? { ...c, name: v.name, limitCents, closingDay, dueDay } : c)) });
     } else {
       const card: Card = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name: v.name, limitCents, closingDay, dueDay };
       persist({ ...data, cards: [...data.cards, card] });
-      setTab(card.id);
+      onCreated?.(card.id);
     }
     return true;
   };
@@ -568,7 +556,7 @@ function Main() {
           visible={cardForm !== null}
           card={cardForm?.card ?? null}
           onClose={() => setCardForm(null)}
-          onSave={(v) => saveCard(v, cardForm?.card ?? null)}
+          onSave={(v) => saveCard(v, cardForm?.card ?? null, (id) => (cardForm?.onCreated ? cardForm.onCreated(id) : setTab(id)))}
           onDelete={cardForm?.card ? () => removeCard(cardForm.card!, () => setCardForm(null)) : undefined}
         />
         <EntryModal
@@ -582,7 +570,7 @@ function Main() {
           onDelete={entryForm?.tx ? () => remove(entryForm.tx!, () => setEntryForm(null)) : undefined}
           onClose={() => setEntryForm(null)}
           onSubmit={(v) => saveEntry(v, entryForm?.tx ?? null)}
-          onCreateCard={createCard}
+          onNewCard={(onCreated) => setCardForm({ card: null, onCreated })}
           onRemoveCard={removeCard}
         />
       </SafeAreaView>

@@ -39,12 +39,12 @@ interface Props {
   onClose: () => void;
   /** returns true when the entry was accepted (the popup then closes) */
   onSubmit: (v: EntryValues) => boolean;
-  /** creates the card (or finds the existing one) and returns its id */
-  onCreateCard: (name: string) => string | null;
+  /** opens the full card form (limit, closing and due day are required); the new card's id comes back through `onCreated` */
+  onNewCard: (onCreated: (id: string) => void) => void;
   onRemoveCard: (card: Card) => void;
 }
 
-export default function EntryModal({ visible, cards, categories, onAddCategory, onRemoveCategory, lockedCard: pinned, editing, onDelete, onClose, onSubmit, onCreateCard, onRemoveCard }: Props) {
+export default function EntryModal({ visible, cards, categories, onAddCategory, onRemoveCategory, lockedCard: pinned, editing, onDelete, onClose, onSubmit, onNewCard, onRemoveCard }: Props) {
   // a pinned card only applies to new entries; editing shows every control so the card can be changed
   const lockedCard = editing ? null : pinned;
   const inst = editing?.installment ?? editing?.recurring;
@@ -61,7 +61,6 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
   const [times, setTimes] = useState('');
   const [cardId, setCardId] = useState<string | null>(null);
   const [method, setMethod] = useState<Method | null>(null);
-  const [newCard, setNewCard] = useState<string | null>(null); // null = not typing a new card
 
   // every time the popup opens it starts clean (and pinned to the card tab, if any)
   useEffect(() => {
@@ -78,7 +77,6 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
       setTimes('');
       setCardId(editing.cardId ?? null);
       setMethod(editing.method ?? null);
-      setNewCard(null);
       return;
     }
     setType('expense');
@@ -92,7 +90,6 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
     setTimes('');
     setCardId(lockedCard?.id ?? null);
     setMethod(null);
-    setNewCard(null);
   }, [visible, lockedCard?.id, editing?.id]);
 
   const startDate = parseDateBR(dateText) ?? today();
@@ -113,18 +110,6 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
   const selectedMethod = selectedCard ? null : method;
   // the vencimento is asked only for expenses that are neither on a card (its invoice decides) nor Pix (paid at once)
   const showDue = type === 'expense' && !lockedCard && !selectedCard && selectedMethod !== 'pix';
-
-  const createCard = () => {
-    const name = (newCard ?? '').trim();
-    if (name) {
-      const id = onCreateCard(name);
-      if (id) {
-        setCardId(id);
-        setMethod(null);
-      }
-    }
-    setNewCard(null);
-  };
 
   const createCategory = () => {
     const name = (newCategory ?? '').trim();
@@ -338,27 +323,17 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
                 <Text style={[s.chipText, selectedCard === c.id && s.chipTextOn]}>💳 {c.name}</Text>
               </Pressable>
             ))}
-            {newCard === null ? (
-              <Pressable onPress={() => setNewCard('')} style={[s.chip, { borderColor: t.link, borderStyle: 'dashed' }]}>
-                <Text style={[s.chipText, { color: t.link, fontWeight: '700' }]}>+ Novo cartão</Text>
-              </Pressable>
-            ) : (
-              <View style={s.newCardBox}>
-                <TextInput
-                  autoFocus
-                  style={s.newCardInput}
-                  placeholder="Nome do cartão"
-                  placeholderTextColor={t.textFaint}
-                  value={newCard}
-                  onChangeText={setNewCard}
-                  onSubmitEditing={createCard}
-                  returnKeyType="done"
-                />
-                <Pressable onPress={createCard} hitSlop={8}>
-                  <Text style={{ color: t.link, fontWeight: '800' }}>OK</Text>
-                </Pressable>
-              </View>
-            )}
+            <Pressable
+              onPress={() =>
+                onNewCard((id) => {
+                  setCardId(id);
+                  setMethod(null);
+                })
+              }
+              style={[s.chip, { borderColor: t.link, borderStyle: 'dashed' }]}
+            >
+              <Text style={[s.chipText, { color: t.link, fontWeight: '700' }]}>+ Novo cartão</Text>
+            </Pressable>
           </ScrollView>
           {cards.length > 0 && <Text style={s.help}>Segure um cartão para removê-lo.</Text>}
         </View>
