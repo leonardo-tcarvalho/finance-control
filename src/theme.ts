@@ -24,6 +24,7 @@ export interface Theme {
   redSoft: string;
   amber: string; // installments, warnings
   amberSoft: string;
+  pendingSoft: string; // very light orange, pending rows
   focusBg: string; // focused input background
   overlay: string; // popup backdrop
 }
@@ -51,6 +52,7 @@ export const lightTheme: Theme = {
   redSoft: '#fdeaea',
   amber: '#b45309',
   amberSoft: '#fffbeb',
+  pendingSoft: '#fff3e2',
   focusBg: '#f5f6ff',
   overlay: 'rgba(15,23,42,0.5)',
 };
@@ -78,6 +80,7 @@ export const darkTheme: Theme = {
   redSoft: '#3a1519',
   amber: '#fbbf24',
   amberSoft: '#2a2208',
+  pendingSoft: '#33230d',
   focusBg: '#17214a',
   overlay: 'rgba(0,0,0,0.65)',
 };

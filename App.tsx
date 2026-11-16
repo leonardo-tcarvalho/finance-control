@@ -470,6 +470,8 @@ function Main() {
                   const pending = isPending(item, data.cards);
                   const overdue = isOverdue(item, data.cards, today());
                   const due = dueOf(item, data.cards);
+                  // income and refunds carry no status; every expense is paid, pending or overdue
+                  const status = kind === 'none' ? null : overdue ? 'overdue' : pending ? 'pending' : 'paid';
                   const parts = [
                     item.description ? { k: 'cat', text: item.category, color: t.textMuted } : null,
                     card ? { k: 'card', text: `💳 ${card.name}`, color: t.link } : null,
@@ -477,15 +479,16 @@ function Main() {
                     !card && item.method ? { k: 'method', text: methodLabel(item.method), color: t.textMuted } : null,
                     item.installment ? { k: 'inst', text: `Parcela ${item.installment.n}/${item.installment.of}`, color: t.amber } : null,
                     item.recurring ? { k: 'rec', text: `Recorrente ${item.recurring.n}/${item.recurring.of}`, color: t.amber } : null,
-                    overdue ? { k: 'over', text: 'Vencido', color: t.red } : kind === 'other' && pending ? { k: 'pend', text: 'Pendente', color: t.amber } : null,
-                    kind === 'other' && pending && due ? { k: 'due', text: `vence ${shortDate(due)}`, color: overdue ? t.red : t.textMuted } : null,
+                    status === 'overdue' ? { k: 'status', text: 'Vencido', color: t.red } : status === 'pending' ? { k: 'status', text: 'Pendente', color: t.amber } : status === 'paid' ? { k: 'status', text: 'Pago', color: t.green } : null,
+                    pending && due ? { k: 'due', text: `vence ${shortDate(due)}`, color: overdue ? t.red : t.textMuted } : null,
                   ].filter((x): x is { k: string; text: string; color: string } => x !== null);
                   return (
                     <Pressable
                       onPress={() => setEntryForm({ tx: item })}
                       onLongPress={() => remove(item)}
-                      style={({ pressed }) => [s.row, overdue && s.rowOverdue, pressed && { backgroundColor: t.surfaceAlt }]}
+                      style={({ pressed }) => [s.row, status === 'paid' && s.rowPaid, status === 'pending' && s.rowPending, status === 'overdue' && s.rowOverdue, pressed && { opacity: 0.7 }]}
                     >
+                      {status === 'overdue' && <View style={s.rowBar} />}
                       {kind === 'other' ? (
                         <Pressable
                           onPress={() => togglePaid(item)}
@@ -677,7 +680,10 @@ const makeStyles = (t: Theme) =>
     listHead: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, backgroundColor: t.surfaceAlt },
     th: { fontSize: 10, fontWeight: '800', color: t.textMuted, letterSpacing: 0.6 },
     row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth * 2, borderBottomColor: t.border },
-    rowOverdue: { backgroundColor: t.redSoft, borderLeftWidth: 4, borderLeftColor: t.red, paddingLeft: 10 },
+    rowPaid: { backgroundColor: t.greenSoft },
+    rowPending: { backgroundColor: t.pendingSoft },
+    rowOverdue: { backgroundColor: t.redSoft },
+    rowBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, backgroundColor: t.red },
     check: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: t.amber, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
     checkOn: { backgroundColor: t.greenStrong, borderColor: t.greenStrong },
     checkOver: { borderColor: t.red },
