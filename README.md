@@ -8,6 +8,15 @@ App mobile (React Native + Expo, Android e iOS) de controle de gastos.
 2. **100% local**: sem API, sem servidor, sem conta. Todos os dados ficam no dispositivo.
 3. **Os dados vivem em um arquivo JSON**, e o app deve garantir que **o usuário nunca perca seus dados**.
 
+## Baixar o app (Android)
+
+O APK da versão atual fica nas [Releases](https://github.com/leonardo-tcarvalho/finance-control/releases/latest) do repositório: baixe o arquivo `Controle-de-Gastos-v1.0.0.apk` e instale no celular.
+
+- Ao abrir o arquivo, o Android pede para liberar a instalação de "fontes desconhecidas" para o navegador ou app de arquivos usado. É normal para um app fora da Play Store.
+- Uma versão nova instala por cima da anterior e mantém os dados, porque todas usam a mesma chave de assinatura.
+- Os dados ficam só no aparelho. Use **Exportar backup** no menu antes de desinstalar ou trocar de celular.
+- iOS: ainda não há versão instalável. Dá para testar pelo Expo Go (`npx expo start`).
+
 ## O que o app faz
 
 - **Principal:** Receitas, Gastos e Saldo do mês, lista de lançamentos com busca e filtro por categoria, aviso de vencidos.
