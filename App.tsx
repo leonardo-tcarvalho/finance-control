@@ -194,6 +194,19 @@ function Main() {
   const tabRows = useMemo(() => (activeCard ? rows.filter((x) => x.cardId === activeCard.id) : rows), [rows, activeCard]);
   const cardSpend = tabRows.reduce((sum, x) => (x.type === 'expense' ? sum + x.amountCents : sum), 0);
 
+  // Limit usage. The app has no notion of "paid", so everything from the current month on counts as
+  // committed (future installments included); invoices of past months are assumed to be paid.
+  const limit = useMemo(() => {
+    if (!activeCard?.limitCents || !data) return null;
+    const from = today().slice(0, 7);
+    const used = data.transactions.reduce(
+      (sum, x) => (x.type === 'expense' && x.cardId === activeCard.id && x.date.slice(0, 7) >= from ? sum + x.amountCents : sum),
+      0,
+    );
+    const total = activeCard.limitCents;
+    return { total, used, available: total - used, pct: Math.max(0, Math.min(1, used / total)) };
+  }, [data, activeCard]);
+
   if (!data)
     return (
       <SafeAreaView style={s.center}>
@@ -241,9 +254,30 @@ function Main() {
 
         {/* Resumo em cartões */}
         {onCard ? (
-          <View key="card-summary" style={s.stats}>
-            <Stat s={s} label="Fatura do mês" value={brl(cardSpend)} color={t.red} flex={2} />
-            <Stat s={s} label="Lançamentos" value={String(tabRows.length)} color={t.text} />
+          <View key="card-summary">
+            <View style={s.stats}>
+              <Stat s={s} label="Fatura do mês" value={brl(cardSpend)} color={t.red} />
+              {limit ? (
+                <Stat s={s} label="Limite disponível" value={brl(limit.available)} color={limit.available < 0 ? t.red : limit.pct > 0.8 ? t.amber : t.green} />
+              ) : (
+                <Stat s={s} label="Lançamentos" value={String(tabRows.length)} color={t.text} />
+              )}
+            </View>
+            {limit ? (
+              <View style={s.limitBox}>
+                <View style={s.barTrack}>
+                  <View style={[s.barFill, { width: `${Math.round(limit.pct * 100)}%`, backgroundColor: limit.available < 0 ? t.red : limit.pct > 0.8 ? t.amber : t.primary }]} />
+                </View>
+                <Text style={s.limitText}>
+                  {brl(limit.used)} comprometidos de {brl(limit.total)} · {Math.round(limit.pct * 100)}%
+                </Text>
+                <Text style={s.limitNote}>Conta parcelas futuras. Faturas de meses anteriores são consideradas pagas.</Text>
+              </View>
+            ) : (
+              <Pressable onPress={() => setCardForm({ card: activeCard })} style={s.limitBox} hitSlop={6}>
+                <Text style={s.limitNote}>Sem limite cadastrado. Toque para informar e ver o limite disponível.</Text>
+              </Pressable>
+            )}
           </View>
         ) : (
           <View key="all-summary" style={s.stats}>
@@ -282,8 +316,8 @@ function Main() {
                 const card = item.cardId ? data.cards.find((c) => c.id === item.cardId) : undefined;
                 const parts = [
                   item.description ? { k: 'cat', text: item.category, color: t.textMuted } : null,
-                  card ? { k: 'card', text: `💳 ${card.name}`, color: t.link } : null,
-                  item.installment ? { k: 'inst', text: `Parcela ${item.installment.n}/${item.installment.of}`, color: t.amber } : null,
+                  card ? { k: 'card', text: `💳 ${card.name}`, color: t.link } : null,
+                  item.installment ? { k: 'inst', text: `Parcela ${item.installment.n}/${item.installment.of}`, color: t.amber } : null,
                 ].filter((x): x is { k: string; text: string; color: string } => x !== null);
                 return (
                   <Pressable onLongPress={() => remove(item)} style={({ pressed }) => [s.row, pressed && { backgroundColor: t.surfaceAlt }]}>
@@ -293,7 +327,7 @@ function Main() {
                         {item.description || item.category}
                       </Text>
                       {parts.length > 0 && (
-                        <Text style={s.rowSub} numberOfLines={1}>
+                        <Text style={s.rowSub} numberOfLines={2}>
                           {parts.map((x, i) => (
                             <Text key={x.k} style={{ color: x.color }}>
                               {i > 0 ? '  ·  ' : ''}
@@ -398,6 +432,11 @@ const makeStyles = (t: Theme) =>
     statLabel: { fontSize: 11, fontWeight: '700', color: t.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
     statValue: { fontSize: 16, fontWeight: '800', marginTop: 4 },
 
+    limitBox: { paddingHorizontal: 16, marginTop: 10 },
+    barTrack: { height: 8, borderRadius: 4, backgroundColor: t.surfaceAlt, overflow: 'hidden' },
+    barFill: { height: 8, borderRadius: 4 },
+    limitText: { fontSize: 12, fontWeight: '700', color: t.text, marginTop: 6 },
+    limitNote: { fontSize: 11, color: t.textMuted, marginTop: 2, lineHeight: 15 },
     editRow: { alignSelf: 'flex-end', paddingHorizontal: 16, paddingTop: 8 },
     editLink: { fontSize: 12, fontWeight: '700', color: t.link },
 
