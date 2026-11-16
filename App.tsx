@@ -4,7 +4,7 @@ import { Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, ScrollView,
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { exportBackup, pickBackup } from './src/backup';
 import { loadData, saveData } from './src/storage';
-import { AppData, CATEGORIES, Transaction, TxType, emptyData } from './src/types';
+import { AppData, CATEGORIES, Card, Transaction, TxType, emptyData } from './src/types';
 
 const GREEN = '#15803d';
 const RED = '#b91c1c';
@@ -13,7 +13,7 @@ const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Jul
 const brl = (cents: number) => (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const today = () => new Date().toISOString().slice(0, 10);
 const shortDate = (iso: string) => iso.slice(8, 10) + '/' + iso.slice(5, 7);
-const monthLabel = (key: string) => `${MONTHS[Number(key.slice(5, 7)) - 1]} ${key.slice(0, 4)}`;
+const monthLabel =(key: string) => `${MONTHS[Number(key.slice(5, 7)) - 1]} ${key.slice(0, 4)}`;
 const shiftMonth = (key: string, delta: number) => {
   const d = new Date(Number(key.slice(0, 4)), Number(key.slice(5, 7)) - 1 + delta, 1);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -34,6 +34,8 @@ function Main() {
   const [amount, setAmount] = useState('');
   const [desc, setDesc] = useState('');
   const [category, setCategory] = useState(CATEGORIES[0]);
+  const [cardId, setCardId] = useState<string | null>(null);
+  const [newCard, setNewCard] = useState<string | null>(null); // null = not typing a new card
   const queue = useRef<Promise<unknown>>(Promise.resolve());
 
   useEffect(() => {
@@ -58,12 +60,44 @@ function Main() {
       category,
       description: desc.trim(),
       date: today(),
+      cardId: type === 'expense' ? cardId ?? undefined : undefined,
       createdAt: new Date().toISOString(),
     };
     persist({ ...data, transactions: [tx, ...data.transactions] });
     setAmount('');
     setDesc('');
     setMonth(today().slice(0, 7)); // jump to the month where the new row lives
+  };
+
+  const addCard = () => {
+    const name = (newCard ?? '').trim();
+    if (!data || !name) return setNewCard(null);
+    const existing = data.cards.find((c) => c.name.toLowerCase() === name.toLowerCase());
+    if (existing) {
+      setCardId(existing.id);
+    } else {
+      const card: Card = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name };
+      persist({ ...data, cards: [...data.cards, card] });
+      setCardId(card.id);
+    }
+    setNewCard(null);
+  };
+
+  const removeCard = (card: Card) => {
+    if (!data) return;
+    if (data.transactions.some((t) => t.cardId === card.id))
+      return Alert.alert('Cartão em uso', `"${card.name}" tem lançamentos e não pode ser removido.`);
+    Alert.alert(`Remover "${card.name}"?`, undefined, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Remover',
+        style: 'destructive',
+        onPress: () => {
+          persist({ ...data, cards: data.cards.filter((c) => c.id !== card.id) });
+          if (cardId === card.id) setCardId(null);
+        },
+      },
+    ]);
   };
 
   const remove = (id: string) =>
@@ -108,6 +142,21 @@ function Main() {
     rows.forEach((t) => (t.type === 'income' ? (income += t.amountCents) : (expense += t.amountCents)));
     return { income, expense, balance: income - expense };
   }, [rows]);
+
+  // spending per card for the selected month (expenses only)
+  const cardTotals = useMemo(() => {
+    const byId = new Map<string, { count: number; cents: number }>();
+    rows.forEach((t) => {
+      if (t.type !== 'expense') return;
+      const key = t.cardId ?? '';
+      const cur = byId.get(key) ?? { count: 0, cents: 0 };
+      byId.set(key, { count: cur.count + 1, cents: cur.cents + t.amountCents });
+    });
+    const list = (data?.cards ?? []).map((c) => ({ key: c.id, name: c.name, ...(byId.get(c.id) ?? { count: 0, cents: 0 }) }));
+    const none = byId.get('');
+    if (none) list.push({ key: '', name: 'Sem cartão', ...none });
+    return list;
+  }, [rows, data]);
 
   if (!data)
     return (
@@ -182,6 +231,42 @@ function Main() {
               ))}
             </ScrollView>
           </View>
+          {type === 'expense' && (
+            <View style={[s.inputBox, { paddingBottom: 6 }]}>
+              <Text style={s.inputLabel}>CARTÃO (segure para remover)</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: 4, alignItems: 'center' }}>
+                <Pressable onPress={() => setCardId(null)} style={[s.chip, cardId === null && s.chipOn]}>
+                  <Text style={[s.chipText, cardId === null && s.chipTextOn]}>Nenhum</Text>
+                </Pressable>
+                {data.cards.map((c) => (
+                  <Pressable key={c.id} onPress={() => setCardId(c.id)} onLongPress={() => removeCard(c)} style={[s.chip, cardId === c.id && s.chipOn]}>
+                    <Text style={[s.chipText, cardId === c.id && s.chipTextOn]}>{c.name}</Text>
+                  </Pressable>
+                ))}
+                {newCard === null ? (
+                  <Pressable onPress={() => setNewCard('')} style={[s.chip, s.chipNew]}>
+                    <Text style={[s.chipText, { color: '#2563eb', fontWeight: '700' }]}>+ Novo cartão</Text>
+                  </Pressable>
+                ) : (
+                  <View style={s.newCardBox}>
+                    <TextInput
+                      autoFocus
+                      style={s.newCardInput}
+                      placeholder="Nome do cartão"
+                      placeholderTextColor="#94a3b8"
+                      value={newCard}
+                      onChangeText={setNewCard}
+                      onSubmitEditing={addCard}
+                      returnKeyType="done"
+                    />
+                    <Pressable onPress={addCard} hitSlop={6}>
+                      <Text style={[s.chipText, { color: '#2563eb', fontWeight: '800' }]}>OK</Text>
+                    </Pressable>
+                  </View>
+                )}
+              </ScrollView>
+            </View>
+          )}
           <Pressable style={s.add} onPress={add}>
             <Text style={s.addText}>+ Adicionar linha</Text>
           </Pressable>
@@ -209,9 +294,16 @@ function Main() {
                 <Text style={[s.cell, s.flex1, s.bRight]} numberOfLines={1}>
                   {item.description || '—'}
                 </Text>
-                <Text style={[s.cell, s.cCat, s.bRight, s.muted]} numberOfLines={1}>
-                  {item.category}
-                </Text>
+                <View style={[s.cCat, s.bRight, s.catCell]}>
+                  <Text style={[s.catText, s.muted]} numberOfLines={1}>
+                    {item.category}
+                  </Text>
+                  {item.cardId && (
+                    <Text style={s.cardText} numberOfLines={1}>
+                      💳 {data.cards.find((c) => c.id === item.cardId)?.name ?? '—'}
+                    </Text>
+                  )}
+                </View>
                 <Text style={[s.cell, s.cVal, s.right, s.bold, { color: item.type === 'income' ? GREEN : RED }]} numberOfLines={1}>
                   {item.type === 'income' ? '+' : '−'} {brl(item.amountCents)}
                 </Text>
@@ -227,6 +319,32 @@ function Main() {
           </View>
         </View>
         <Text style={s.hint}>Segure uma linha para excluir</Text>
+
+        {/* Gastos por cartão (mês selecionado) */}
+        <View style={[s.grid, { marginBottom: 10, maxHeight: 150 }]}>
+          <View style={[s.gridRow, s.headRow]}>
+            <Text style={[s.hCell, s.flex1, s.bRight]}>GASTOS POR CARTÃO</Text>
+            <Text style={[s.hCell, s.cCount, s.bRight]}>LANÇ.</Text>
+            <Text style={[s.hCell, s.cVal, s.right]}>TOTAL</Text>
+          </View>
+          <ScrollView>
+            {cardTotals.length === 0 ? (
+              <Text style={s.emptySmall}>Nenhum cartão cadastrado. Use “+ Novo cartão” no formulário.</Text>
+            ) : (
+              cardTotals.map((c, i) => (
+                <View key={c.key || 'none'} style={[s.gridRow, i % 2 === 1 && s.zebra]}>
+                  <Text style={[s.cell, s.flex1, s.bRight]} numberOfLines={1}>
+                    💳 {c.name}
+                  </Text>
+                  <Text style={[s.cell, s.cCount, s.bRight, s.muted, s.right]}>{c.count}</Text>
+                  <Text style={[s.cell, s.cVal, s.right, s.bold, { color: c.cents > 0 ? RED : '#94a3b8' }]} numberOfLines={1}>
+                    {brl(c.cents)}
+                  </Text>
+                </View>
+              ))
+            )}
+          </ScrollView>
+        </View>
 
         <View style={s.footer}>
           <Pressable style={[s.footBtn, s.bRight]} onPress={() => exportBackup(data).catch((e) => Alert.alert('Erro', String(e?.message ?? e)))}>
@@ -285,6 +403,14 @@ const s = StyleSheet.create({
   cDate: { width: 64 },
   cCat: { width: 92 },
   cVal: { width: 104 },
+  cCount: { width: 56 },
+  catCell: { paddingHorizontal: 8, paddingVertical: 6, justifyContent: 'center' },
+  catText: { fontSize: 13 },
+  cardText: { fontSize: 10, color: '#2563eb', fontWeight: '600', marginTop: 1 },
+  chipNew: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#2563eb' },
+  newCardBox: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: '#2563eb', borderRadius: 4, paddingHorizontal: 8, backgroundColor: '#fff' },
+  newCardInput: { minWidth: 120, fontSize: 13, paddingVertical: 3, color: '#0f172a' },
+  emptySmall: { textAlign: 'center', color: '#94a3b8', fontSize: 12, padding: 10 },
   empty: { textAlign: 'center', color: '#94a3b8', marginTop: 24, paddingHorizontal: 12 },
   totalRow: { backgroundColor: '#e2e8f0', borderTopWidth: 1, borderTopColor: '#94a3b8', borderBottomWidth: 0 },
   hint: { textAlign: 'center', fontSize: 11, color: '#94a3b8', paddingVertical: 4 },
