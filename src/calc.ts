@@ -1,4 +1,5 @@
 import { Transaction } from './types';
+import { shiftMonth } from './utils';
 
 /** How much a row adds to spending: an expense adds, a refund subtracts, income is not spending. */
 export const spendOf = (t: Transaction) => (t.type === 'expense' ? t.amountCents : t.type === 'refund' ? -t.amountCents : 0);
@@ -50,5 +51,47 @@ export function filterRows(rows: Transaction[], f: RowFilter, cardName: (id?: st
     if (!words.length) return true;
     const hay = fold([t.description, t.category, cardName(t.cardId), methodName(t.method)].join(' '));
     return words.every((w) => hay.includes(w));
+  });
+}
+
+export interface Slice {
+  label: string;
+  cents: number;
+}
+
+/** Net spending per category (refunds subtract), biggest first; categories that net to zero or less are left out. */
+export function spendByCategory(rows: Transaction[]): Slice[] {
+  const m = new Map<string, number>();
+  for (const t of rows) {
+    const v = spendOf(t);
+    if (v !== 0) m.set(t.category, (m.get(t.category) ?? 0) + v);
+  }
+  return Array.from(m, ([label, cents]) => ({ label, cents })).filter((s) => s.cents > 0).sort((a, b) => b.cents - a.cents);
+}
+
+/** Net spending per way of paying: the card name, the method label, or "Não informado". */
+export function spendByPayment(rows: Transaction[], cardName: (id?: string) => string, methodName: (m?: string) => string): Slice[] {
+  const m = new Map<string, number>();
+  for (const t of rows) {
+    const v = spendOf(t);
+    if (v === 0) continue;
+    const label = (t.cardId && cardName(t.cardId)) || (t.method && methodName(t.method)) || 'Não informado';
+    m.set(label, (m.get(label) ?? 0) + v);
+  }
+  return Array.from(m, ([label, cents]) => ({ label, cents })).filter((s) => s.cents > 0).sort((a, b) => b.cents - a.cents);
+}
+
+export interface MonthPoint {
+  month: string; // yyyy-mm
+  income: number;
+  expense: number;
+}
+
+/** Income and net spending for the `count` months ending at `endMonth` (oldest first). */
+export function monthlySeries(list: Transaction[], endMonth: string, count: number): MonthPoint[] {
+  const months = Array.from({ length: count }, (_, i) => shiftMonth(endMonth, i - (count - 1)));
+  return months.map((month) => {
+    const { income, expense } = totalsOf(list.filter((t) => t.date.startsWith(month)));
+    return { month, income, expense };
   });
 }
