@@ -6,13 +6,13 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { exportBackup, pickBackup } from './src/backup';
 import CardModal, { CardValues } from './src/CardModal';
 import EntryModal, { EntryValues } from './src/EntryModal';
-import { committedOnCard, filterRows, monthlySeries, spendByCategory, spendByPayment, spendOf, totalsOf } from './src/calc';
+import { committedOnCard, dueDate, filterRows, invoiceRows, isPaid, monthlySeries, spendByCategory, spendByPayment, spendOf, totalsOf } from './src/calc';
 import { applyEdit, buildEntries, groupOf } from './src/ops';
 import { loadData, saveData } from './src/storage';
 import Summary from './src/Summary';
 import { Theme, ThemeContext, darkTheme, lightTheme } from './src/theme';
 import { AppData, Card, DEFAULT_CATEGORIES, Transaction, emptyData, methodLabel } from './src/types';
-import { MAX_INSTALLMENTS, MAX_RECURRING, addMonths, brl, monthLabel, parseMoneyToCents, shiftMonth, shortDate, today } from './src/utils';
+import { MAX_INSTALLMENTS, MAX_RECURRING, addMonths, brl, formatDateBR, monthLabel, parseMoneyToCents, shiftMonth, shortDate, today } from './src/utils';
 
 export default function App() {
   return (
@@ -142,14 +142,23 @@ function Main() {
       return false;
     }
     const limitCents = v.limitCents ?? undefined;
+    const closingDay = v.closingDay ?? undefined;
+    const dueDay = v.dueDay ?? undefined;
     if (editing) {
-      persist({ ...data, cards: data.cards.map((c) => (c.id === editing.id ? { ...c, name: v.name, limitCents } : c)) });
+      persist({ ...data, cards: data.cards.map((c) => (c.id === editing.id ? { ...c, name: v.name, limitCents, closingDay, dueDay } : c)) });
     } else {
-      const card: Card = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name: v.name, limitCents };
+      const card: Card = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name: v.name, limitCents, closingDay, dueDay };
       persist({ ...data, cards: [...data.cards, card] });
       setTab(card.id);
     }
     return true;
+  };
+
+  /** Marks (or reopens) the invoice that closes in `month`. */
+  const setInvoicePaid = (card: Card, month: string, paid: boolean) => {
+    if (!data) return;
+    const list = (card.paid ?? []).filter((m) => m !== month);
+    persist({ ...data, cards: data.cards.map((c) => (c.id === card.id ? { ...c, paid: paid ? [...list, month] : list } : c)) });
   };
 
   const removeCard = (card: Card, onDone?: () => void) => {
@@ -231,7 +240,14 @@ function Main() {
   // active tab: falls back to "Geral" if its card is gone
   const activeCard = data?.cards.find((c) => c.id === tab) ?? null;
   const onCard = activeCard !== null;
-  const tabRows = useMemo(() => (activeCard ? rows.filter((x) => x.cardId === activeCard.id) : rows), [rows, activeCard]);
+  // a card tab lists the invoice that closes in the selected month; Geral lists the calendar month
+  const tabRows = useMemo(
+    () =>
+      activeCard
+        ? invoiceRows(data?.transactions ?? [], activeCard, month).sort((a, b) => (a.date === b.date ? b.createdAt.localeCompare(a.createdAt) : b.date.localeCompare(a.date)))
+        : rows,
+    [rows, activeCard, data, month],
+  );
   const cardSpend = tabRows.reduce((sum, x) => sum + spendOf(x), 0);
 
   // search + category chip narrow only the list; the summary cards keep showing the whole month
@@ -250,10 +266,13 @@ function Main() {
   const shownTotals = totalsOf(shownRows);
   const byPayment = useMemo(() => spendByPayment(rows, cardNameOf, methodNameOf), [rows, data]);
 
+  const invoicePaid = !!activeCard && isPaid(activeCard, month);
+  const invoiceDue = activeCard ? dueDate(activeCard, month) : null;
+
   // Limit usage (see committedOnCard for what counts as committed).
   const limit = useMemo(() => {
     if (!activeCard?.limitCents || !data) return null;
-    const used = committedOnCard(data.transactions, activeCard.id, today());
+    const used = committedOnCard(data.transactions, activeCard, today());
     const total = activeCard.limitCents;
     return { total, used, available: total - used, pct: Math.max(0, Math.min(1, used / total)) };
   }, [data, activeCard]);
@@ -307,11 +326,27 @@ function Main() {
         {onCard ? (
           <View key="card-summary">
             <View style={s.stats}>
-              <Stat s={s} label="Fatura do mês" value={brl(cardSpend)} color={t.red} />
+              <Stat s={s} label={invoicePaid ? 'Fatura paga' : 'Fatura do mês'} value={brl(cardSpend)} color={invoicePaid ? t.textMuted : t.red} />
               {limit ? (
                 <Stat s={s} label="Limite disponível" value={brl(limit.available)} color={limit.available < 0 ? t.red : limit.pct > 0.8 ? t.amber : t.green} />
               ) : (
                 <Stat s={s} label="Lançamentos" value={String(tabRows.length)} color={t.text} />
+              )}
+            </View>
+            <View style={s.invoiceRow}>
+              <Text style={s.invoiceInfo} numberOfLines={2}>
+                {activeCard!.closingDay ? `Fecha dia ${activeCard!.closingDay}` : 'Fatura = mês do calendário'}
+                {invoiceDue ? ` · vence ${formatDateBR(invoiceDue).slice(0, 5)}` : ''}
+              </Text>
+              {tabRows.length > 0 && (
+                <Pressable
+                  onPress={() => setInvoicePaid(activeCard!, month, !invoicePaid)}
+                  style={[s.paidBtn, invoicePaid && s.paidBtnOn]}
+                  accessibilityRole="button"
+                  accessibilityLabel={invoicePaid ? 'Reabrir fatura' : 'Marcar fatura como paga'}
+                >
+                  <Text style={[s.paidBtnText, invoicePaid && s.paidBtnTextOn]}>{invoicePaid ? '✓ Paga · reabrir' : 'Marcar como paga'}</Text>
+                </Pressable>
               )}
             </View>
             {limit ? (
@@ -322,7 +357,7 @@ function Main() {
                 <Text style={s.limitText}>
                   {brl(limit.used)} comprometidos de {brl(limit.total)} · {Math.round(limit.pct * 100)}%
                 </Text>
-                <Text style={s.limitNote}>Conta parcelas futuras. Faturas de meses anteriores são consideradas pagas.</Text>
+                <Text style={s.limitNote}>Conta parcelas futuras e todas as faturas que ainda não foram marcadas como pagas.</Text>
               </View>
             ) : (
               <Pressable onPress={() => setCardForm({ card: activeCard })} style={s.limitBox} hitSlop={6}>
@@ -536,6 +571,12 @@ const makeStyles = (t: Theme) =>
     statLabel: { fontSize: 11, fontWeight: '700', color: t.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
     statValue: { fontSize: 16, fontWeight: '800', marginTop: 4 },
 
+    invoiceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: 16, marginTop: 10 },
+    invoiceInfo: { flex: 1, fontSize: 12, fontWeight: '600', color: t.textMuted },
+    paidBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, borderWidth: 1.5, borderColor: t.link },
+    paidBtnOn: { backgroundColor: t.greenSoft, borderColor: t.green },
+    paidBtnText: { fontSize: 12, fontWeight: '800', color: t.link },
+    paidBtnTextOn: { color: t.green },
     limitBox: { paddingHorizontal: 16, marginTop: 10 },
     barTrack: { height: 8, borderRadius: 4, backgroundColor: t.surfaceAlt, overflow: 'hidden' },
     barFill: { height: 8, borderRadius: 4 },

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import Field from './Field';
 import Sheet from './Sheet';
 import { Theme, useTheme } from './theme';
@@ -10,6 +10,9 @@ export interface CardValues {
   name: string;
   /** null = no limit set */
   limitCents: number | null;
+  /** null = not informed */
+  closingDay: number | null;
+  dueDay: number | null;
 }
 
 interface Props {
@@ -30,11 +33,15 @@ export default function CardModal({ visible, card, onClose, onSave, onDelete }: 
   const s = useMemo(() => makeStyles(t), [t]);
   const [name, setName] = useState('');
   const [limit, setLimit] = useState('');
+  const [closing, setClosing] = useState('');
+  const [due, setDue] = useState('');
 
   useEffect(() => {
     if (!visible) return;
     setName(card?.name ?? '');
     setLimit(toField(card?.limitCents));
+    setClosing(card?.closingDay ? String(card.closingDay) : '');
+    setDue(card?.dueDay ? String(card.dueDay) : '');
   }, [visible, card?.id]);
 
   const submit = () => {
@@ -46,7 +53,20 @@ export default function CardModal({ visible, card, onClose, onSave, onDelete }: 
       if (!Number.isFinite(cents) || cents <= 0) return Alert.alert('Limite inválido', 'Informe um valor maior que zero, ou deixe em branco.');
       limitCents = cents;
     }
-    if (onSave({ name: trimmed, limitCents })) onClose();
+    const day = (text: string, label: string): number | null | undefined => {
+      if (text.trim() === '') return null;
+      const n = Number(text);
+      if (!Number.isInteger(n) || n < 1 || n > 31) {
+        Alert.alert(`${label} inválido`, 'Informe um dia do mês entre 1 e 31, ou deixe em branco.');
+        return undefined;
+      }
+      return n;
+    };
+    const closingDay = day(closing, 'Dia de fechamento');
+    if (closingDay === undefined) return;
+    const dueDay = day(due, 'Dia de vencimento');
+    if (dueDay === undefined) return;
+    if (onSave({ name: trimmed, limitCents, closingDay, dueDay })) onClose();
   };
 
   return (
@@ -54,7 +74,7 @@ export default function CardModal({ visible, card, onClose, onSave, onDelete }: 
       visible={visible}
       title={card ? 'Editar cartão' : 'Novo cartão'}
       onClose={onClose}
-      dirty={name !== (card?.name ?? '') || limit !== toField(card?.limitCents)}
+      dirty={name !== (card?.name ?? '') || limit !== toField(card?.limitCents) || closing !== (card?.closingDay ? String(card.closingDay) : '') || due !== (card?.dueDay ? String(card.dueDay) : '')}
       footer={
         <>
           <Pressable onPress={onClose} style={[s.btn, s.btnGhost]}>
@@ -70,6 +90,12 @@ export default function CardModal({ visible, card, onClose, onSave, onDelete }: 
       <Field label="Limite (opcional)" prefix="R$" placeholder="0,00" keyboardType="decimal-pad" value={limit} onChangeText={setLimit} big />
       <Text style={s.help}>Com o limite informado, a aba do cartão mostra quanto ainda está disponível.</Text>
 
+      <View style={s.daysRow}>
+        <Field label="Fecha no dia" placeholder="Ex.: 10" keyboardType="number-pad" maxLength={2} value={closing} onChangeText={(v) => setClosing(v.replace(/\D/g, ''))} style={{ flex: 1 }} />
+        <Field label="Vence no dia" placeholder="Ex.: 17" keyboardType="number-pad" maxLength={2} value={due} onChangeText={(v) => setDue(v.replace(/\D/g, ''))} style={{ flex: 1 }} />
+      </View>
+      <Text style={s.help}>Compras depois do dia de fechamento entram na fatura seguinte. Sem o dia, a fatura é o mês do calendário.</Text>
+
       {card && onDelete && (
         <Pressable onPress={onDelete} style={s.delete}>
           <Text style={s.deleteText}>Remover este cartão</Text>
@@ -81,6 +107,7 @@ export default function CardModal({ visible, card, onClose, onSave, onDelete }: 
 
 const makeStyles = (t: Theme) =>
   StyleSheet.create({
+    daysRow: { flexDirection: 'row', gap: 10 },
     help: { fontSize: 12, color: t.textMuted, lineHeight: 17, marginTop: -4 },
     delete: { alignSelf: 'flex-start', paddingVertical: 6 },
     deleteText: { color: t.red, fontWeight: '700', fontSize: 14 },
