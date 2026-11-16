@@ -26,6 +26,7 @@ function Main() {
   const [installments, setInstallments] = useState(''); // empty = 1x (à vista)
   const [cardId, setCardId] = useState<string | null>(null);
   const [newCard, setNewCard] = useState<string | null>(null); // null = not typing a new card
+  const [tab, setTab] = useState('all'); // 'all' or a card id
   const queue = useRef<Promise<unknown>>(Promise.resolve());
 
   useEffect(() => {
@@ -40,6 +41,18 @@ function Main() {
       .catch((e) => Alert.alert('Erro ao salvar', String(e?.message ?? e)));
   }, []);
 
+  // a card tab pins the entry form to that card (expenses only); "Geral" frees it again
+  const selectTab = (id: string) => {
+    setTab(id);
+    setNewCard(null);
+    if (id === 'all') {
+      setCardId(null);
+    } else {
+      setType('expense');
+      setCardId(id);
+    }
+  };
+
   const add = () => {
     const cents = Math.round(parseFloat(amount.replace(',', '.')) * 100);
     if (!data || !Number.isFinite(cents) || cents <= 0) return Alert.alert('Valor inválido');
@@ -50,6 +63,8 @@ function Main() {
     const rest = cents - base * n; // leftover cents go to the first installment, so the sum is exact
     const groupId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const now = new Date().toISOString();
+    // never point at a card that no longer exists (e.g. after restoring a backup)
+    const cardOk = cardId && data.cards.some((c) => c.id === cardId) ? cardId : undefined;
     const created: Transaction[] = Array.from({ length: n }, (_, i) => ({
       id: `${groupId}-${i + 1}`,
       type,
@@ -57,7 +72,7 @@ function Main() {
       category,
       description: desc.trim(),
       date: addMonths(today(), i),
-      cardId: type === 'expense' ? cardId ?? undefined : undefined,
+      cardId: type === 'expense' ? cardOk : undefined,
       installment: n > 1 ? { n: i + 1, of: n, groupId } : undefined,
       createdAt: now,
     }));
@@ -167,6 +182,12 @@ function Main() {
     return list;
   }, [rows, data]);
 
+  // active tab: falls back to "Geral" if its card is gone
+  const activeCard = data?.cards.find((c) => c.id === tab) ?? null;
+  const onCard = activeCard !== null;
+  const tabRows = useMemo(() => (activeCard ? rows.filter((t) => t.cardId === activeCard.id) : rows), [rows, activeCard]);
+  const cardSpend = tabRows.reduce((sum, t) => (t.type === 'expense' ? sum + t.amountCents : sum), 0);
+
   const nInst = type === 'expense' ? Math.max(1, Math.floor(Number(installments) || 1)) : 1;
   const previewCents = Math.round(parseFloat(amount.replace(',', '.')) * 100);
 
@@ -195,34 +216,67 @@ function Main() {
           </View>
         </View>
 
-        {/* Resumo: 3 células lado a lado, rótulo em cima e valor embaixo */}
-        <View style={s.grid}>
-          <View style={s.gridRow}>
-            <Text style={[s.hCell, s.flex1, s.bRight]}>ENTRADAS</Text>
-            <Text style={[s.hCell, s.flex1, s.bRight]}>SAÍDAS</Text>
-            <Text style={[s.hCell, s.flex1]}>SALDO</Text>
-          </View>
-          <View style={s.gridRow}>
-            <Text style={[s.vCell, s.flex1, s.bRight, { color: GREEN }]}>{brl(totals.income)}</Text>
-            <Text style={[s.vCell, s.flex1, s.bRight, { color: RED }]}>{brl(totals.expense)}</Text>
-            <Text style={[s.vCell, s.flex1, { color: totals.balance >= 0 ? GREEN : RED }]}>{brl(totals.balance)}</Text>
-          </View>
+        {/* Menu de navegação: Geral + uma aba por cartão */}
+        <View style={s.tabBar}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            {[{ id: 'all', label: 'Geral' }, ...data.cards.map((c) => ({ id: c.id, label: `💳 ${c.name}` }))].map((t) => {
+              const on = (activeCard?.id ?? 'all') === t.id;
+              return (
+                <Pressable key={t.id} onPress={() => selectTab(t.id)} style={[s.tab, on && s.tabOn]}>
+                  <Text style={[s.tabText, on && s.tabTextOn]} numberOfLines={1}>
+                    {t.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        {/* Resumo: células lado a lado, rótulo em cima e valor embaixo */}
+        <View style={[s.grid, { marginTop: 10 }]}>
+          {onCard ? (
+            <View key="card-summary">
+              <View style={s.gridRow}>
+                <Text style={[s.hCell, s.flex1, s.bRight]}>FATURA DO MÊS</Text>
+                <Text style={[s.hCell, s.cCount, { width: 120 }]}>LANÇAMENTOS</Text>
+              </View>
+              <View style={s.gridRow}>
+                <Text style={[s.vCell, s.flex1, s.bRight, { color: RED }]}>{brl(cardSpend)}</Text>
+                <Text style={[s.vCell, { width: 120 }]}>{tabRows.length}</Text>
+              </View>
+            </View>
+          ) : (
+            <View key="all-summary">
+              <View style={s.gridRow}>
+                <Text style={[s.hCell, s.flex1, s.bRight]}>ENTRADAS</Text>
+                <Text style={[s.hCell, s.flex1, s.bRight]}>SAÍDAS</Text>
+                <Text style={[s.hCell, s.flex1]}>SALDO</Text>
+              </View>
+              <View style={s.gridRow}>
+                <Text style={[s.vCell, s.flex1, s.bRight, { color: GREEN }]}>{brl(totals.income)}</Text>
+                <Text style={[s.vCell, s.flex1, s.bRight, { color: RED }]}>{brl(totals.expense)}</Text>
+                <Text style={[s.vCell, s.flex1, { color: totals.balance >= 0 ? GREEN : RED }]}>{brl(totals.balance)}</Text>
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Linha de entrada: novo lançamento */}
         <View style={[s.grid, { marginTop: 10 }]}>
-          <Text style={s.sectionHead}>NOVO LANÇAMENTO</Text>
-          <View style={s.gridRow}>
-            {(['expense', 'income'] as TxType[]).map((t, i) => (
-              <Pressable
-                key={t}
-                onPress={() => setType(t)}
-                style={[s.typeCell, s.flex1, i === 0 && s.bRight, type === t && { backgroundColor: t === 'expense' ? RED : GREEN }]}
-              >
-                <Text style={[s.typeText, type === t && { color: '#fff' }]}>{t === 'expense' ? 'Gasto (−)' : 'Receita (+)'}</Text>
-              </Pressable>
-            ))}
-          </View>
+          <Text style={s.sectionHead}>{activeCard ? `NOVO GASTO · ${activeCard.name.toUpperCase()}` : 'NOVO LANÇAMENTO'}</Text>
+          {!onCard && (
+            <View style={s.gridRow}>
+              {(['expense', 'income'] as TxType[]).map((t, i) => (
+                <Pressable
+                  key={t}
+                  onPress={() => setType(t)}
+                  style={[s.typeCell, s.flex1, i === 0 && s.bRight, type === t && { backgroundColor: t === 'expense' ? RED : GREEN }]}
+                >
+                  <Text style={[s.typeText, type === t && { color: '#fff' }]}>{t === 'expense' ? 'Gasto (−)' : 'Receita (+)'}</Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
           <View style={s.gridRow}>
             <View style={[s.inputBox, { width: 110 }, s.bRight]}>
               <Text style={s.inputLabel}>{nInst > 1 ? 'TOTAL (R$)' : 'VALOR (R$)'}</Text>
@@ -262,7 +316,7 @@ function Main() {
               ))}
             </ScrollView>
           </View>
-          {type === 'expense' && (
+          {type === 'expense' && !onCard && (
             <View style={[s.inputBox, { paddingBottom: 6 }]}>
               <Text style={s.inputLabel}>CARTÃO (segure para remover)</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: 4, alignItems: 'center' }}>
@@ -312,11 +366,13 @@ function Main() {
             <Text style={[s.hCell, s.cVal, s.right]}>VALOR</Text>
           </View>
           <FlatList
-            data={rows}
+            data={tabRows}
             keyExtractor={(t) => t.id}
             style={{ flex: 1 }}
             keyboardShouldPersistTaps="handled"
-            ListEmptyComponent={<Text style={s.empty}>Nenhum lançamento em {monthLabel(month)}.</Text>}
+            ListEmptyComponent={
+              <Text style={s.empty}>{activeCard ? `Nenhum gasto no ${activeCard.name} em ${monthLabel(month)}.` : `Nenhum lançamento em ${monthLabel(month)}.`}</Text>
+            }
             renderItem={({ item, index }) => (
               <Pressable onLongPress={() => remove(item)} style={[s.gridRow, s.dataRow, index % 2 === 1 && s.zebra]}>
                 <Text style={[s.cell, s.cDate, s.bRight, s.muted]} numberOfLines={1}>
@@ -351,14 +407,19 @@ function Main() {
           {/* Linha de total, fixa no rodapé da tabela */}
           <View style={[s.gridRow, s.totalRow]}>
             <Text style={[s.cell, s.flex1, s.bold]}>
-              TOTAL · {rows.length} {rows.length === 1 ? 'linha' : 'linhas'}
+              TOTAL · {tabRows.length} {tabRows.length === 1 ? 'linha' : 'linhas'}
             </Text>
-            <Text style={[s.cell, s.right, s.bold, { color: totals.balance >= 0 ? GREEN : RED }]}>{brl(totals.balance)}</Text>
+            {onCard ? (
+              <Text style={[s.cell, s.right, s.bold, { color: RED }]}>{brl(cardSpend)}</Text>
+            ) : (
+              <Text style={[s.cell, s.right, s.bold, { color: totals.balance >= 0 ? GREEN : RED }]}>{brl(totals.balance)}</Text>
+            )}
           </View>
         </View>
         <Text style={s.hint}>Segure uma linha para excluir</Text>
 
-        {/* Gastos por cartão (mês selecionado) */}
+        {/* Gastos por cartão (mês selecionado) — só na aba Geral */}
+        {!onCard && (
         <View style={[s.grid, { marginBottom: 10, maxHeight: 150 }]}>
           <View style={[s.gridRow, s.headRow]}>
             <Text style={[s.hCell, s.flex1, s.bRight]}>GASTOS POR CARTÃO</Text>
@@ -383,6 +444,7 @@ function Main() {
             )}
           </ScrollView>
         </View>
+        )}
 
         <View style={s.footer}>
           <Pressable style={[s.footBtn, s.bRight]} onPress={() => exportBackup(data).catch((e) => Alert.alert('Erro', String(e?.message ?? e)))}>
@@ -440,6 +502,11 @@ const s = StyleSheet.create({
   cCat: { width: 92 },
   cVal: { width: 104 },
   cCount: { width: 56 },
+  tabBar: { backgroundColor: '#fff', borderTopWidth: 1, borderBottomWidth: 1, borderColor: LINE },
+  tab: { paddingHorizontal: 16, paddingVertical: 11, borderBottomWidth: 3, borderBottomColor: 'transparent', maxWidth: 190 },
+  tabOn: { borderBottomColor: '#0f172a', backgroundColor: '#f1f5f9' },
+  tabText: { fontSize: 13, fontWeight: '600', color: '#64748b' },
+  tabTextOn: { color: '#0f172a', fontWeight: '800' },
   preview: { paddingHorizontal: 8, paddingVertical: 5, fontSize: 12, fontWeight: '700', color: '#b45309', backgroundColor: '#fffbeb', borderBottomWidth: StyleSheet.hairlineWidth * 2, borderBottomColor: LINE },
   instText: { fontSize: 10, color: '#b45309', fontWeight: '700', marginTop: 1 },
   catCell: { paddingHorizontal: 8, paddingVertical: 6, justifyContent: 'center' },
