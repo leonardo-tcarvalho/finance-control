@@ -21,6 +21,8 @@ export interface Transaction {
 export interface AppData {
   schemaVersion: number;
   cards: Card[];
+  /** UI preferences; absent in files saved before themes existed */
+  settings?: { theme?: 'light' | 'dark' };
   transactions: Transaction[];
   updatedAt: string;
 }

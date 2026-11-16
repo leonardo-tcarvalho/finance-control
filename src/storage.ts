@@ -29,6 +29,7 @@ export function parseData(raw: string): AppData {
   return {
     schemaVersion: SCHEMA_VERSION,
     cards: Array.isArray(obj.cards) ? obj.cards : [],
+    settings: obj.settings && typeof obj.settings === 'object' ? obj.settings : undefined,
     transactions: obj.transactions,
     updatedAt: obj.updatedAt ?? new Date().toISOString(),
   };
