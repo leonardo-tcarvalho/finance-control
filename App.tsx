@@ -10,7 +10,7 @@ import EntryModal, { EntryValues } from './src/EntryModal';
 import { budgetStatus, committedOnCard, dueDate, filterRows, invoiceRows, isPaid, monthlySeries, spendByCategory, spendByPayment, spendOf } from './src/calc';
 import { applyEdit, buildEntries, groupOf } from './src/ops';
 import { loadData, saveData } from './src/storage';
-import { dueOf, isOverdue, isPending, monthTotals, movedIntoPaidInvoice, payKind } from './src/status';
+import { dueOf, isOverdue, isPending, monthTotals, movedIntoPaidInvoice, overdueSummary, payKind } from './src/status';
 import Summary from './src/Summary';
 import { Theme, ThemeContext, darkTheme, lightTheme } from './src/theme';
 import { AppData, Card, DEFAULT_CATEGORIES, Transaction, emptyData, methodLabel } from './src/types';
@@ -291,6 +291,9 @@ function Main() {
   const shownTotals = monthTotals(shownRows, data?.cards ?? []);
   const byPayment = useMemo(() => spendByPayment(rows, cardNameOf, methodNameOf), [rows, data]);
 
+  // overdue expenses of every month, so a late bill is never hidden in a month that is not on screen
+  const overdue = useMemo(() => overdueSummary(data?.transactions ?? [], data?.cards ?? [], today()), [data]);
+
   const goal = data?.settings?.budgetCents;
   const budget = goal ? budgetStatus(Math.max(0, totals.expense), goal) : null;
 
@@ -349,6 +352,16 @@ function Main() {
             </Pressable>
           </ScrollView>
         </View>
+
+        {/* Aviso de vencidos (qualquer mês) */}
+        {!onCard && !inSummary && overdue.count > 0 && (
+          <Pressable onPress={() => overdue.oldestMonth && setMonth(overdue.oldestMonth)} style={s.alert} accessibilityRole="button" accessibilityLabel="Ver o mais antigo vencido">
+            <Text style={s.alertText} numberOfLines={1}>
+              ⚠ {overdue.count} {overdue.count === 1 ? 'vencido' : 'vencidos'} · {brl(overdue.cents)}
+            </Text>
+            <Text style={s.alertGo}>Ver ›</Text>
+          </Pressable>
+        )}
 
         {/* Resumo em cartões */}
         {onCard ? (
@@ -642,6 +655,9 @@ const makeStyles = (t: Theme) =>
     tabText: { fontSize: 13, fontWeight: '600', color: t.textMuted },
     tabTextOn: { color: t.onPrimary, fontWeight: '800' },
 
+    alert: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 16, marginTop: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: t.red, backgroundColor: t.redSoft },
+    alertText: { flex: 1, fontSize: 13, fontWeight: '800', color: t.red },
+    alertGo: { fontSize: 13, fontWeight: '800', color: t.red },
     stats: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginTop: 6 },
     stat: { backgroundColor: t.surface, borderRadius: 16, borderWidth: 1, borderColor: t.border, paddingHorizontal: 12, paddingVertical: 11 },
     statLabel: { fontSize: 11, fontWeight: '700', color: t.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
