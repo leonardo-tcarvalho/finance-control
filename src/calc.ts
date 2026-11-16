@@ -123,3 +123,8 @@ export function monthlySeries(list: Transaction[], endMonth: string, count: numb
     return { month, income, expense };
   });
 }
+
+/** Cards from the highest limit to the lowest; equal limits (and cards still without one) fall back to name order. */
+export function sortCardsByLimit(cards: Card[]): Card[] {
+  return [...cards].sort((a, b) => (b.limitCents ?? 0) - (a.limitCents ?? 0) || a.name.localeCompare(b.name, 'pt-BR'));
+}
