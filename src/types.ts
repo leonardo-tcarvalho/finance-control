@@ -43,7 +43,7 @@ export interface AppData {
   /** Category lists the user can edit; absent in files saved before this existed (defaults apply). */
   categories?: Categories;
   /** UI preferences; absent in files saved before themes existed */
-  settings?: { theme?: 'light' | 'dark'; /** monthly spending goal in cents; absent = no goal */ budgetCents?: number };
+  settings?: { theme?: 'light' | 'dark' };
   transactions: Transaction[];
   updatedAt: string;
 }

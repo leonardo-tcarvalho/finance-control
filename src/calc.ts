@@ -123,15 +123,3 @@ export function monthlySeries(list: Transaction[], endMonth: string, count: numb
     return { month, income, expense };
   });
 }
-
-export type BudgetLevel = 'ok' | 'warn' | 'over';
-
-/**
- * How the month's net spending compares with the goal. 'warn' starts at 80% of the goal, 'over' once it is passed.
- * `left` is negative when over.
- */
-export function budgetStatus(spentCents: number, goalCents: number) {
-  const pct = goalCents > 0 ? spentCents / goalCents : 0;
-  const level: BudgetLevel = spentCents > goalCents ? 'over' : pct >= 0.8 ? 'warn' : 'ok';
-  return { pct: Math.max(0, Math.min(1, pct)), level, left: goalCents - spentCents };
-}

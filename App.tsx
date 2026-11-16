@@ -4,10 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useColorScheme } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { exportBackup, pickBackup } from './src/backup';
-import BudgetModal from './src/BudgetModal';
 import CardModal, { CardValues } from './src/CardModal';
 import EntryModal, { EntryValues } from './src/EntryModal';
-import { budgetStatus, committedOnCard, dueDate, filterRows, invoiceRows, isPaid, monthlySeries, spendByCategory, spendByPayment, spendOf } from './src/calc';
+import { committedOnCard, dueDate, filterRows, invoiceRows, isPaid, monthlySeries, spendByCategory, spendByPayment, spendOf } from './src/calc';
 import { applyEdit, buildEntries, groupOf } from './src/ops';
 import { loadData, saveData } from './src/storage';
 import { dueOf, isOverdue, isPending, monthTotals, movedIntoPaidInvoice, overdueSummary, payKind } from './src/status';
@@ -29,7 +28,6 @@ function Main() {
   const [month, setMonth] = useState(today().slice(0, 7));
   const [tab, setTab] = useState('all'); // 'all', 'summary' or a card id
   const [query, setQuery] = useState('');
-  const [budgetOpen, setBudgetOpen] = useState(false);
   const [catFilter, setCatFilter] = useState<string | null>(null);
   const [entryForm, setEntryForm] = useState<{ tx: Transaction | null } | null>(null); // null = closed; tx null = new entry
   const [cardForm, setCardForm] = useState<{ card: Card | null } | null>(null); // null = closed; card null = new
@@ -68,11 +66,6 @@ function Main() {
   const removeCategory = (kind: 'expense' | 'income', name: string) => {
     if (!data || cats[kind].length <= 1) return;
     persist({ ...data, categories: { ...cats, [kind]: cats[kind].filter((c) => c !== name) } });
-  };
-
-  const saveBudget = (cents: number | null) => {
-    if (!data) return;
-    persist({ ...data, settings: { ...data.settings, budgetCents: cents ?? undefined } });
   };
 
   const toggleTheme = () => {
@@ -294,9 +287,6 @@ function Main() {
   // overdue expenses of every month, so a late bill is never hidden in a month that is not on screen
   const overdue = useMemo(() => overdueSummary(data?.transactions ?? [], data?.cards ?? [], today()), [data]);
 
-  const goal = data?.settings?.budgetCents;
-  const budget = goal ? budgetStatus(Math.max(0, totals.expense), goal) : null;
-
   const invoicePaid = !!activeCard && isPaid(activeCard, month);
   const invoiceDue = activeCard ? dueDate(activeCard, month) : null;
 
@@ -413,22 +403,6 @@ function Main() {
               <Stat s={s} label="Gastos" value={brl(totals.expense)} color={t.red} sub={totals.pending > 0 ? `${brl(totals.pending)} pendentes` : undefined} />
               <Stat s={s} label="Saldo" value={brl(totals.balance)} color={totals.balance >= 0 ? t.green : t.red} />
             </View>
-            {budget ? (
-              <Pressable onPress={() => setBudgetOpen(true)} style={s.limitBox} hitSlop={6} accessibilityLabel="Editar meta de gastos">
-                <View style={s.barTrack}>
-                  <View style={[s.barFill, { width: `${Math.round(budget.pct * 100)}%`, backgroundColor: budget.level === 'over' ? t.red : budget.level === 'warn' ? t.amber : t.primary }]} />
-                </View>
-                <Text style={[s.limitText, budget.level === 'over' && { color: t.red }, budget.level === 'warn' && { color: t.amber }]}>
-                  {budget.level === 'over'
-                    ? `Meta estourada em ${brl(-budget.left)} · gastou ${brl(totals.expense)} de ${brl(goal!)}`
-                    : `${brl(Math.max(0, totals.expense))} de ${brl(goal!)} · restam ${brl(budget.left)}${budget.level === 'warn' ? ' · perto do limite' : ''}`}
-                </Text>
-              </Pressable>
-            ) : (
-              <Pressable onPress={() => setBudgetOpen(true)} style={s.limitBox} hitSlop={6}>
-                <Text style={s.limitNote}>Defina uma meta de gastos para o mês e acompanhe aqui.</Text>
-              </Pressable>
-            )}
           </View>
         )}
 
@@ -590,7 +564,6 @@ function Main() {
           </Pressable>
         </View>
 
-        <BudgetModal visible={budgetOpen} goalCents={goal} onClose={() => setBudgetOpen(false)} onSave={saveBudget} />
         <CardModal
           visible={cardForm !== null}
           card={cardForm?.card ?? null}
