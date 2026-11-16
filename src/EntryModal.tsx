@@ -4,7 +4,7 @@ import Field, { Label } from './Field';
 import Sheet from './Sheet';
 import { Theme, useTheme } from './theme';
 import { CATEGORIES, Card, TxType } from './types';
-import { addMonths, brl, monthYear, today } from './utils';
+import { addMonths, brl, monthYear, parseMoneyToCents, today } from './utils';
 
 export interface EntryValues {
   type: TxType;
@@ -54,7 +54,7 @@ export default function EntryModal({ visible, cards, lockedCard, onClose, onSubm
   const isExpense = type === 'expense';
   const accent = isExpense ? t.redStrong : t.greenStrong;
   const nInst = isExpense ? Math.max(1, Math.floor(Number(installments) || 1)) : 1;
-  const cents = Math.round(parseFloat(amount.replace(',', '.')) * 100);
+  const cents = parseMoneyToCents(amount);
   const selectedCard = cardId && cards.some((c) => c.id === cardId) ? cardId : null;
 
   const createCard = () => {

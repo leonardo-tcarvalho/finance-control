@@ -9,7 +9,7 @@ import EntryModal, { EntryValues } from './src/EntryModal';
 import { loadData, saveData } from './src/storage';
 import { Theme, ThemeContext, darkTheme, lightTheme } from './src/theme';
 import { AppData, Card, Transaction, emptyData } from './src/types';
-import { MAX_INSTALLMENTS, addMonths, brl, monthLabel, shiftMonth, shortDate, today } from './src/utils';
+import { MAX_INSTALLMENTS, addMonths, brl, monthLabel, parseMoneyToCents, shiftMonth, shortDate, today } from './src/utils';
 
 export default function App() {
   return (
@@ -54,7 +54,7 @@ function Main() {
 
   /** Called by the popup. Returns true when the entry was saved. */
   const submit = (v: EntryValues): boolean => {
-    const cents = Math.round(parseFloat(v.amount.replace(',', '.')) * 100);
+    const cents = parseMoneyToCents(v.amount);
     if (!data || !Number.isFinite(cents) || cents <= 0) {
       Alert.alert('Valor inválido', 'Informe um valor maior que zero.');
       return false;

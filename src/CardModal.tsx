@@ -4,6 +4,7 @@ import Field from './Field';
 import Sheet from './Sheet';
 import { Theme, useTheme } from './theme';
 import { Card } from './types';
+import { parseMoneyToCents } from './utils';
 
 export interface CardValues {
   name: string;
@@ -41,7 +42,7 @@ export default function CardModal({ visible, card, onClose, onSave, onDelete }: 
     if (!trimmed) return Alert.alert('Nome do cartão', 'Informe um nome para o cartão.');
     let limitCents: number | null = null;
     if (limit.trim() !== '') {
-      const cents = Math.round(parseFloat(limit.replace(/\./g, '').replace(',', '.')) * 100);
+      const cents = parseMoneyToCents(limit);
       if (!Number.isFinite(cents) || cents <= 0) return Alert.alert('Limite inválido', 'Informe um valor maior que zero, ou deixe em branco.');
       limitCents = cents;
     }
