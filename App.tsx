@@ -10,7 +10,7 @@ import { committedOnCard, spendOf, totalsOf } from './src/calc';
 import { applyEdit, buildEntries, groupOf } from './src/ops';
 import { loadData, saveData } from './src/storage';
 import { Theme, ThemeContext, darkTheme, lightTheme } from './src/theme';
-import { AppData, Card, Transaction, emptyData, methodLabel } from './src/types';
+import { AppData, Card, DEFAULT_CATEGORIES, Transaction, emptyData, methodLabel } from './src/types';
 import { MAX_INSTALLMENTS, MAX_RECURRING, addMonths, brl, monthLabel, parseMoneyToCents, shiftMonth, shortDate, today } from './src/utils';
 
 export default function App() {
@@ -49,6 +49,20 @@ function Main() {
       .then(() => saveData(next))
       .catch((e) => Alert.alert('Erro ao salvar', String(e?.message ?? e)));
   }, []);
+
+  const cats = data?.categories ?? DEFAULT_CATEGORIES;
+
+  const addCategory = (kind: 'expense' | 'income', name: string) => {
+    if (!data) return;
+    const list = cats[kind];
+    if (list.some((c) => c.toLowerCase() === name.toLowerCase())) return; // already there
+    persist({ ...data, categories: { ...cats, [kind]: [...list, name] } });
+  };
+
+  const removeCategory = (kind: 'expense' | 'income', name: string) => {
+    if (!data || cats[kind].length <= 1) return;
+    persist({ ...data, categories: { ...cats, [kind]: cats[kind].filter((c) => c !== name) } });
+  };
 
   const toggleTheme = () => {
     if (data) persist({ ...data, settings: { ...data.settings, theme: mode === 'dark' ? 'light' : 'dark' } });
@@ -404,6 +418,9 @@ function Main() {
         <EntryModal
           visible={entryForm !== null}
           cards={data.cards}
+          categories={cats}
+          onAddCategory={addCategory}
+          onRemoveCategory={removeCategory}
           lockedCard={activeCard}
           editing={entryForm?.tx ?? null}
           onDelete={entryForm?.tx ? () => remove(entryForm.tx!, () => setEntryForm(null)) : undefined}

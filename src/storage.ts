@@ -22,6 +22,13 @@ function ensureDirs() {
   if (!backupsDir().exists) backupsDir().create({ intermediates: true });
 }
 
+function parseCategories(raw: any) {
+  const clean = (v: any) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string' && x.trim()).map((x) => x.trim()) : null);
+  const expense = clean(raw?.expense);
+  const income = clean(raw?.income);
+  return expense && income ? { expense, income } : undefined;
+}
+
 export function parseData(raw: string): AppData {
   const obj = JSON.parse(raw);
   if (!obj || !Array.isArray(obj.transactions)) throw new Error('Formato inválido');
@@ -30,6 +37,7 @@ export function parseData(raw: string): AppData {
     schemaVersion: SCHEMA_VERSION,
     cards: Array.isArray(obj.cards) ? obj.cards : [],
     settings: obj.settings && typeof obj.settings === 'object' ? obj.settings : undefined,
+    categories: parseCategories(obj.categories),
     transactions: obj.transactions,
     updatedAt: obj.updatedAt ?? new Date().toISOString(),
   };

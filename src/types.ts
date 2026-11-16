@@ -30,6 +30,8 @@ export interface Transaction {
 export interface AppData {
   schemaVersion: number;
   cards: Card[];
+  /** Category lists the user can edit; absent in files saved before this existed (defaults apply). */
+  categories?: Categories;
   /** UI preferences; absent in files saved before themes existed */
   settings?: { theme?: 'light' | 'dark' };
   transactions: Transaction[];
@@ -37,7 +39,22 @@ export interface AppData {
 }
 
 export const SCHEMA_VERSION = 2;
-export const CATEGORIES = ['Alimentação', 'Transporte', 'Moradia', 'Lazer', 'Saúde', 'Educação', 'Salário', 'Outros'];
+export interface Categories {
+  /** used by expenses and refunds */
+  expense: string[];
+  income: string[];
+}
+
+export const DEFAULT_CATEGORIES: Categories = {
+  expense: ['Alimentação', 'Transporte', 'Moradia', 'Lazer', 'Saúde', 'Educação', 'Outros'],
+  income: ['Salário', 'Freelance', 'Investimentos', 'Outros'],
+};
+
+/** The list to offer for an entry type, plus the entry's current category when it is no longer in the list. */
+export function categoriesFor(cats: Categories | undefined, type: TxType, current?: string): string[] {
+  const list = (cats ?? DEFAULT_CATEGORIES)[type === 'income' ? 'income' : 'expense'];
+  return current && !list.includes(current) ? [...list, current] : list;
+}
 export const emptyData = (): AppData => ({ schemaVersion: SCHEMA_VERSION, cards: [], transactions: [], updatedAt: new Date().toISOString() });
 
 export const METHODS: { id: Method; label: string }[] = [
