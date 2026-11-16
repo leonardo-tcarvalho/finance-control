@@ -100,6 +100,7 @@ function Main() {
           date: v.date,
           cardId,
           method: v.method ?? undefined,
+          due: v.due || undefined,
         }),
       });
       setMonth(v.date.slice(0, 7));
@@ -123,7 +124,7 @@ function Main() {
     }
     const groupId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const created = buildEntries(
-      { type: v.type, amountCents: cents, description: v.desc.trim(), category: v.category, date: v.date, cardId, method: v.method ?? undefined, times, mode },
+      { type: v.type, amountCents: cents, description: v.desc.trim(), category: v.category, date: v.date, cardId, method: v.method ?? undefined, due: v.due || undefined, times, mode },
       groupId,
       new Date().toISOString(),
     );

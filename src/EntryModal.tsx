@@ -20,6 +20,8 @@ export interface EntryValues {
   times: string;
   cardId: string | null;
   method: Method | null;
+  /** ISO vencimento, or '' when not informed (the entry date then applies) */
+  due: string;
 }
 
 interface Props {
@@ -52,6 +54,7 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
   const [amount, setAmount] = useState('');
   const [desc, setDesc] = useState('');
   const [dateText, setDateText] = useState(formatDateBR(today()));
+  const [dueText, setDueText] = useState('');
   const [category, setCategory] = useState(DEFAULT_CATEGORIES.expense[0]);
   const [newCategory, setNewCategory] = useState<string | null>(null); // null = not typing a new category
   const [repeat, setRepeat] = useState<Repeat>('once');
@@ -68,6 +71,7 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
       setAmount(centsToField(editing.amountCents));
       setDesc(editing.description);
       setDateText(formatDateBR(editing.date));
+      setDueText(editing.due ? formatDateBR(editing.due) : '');
       setCategory(editing.category);
       setNewCategory(null);
       setRepeat('once');
@@ -81,6 +85,7 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
     setAmount('');
     setDesc('');
     setDateText(formatDateBR(today()));
+    setDueText('');
     setCategory(categories.expense[0] ?? '');
     setNewCategory(null);
     setRepeat('once');
@@ -98,14 +103,16 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
   const isExpense = type === 'expense';
   const usesPayment = type !== 'income'; // a refund goes back to a card or method too
   const accent = isExpense ? t.redStrong : t.greenStrong;
-  // only purchases can be installments; income and expenses can repeat monthly; refunds are always single
+  // installments and monthly repetition exist only for expenses; income and refunds are always a single entry
   const canSplit = type === 'expense';
-  const canRepeat = type !== 'refund';
+  const canRepeat = type === 'expense';
   const effRepeat: Repeat = (repeat === 'installment' && !canSplit) || (repeat === 'recurring' && !canRepeat) ? 'once' : repeat;
   const nTimes = effRepeat === 'once' ? 1 : Math.max(1, Math.floor(Number(times) || 1));
   const cents = parseMoneyToCents(amount);
   const selectedCard = cardId && cards.some((c) => c.id === cardId) ? cardId : null;
   const selectedMethod = selectedCard ? null : method;
+  // the vencimento is asked only for expenses that are neither on a card (its invoice decides) nor Pix (paid at once)
+  const showDue = type === 'expense' && !lockedCard && !selectedCard && selectedMethod !== 'pix';
 
   const createCard = () => {
     const name = (newCard ?? '').trim();
@@ -139,7 +146,13 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
   const submit = () => {
     const date = parseDateBR(dateText);
     if (!date) return Alert.alert('Data inválida', 'Use o formato DD/MM/AAAA, por exemplo 15/11/2026.');
-    if (onSubmit({ type, amount, desc, date, category: selectedCategory, repeat: effRepeat, times, cardId: lockedCard ? lockedCard.id : selectedCard, method: lockedCard ? null : selectedMethod })) onClose();
+    let due = '';
+    if (showDue && dueText.trim() !== '') {
+      const parsed = parseDateBR(dueText);
+      if (!parsed) return Alert.alert('Vencimento inválido', 'Use o formato DD/MM/AAAA, ou deixe em branco para usar a data do lançamento.');
+      due = parsed;
+    }
+    if (onSubmit({ type, amount, desc, date, category: selectedCategory, repeat: effRepeat, times, cardId: lockedCard ? lockedCard.id : selectedCard, method: lockedCard ? null : selectedMethod, due })) onClose();
   };
 
   return (
@@ -161,7 +174,7 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
     >
       {inst && (
         <Text style={s.note}>
-          {editing?.recurring ? 'Lançamento recorrente' : 'Compra parcelada'} · {inst.n}/{inst.of}. Descrição, categoria e pagamento valem para todos; valor e data valem só para este.
+          {editing?.recurring ? 'Lançamento recorrente' : 'Compra parcelada'} · {inst.n}/{inst.of}. Descrição, categoria e pagamento valem para todos; valor, data e vencimento valem só para este.
         </Text>
       )}
 
@@ -244,6 +257,15 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
           <Text style={s.quickText}>Ontem</Text>
         </Pressable>
       </View>
+
+      {showDue && (
+        <View>
+          <Field label="Vencimento (opcional)" placeholder="DD/MM/AAAA" keyboardType="number-pad" maxLength={10} value={dueText} onChangeText={(v) => setDueText(maskDate(v))} />
+          <Text style={s.help}>
+            Em branco, vale a data do lançamento. {effRepeat !== 'once' ? 'É o vencimento do primeiro mês; os outros seguem de mês em mês. ' : ''}Se passar sem ser pago, a linha fica vermelha.
+          </Text>
+        </View>
+      )}
 
       <View>
         <Label>Categoria</Label>
