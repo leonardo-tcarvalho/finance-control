@@ -3,6 +3,8 @@ export type TxType = 'expense' | 'income';
 export interface Card {
   id: string;
   name: string;
+  /** credit limit in cents; absent when the user did not set one */
+  limitCents?: number;
 }
 
 export interface Transaction {

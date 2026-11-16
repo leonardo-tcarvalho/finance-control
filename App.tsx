@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, Pressable, ScrollView, StyleSheet, Text, View, useColorScheme } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { exportBackup, pickBackup } from './src/backup';
+import CardModal, { CardValues } from './src/CardModal';
 import EntryModal, { EntryValues } from './src/EntryModal';
 import { loadData, saveData } from './src/storage';
 import { Theme, ThemeContext, darkTheme, lightTheme } from './src/theme';
@@ -23,6 +24,7 @@ function Main() {
   const [month, setMonth] = useState(today().slice(0, 7));
   const [tab, setTab] = useState('all'); // 'all' or a card id
   const [formOpen, setFormOpen] = useState(false);
+  const [cardForm, setCardForm] = useState<{ card: Card | null } | null>(null); // null = closed; card null = new
   const queue = useRef<Promise<unknown>>(Promise.resolve());
 
   // theme: the saved choice wins, otherwise follow the device
@@ -98,13 +100,38 @@ function Main() {
     return card.id;
   };
 
-  const removeCard = (card: Card) => {
+  /** Registers a new card or updates the one being edited. Returns true when saved. */
+  const saveCard = (v: CardValues, editing: Card | null): boolean => {
+    if (!data) return false;
+    if (data.cards.some((c) => c.id !== editing?.id && c.name.toLowerCase() === v.name.toLowerCase())) {
+      Alert.alert('Cartão repetido', `Já existe um cartão chamado "${v.name}".`);
+      return false;
+    }
+    const limitCents = v.limitCents ?? undefined;
+    if (editing) {
+      persist({ ...data, cards: data.cards.map((c) => (c.id === editing.id ? { ...c, name: v.name, limitCents } : c)) });
+    } else {
+      const card: Card = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name: v.name, limitCents };
+      persist({ ...data, cards: [...data.cards, card] });
+      setTab(card.id);
+    }
+    return true;
+  };
+
+  const removeCard = (card: Card, onDone?: () => void) => {
     if (!data) return;
     if (data.transactions.some((tx) => tx.cardId === card.id))
       return Alert.alert('Cartão em uso', `"${card.name}" tem lançamentos e não pode ser removido.`);
     Alert.alert(`Remover "${card.name}"?`, undefined, [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Remover', style: 'destructive', onPress: () => persist({ ...data, cards: data.cards.filter((c) => c.id !== card.id) }) },
+      {
+        text: 'Remover',
+        style: 'destructive',
+        onPress: () => {
+          persist({ ...data, cards: data.cards.filter((c) => c.id !== card.id) });
+          onDone?.();
+        },
+      },
     ]);
   };
 
@@ -206,6 +233,9 @@ function Main() {
                 </Pressable>
               );
             })}
+            <Pressable onPress={() => setCardForm({ card: null })} style={[s.tab, s.tabAdd]} accessibilityLabel="Cadastrar cartão">
+              <Text style={[s.tabText, { color: t.link }]}>＋ Cartão</Text>
+            </Pressable>
           </ScrollView>
         </View>
 
@@ -221,6 +251,12 @@ function Main() {
             <Stat s={s} label="Saídas" value={brl(totals.expense)} color={t.red} />
             <Stat s={s} label="Saldo" value={brl(totals.balance)} color={totals.balance >= 0 ? t.green : t.red} />
           </View>
+        )}
+
+        {activeCard && (
+          <Pressable onPress={() => setCardForm({ card: activeCard })} style={s.editRow} hitSlop={8}>
+            <Text style={s.editLink}>✎ Editar cartão</Text>
+          </Pressable>
         )}
 
         {/* Lista de lançamentos */}
@@ -303,6 +339,13 @@ function Main() {
           </Pressable>
         </View>
 
+        <CardModal
+          visible={cardForm !== null}
+          card={cardForm?.card ?? null}
+          onClose={() => setCardForm(null)}
+          onSave={(v) => saveCard(v, cardForm?.card ?? null)}
+          onDelete={cardForm?.card ? () => removeCard(cardForm.card!, () => setCardForm(null)) : undefined}
+        />
         <EntryModal
           visible={formOpen}
           cards={data.cards}
@@ -346,6 +389,7 @@ const makeStyles = (t: Theme) =>
     tabScroll: { paddingHorizontal: 16, gap: 8 },
     tab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: t.surface, borderWidth: 1, borderColor: t.border, maxWidth: 190 },
     tabOn: { backgroundColor: t.primary, borderColor: t.primary },
+    tabAdd: { borderColor: t.link, borderStyle: 'dashed', backgroundColor: 'transparent' },
     tabText: { fontSize: 13, fontWeight: '600', color: t.textMuted },
     tabTextOn: { color: t.onPrimary, fontWeight: '800' },
 
@@ -353,6 +397,9 @@ const makeStyles = (t: Theme) =>
     stat: { backgroundColor: t.surface, borderRadius: 16, borderWidth: 1, borderColor: t.border, paddingHorizontal: 12, paddingVertical: 11 },
     statLabel: { fontSize: 11, fontWeight: '700', color: t.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
     statValue: { fontSize: 16, fontWeight: '800', marginTop: 4 },
+
+    editRow: { alignSelf: 'flex-end', paddingHorizontal: 16, paddingTop: 8 },
+    editLink: { fontSize: 12, fontWeight: '700', color: t.link },
 
     listWrap: { flex: 1, marginHorizontal: 16, marginTop: 12 },
     listCard: { flex: 1, backgroundColor: t.surface, borderRadius: 18, borderWidth: 1, borderColor: t.border, overflow: 'hidden' },
