@@ -25,8 +25,13 @@ function ensureDirs() {
 export function parseData(raw: string): AppData {
   const obj = JSON.parse(raw);
   if (!obj || !Array.isArray(obj.transactions)) throw new Error('Formato inválido');
-  // future migrations go here, keyed on obj.schemaVersion
-  return { schemaVersion: SCHEMA_VERSION, transactions: obj.transactions, updatedAt: obj.updatedAt ?? new Date().toISOString() };
+  // v1 -> v2: `cards` did not exist, old transactions simply have no cardId
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    cards: Array.isArray(obj.cards) ? obj.cards : [],
+    transactions: obj.transactions,
+    updatedAt: obj.updatedAt ?? new Date().toISOString(),
+  };
 }
 
 async function tryRead(f: File): Promise<AppData | null> {
