@@ -1,12 +1,12 @@
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, FlatList, Pressable, ScrollView, StyleSheet, Text, View, useColorScheme } from 'react-native';
+import { Alert, FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useColorScheme } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { exportBackup, pickBackup } from './src/backup';
 import CardModal, { CardValues } from './src/CardModal';
 import EntryModal, { EntryValues } from './src/EntryModal';
-import { committedOnCard, spendOf, totalsOf } from './src/calc';
+import { committedOnCard, filterRows, spendOf, totalsOf } from './src/calc';
 import { applyEdit, buildEntries, groupOf } from './src/ops';
 import { loadData, saveData } from './src/storage';
 import { Theme, ThemeContext, darkTheme, lightTheme } from './src/theme';
@@ -25,6 +25,8 @@ function Main() {
   const [data, setData] = useState<AppData | null>(null);
   const [month, setMonth] = useState(today().slice(0, 7));
   const [tab, setTab] = useState('all'); // 'all' or a card id
+  const [query, setQuery] = useState('');
+  const [catFilter, setCatFilter] = useState<string | null>(null);
   const [entryForm, setEntryForm] = useState<{ tx: Transaction | null } | null>(null); // null = closed; tx null = new entry
   const [cardForm, setCardForm] = useState<{ card: Card | null } | null>(null); // null = closed; card null = new
   const queue = useRef<Promise<unknown>>(Promise.resolve());
@@ -231,6 +233,18 @@ function Main() {
   const tabRows = useMemo(() => (activeCard ? rows.filter((x) => x.cardId === activeCard.id) : rows), [rows, activeCard]);
   const cardSpend = tabRows.reduce((sum, x) => sum + spendOf(x), 0);
 
+  // search + category chip narrow only the list; the summary cards keep showing the whole month
+  const cardNameOf = (id?: string) => data?.cards.find((c) => c.id === id)?.name ?? '';
+  const methodNameOf = (m?: string) => (m ? methodLabel(m as never) : '');
+  const monthCategories = useMemo(() => Array.from(new Set(tabRows.map((x) => x.category))).sort((a, b) => a.localeCompare(b)), [tabRows]);
+  const activeCat = catFilter && monthCategories.includes(catFilter) ? catFilter : null;
+  const shownRows = useMemo(
+    () => filterRows(tabRows, { query, category: activeCat }, cardNameOf, methodNameOf),
+    [tabRows, query, activeCat, data],
+  );
+  const filtering = query.trim() !== '' || activeCat !== null;
+  const shownTotals = totalsOf(shownRows);
+
   // Limit usage (see committedOnCard for what counts as committed).
   const limit = useMemo(() => {
     if (!activeCard?.limitCents || !data) return null;
@@ -325,6 +339,41 @@ function Main() {
           </Pressable>
         )}
 
+        {/* Busca e filtro por categoria */}
+        {tabRows.length > 0 && (
+          <View style={s.searchWrap}>
+            <View style={s.searchBox}>
+              <Text style={s.searchIcon}>🔎</Text>
+              <TextInput
+                style={s.searchInput}
+                placeholder="Buscar por descrição, categoria, cartão…"
+                placeholderTextColor={t.textFaint}
+                value={query}
+                onChangeText={setQuery}
+                returnKeyType="search"
+                autoCorrect={false}
+              />
+              {query !== '' && (
+                <Pressable onPress={() => setQuery('')} hitSlop={10} accessibilityLabel="Limpar busca">
+                  <Text style={s.searchClear}>✕</Text>
+                </Pressable>
+              )}
+            </View>
+            {monthCategories.length > 1 && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={s.catRow}>
+                <Pressable onPress={() => setCatFilter(null)} style={[s.catChip, activeCat === null && s.catChipOn]}>
+                  <Text style={[s.catChipText, activeCat === null && s.catChipTextOn]}>Todas</Text>
+                </Pressable>
+                {monthCategories.map((c) => (
+                  <Pressable key={c} onPress={() => setCatFilter(activeCat === c ? null : c)} style={[s.catChip, activeCat === c && s.catChipOn]}>
+                    <Text style={[s.catChipText, activeCat === c && s.catChipTextOn]}>{c}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        )}
+
         {/* Lista de lançamentos */}
         <View style={s.listWrap}>
           <View style={s.listCard}>
@@ -334,14 +383,18 @@ function Main() {
               <Text style={s.th}>VALOR</Text>
             </View>
             <FlatList
-              data={tabRows}
+              data={shownRows}
               keyExtractor={(x) => x.id}
               style={s.flex1}
               contentContainerStyle={{ paddingBottom: 72 }} // room so the floating button never hides the last row
               ListEmptyComponent={
                 <Text style={s.empty}>
-                  {activeCard ? `Nenhum gasto no ${activeCard.name} em ${monthLabel(month)}.` : `Nenhum lançamento em ${monthLabel(month)}.`}
-                  {'\n'}Toque em “Novo” para adicionar.
+                  {filtering
+                    ? 'Nenhum lançamento encontrado com este filtro.'
+                    : activeCard
+                      ? `Nenhum gasto no ${activeCard.name} em ${monthLabel(month)}.`
+                      : `Nenhum lançamento em ${monthLabel(month)}.`}
+                  {filtering ? '' : '\nToque em “Novo” para adicionar.'}
                 </Text>
               }
               renderItem={({ item }) => {
@@ -382,9 +435,9 @@ function Main() {
             {/* Total, fixo no rodapé do cartão */}
             <View style={s.listFoot}>
               <Text style={s.footLabel}>
-                Total · {tabRows.length} {tabRows.length === 1 ? 'linha' : 'linhas'}
+                {filtering ? 'Filtrado' : 'Total'} · {shownRows.length} {shownRows.length === 1 ? 'linha' : 'linhas'}
               </Text>
-              <Text style={[s.footValue, { color: onCard ? t.red : totals.balance >= 0 ? t.green : t.red }]}>{brl(onCard ? cardSpend : totals.balance)}</Text>
+              <Text style={[s.footValue, { color: onCard ? t.red : shownTotals.balance >= 0 ? t.green : t.red }]}>{brl(onCard ? shownTotals.expense : shownTotals.balance)}</Text>
             </View>
           </View>
 
@@ -480,6 +533,16 @@ const makeStyles = (t: Theme) =>
     editRow: { alignSelf: 'flex-end', paddingHorizontal: 16, paddingTop: 8 },
     editLink: { fontSize: 12, fontWeight: '700', color: t.link },
 
+    searchWrap: { paddingHorizontal: 16, marginTop: 10, gap: 8 },
+    searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: t.surface, borderRadius: 14, borderWidth: 1, borderColor: t.border, paddingHorizontal: 12 },
+    searchIcon: { fontSize: 14, marginRight: 8 },
+    searchInput: { flex: 1, fontSize: 14, color: t.text, paddingVertical: 9 },
+    searchClear: { fontSize: 14, fontWeight: '800', color: t.textMuted, paddingLeft: 8 },
+    catRow: { gap: 6 },
+    catChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: t.border, backgroundColor: t.surface },
+    catChipOn: { backgroundColor: t.primarySoft, borderColor: t.primary },
+    catChipText: { fontSize: 12, fontWeight: '600', color: t.textMuted },
+    catChipTextOn: { color: t.link, fontWeight: '800' },
     listWrap: { flex: 1, marginHorizontal: 16, marginTop: 12 },
     listCard: { flex: 1, backgroundColor: t.surface, borderRadius: 18, borderWidth: 1, borderColor: t.border, overflow: 'hidden' },
     listHead: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, backgroundColor: t.surfaceAlt },
