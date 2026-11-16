@@ -7,6 +7,7 @@ import { exportBackup, pickBackup } from './src/backup';
 import CardModal, { CardValues } from './src/CardModal';
 import Drawer, { DrawerDivider, DrawerItem, DrawerSection } from './src/Drawer';
 import { PlusIcon, TrayArrow } from './src/Icons';
+import RowActions from './src/RowActions';
 import EntryModal, { EntryValues } from './src/EntryModal';
 import { committedOnCard, sortCardsByLimit, dueDate, filterRows, invoiceRows, isPaid, monthlySeries, spendByCategory, spendByPayment, spendOf } from './src/calc';
 import { applyEdit, buildEntries, groupOf } from './src/ops';
@@ -30,6 +31,7 @@ function Main() {
   const [month, setMonth] = useState(today().slice(0, 7));
   const [tab, setTab] = useState('all'); // 'all', 'summary' or a card id
   const [menuOpen, setMenuOpen] = useState(false);
+  const [actionsFor, setActionsFor] = useState<Transaction | null>(null); // row whose options are open
   const [query, setQuery] = useState('');
   const [catFilter, setCatFilter] = useState<string | null>(null);
   const [entryForm, setEntryForm] = useState<{ tx: Transaction | null } | null>(null); // null = closed; tx null = new entry
@@ -484,25 +486,12 @@ function Main() {
                   ].filter((x): x is { k: string; text: string; color: string } => x !== null);
                   return (
                     <Pressable
-                      onPress={() => setEntryForm({ tx: item })}
-                      onLongPress={() => remove(item)}
+                      onPress={() => setActionsFor(item)}
                       style={({ pressed }) => [s.row, status === 'paid' && s.rowPaid, status === 'pending' && s.rowPending, status === 'overdue' && s.rowOverdue, pressed && { opacity: 0.7 }]}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${item.description || item.category}, ver opções`}
                     >
                       {status === 'overdue' && <View style={s.rowBar} />}
-                      {kind === 'other' ? (
-                        <Pressable
-                          onPress={() => togglePaid(item)}
-                          hitSlop={10}
-                          style={[s.check, !pending && s.checkOn, overdue && s.checkOver]}
-                          accessibilityRole="checkbox"
-                          accessibilityState={{ checked: !pending }}
-                          accessibilityLabel={pending ? 'Marcar como pago' : 'Marcar como pendente'}
-                        >
-                          {!pending && <Text style={s.checkMark}>✓</Text>}
-                        </Pressable>
-                      ) : (
-                        <View style={s.checkSpace} />
-                      )}
                       <Text style={s.rowDate}>{shortDate(item.date)}</Text>
                       <View style={s.flex1}>
                         <Text style={s.rowTitle} numberOfLines={1}>
@@ -543,7 +532,7 @@ function Main() {
           </View>
           </>
         )}
-        {!inSummary && <Text style={s.hint}>Toque para editar · segure para excluir · a bolinha marca como pago</Text>}
+        {!inSummary && <Text style={s.hint}>Toque numa linha para marcar como pago, editar ou excluir</Text>}
 
         <Drawer visible={menuOpen} onClose={() => setMenuOpen(false)}>
           <Text style={s.drawerTitle}>Controle de Gastos</Text>
@@ -572,6 +561,24 @@ function Main() {
           <DrawerItem icon={<TrayArrow dir="up" color={t.text} />} label="Exportar backup" onPress={() => { setMenuOpen(false); exportBackup(data).catch((e) => Alert.alert('Erro', String(e?.message ?? e))); }} />
           <DrawerItem icon={<TrayArrow dir="down" color={t.text} />} label="Restaurar backup" onPress={() => { setMenuOpen(false); restore(); }} />
         </Drawer>
+
+        <RowActions
+          tx={actionsFor}
+          cards={data.cards}
+          onClose={() => setActionsFor(null)}
+          onTogglePaid={(tx) => {
+            togglePaid(tx);
+            setActionsFor(null);
+          }}
+          onEdit={(tx) => {
+            setActionsFor(null);
+            setEntryForm({ tx });
+          }}
+          onDelete={(tx) => {
+            setActionsFor(null);
+            remove(tx);
+          }}
+        />
 
         <CardModal
           visible={cardForm !== null}
@@ -684,11 +691,6 @@ const makeStyles = (t: Theme) =>
     rowPending: { backgroundColor: t.pendingSoft },
     rowOverdue: { backgroundColor: t.redSoft },
     rowBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, backgroundColor: t.red },
-    check: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: t.amber, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
-    checkOn: { backgroundColor: t.greenStrong, borderColor: t.greenStrong },
-    checkOver: { borderColor: t.red },
-    checkMark: { color: '#fff', fontSize: 13, fontWeight: '900', marginTop: -1 },
-    checkSpace: { width: 34 },
     rowDate: { width: 48, fontSize: 12, fontWeight: '600', color: t.textMuted },
     rowTitle: { fontSize: 15, fontWeight: '600', color: t.text },
     rowSub: { fontSize: 11, marginTop: 2, color: t.textMuted },
