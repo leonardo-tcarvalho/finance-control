@@ -4,7 +4,7 @@ import Field from './Field';
 import Sheet from './Sheet';
 import { Theme, useTheme } from './theme';
 import { Card } from './types';
-import { parseMoneyToCents } from './utils';
+import { centsToField, parseMoneyToCents } from './utils';
 
 export interface CardValues {
   name: string;
@@ -23,7 +23,7 @@ interface Props {
   onDelete?: () => void;
 }
 
-const toField = (cents: number | undefined) => (cents ? (cents / 100).toFixed(2).replace('.', ',') : '');
+const toField = (cents: number | undefined) => (cents ? centsToField(cents) : '');
 
 export default function CardModal({ visible, card, onClose, onSave, onDelete }: Props) {
   const t = useTheme();

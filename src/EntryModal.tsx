@@ -3,8 +3,8 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import Field, { Label } from './Field';
 import Sheet from './Sheet';
 import { Theme, useTheme } from './theme';
-import { CATEGORIES, Card, TxType } from './types';
-import { addDays, addMonths, brl, formatDateBR, maskDate, monthYear, parseDateBR, parseMoneyToCents, today } from './utils';
+import { CATEGORIES, Card, Transaction, TxType } from './types';
+import { addDays, addMonths, brl, centsToField, formatDateBR, maskDate, monthYear, parseDateBR, parseMoneyToCents, today } from './utils';
 
 export interface EntryValues {
   type: TxType;
@@ -22,6 +22,10 @@ interface Props {
   cards: Card[];
   /** when set (a card tab is open) the entry is an expense pinned to this card */
   lockedCard: Card | null;
+  /** when set the popup edits this entry instead of creating a new one */
+  editing: Transaction | null;
+  /** only offered when editing */
+  onDelete?: () => void;
   onClose: () => void;
   /** returns true when the entry was accepted (the popup then closes) */
   onSubmit: (v: EntryValues) => boolean;
@@ -30,7 +34,10 @@ interface Props {
   onRemoveCard: (card: Card) => void;
 }
 
-export default function EntryModal({ visible, cards, lockedCard, onClose, onSubmit, onCreateCard, onRemoveCard }: Props) {
+export default function EntryModal({ visible, cards, lockedCard: pinned, editing, onDelete, onClose, onSubmit, onCreateCard, onRemoveCard }: Props) {
+  // a pinned card only applies to new entries; editing shows every control so the card can be changed
+  const lockedCard = editing ? null : pinned;
+  const inst = editing?.installment;
   const t = useTheme();
   const s = useMemo(() => makeStyles(t), [t]);
   const [type, setType] = useState<TxType>('expense');
@@ -45,6 +52,17 @@ export default function EntryModal({ visible, cards, lockedCard, onClose, onSubm
   // every time the popup opens it starts clean (and pinned to the card tab, if any)
   useEffect(() => {
     if (!visible) return;
+    if (editing) {
+      setType(editing.type);
+      setAmount(centsToField(editing.amountCents));
+      setDesc(editing.description);
+      setDateText(formatDateBR(editing.date));
+      setCategory(editing.category);
+      setInstallments('');
+      setCardId(editing.cardId ?? null);
+      setNewCard(null);
+      return;
+    }
     setType('expense');
     setAmount('');
     setDesc('');
@@ -53,7 +71,7 @@ export default function EntryModal({ visible, cards, lockedCard, onClose, onSubm
     setInstallments('');
     setCardId(lockedCard?.id ?? null);
     setNewCard(null);
-  }, [visible, lockedCard?.id]);
+  }, [visible, lockedCard?.id, editing?.id]);
 
   const startDate = parseDateBR(dateText) ?? today();
   const isExpense = type === 'expense';
@@ -80,21 +98,27 @@ export default function EntryModal({ visible, cards, lockedCard, onClose, onSubm
   return (
     <Sheet
       visible={visible}
-      title={lockedCard ? `Novo gasto · ${lockedCard.name}` : 'Novo lançamento'}
+      title={editing ? 'Editar lançamento' : lockedCard ? `Novo gasto · ${lockedCard.name}` : 'Novo lançamento'}
       onClose={onClose}
-      dirty={amount !== '' || desc !== ''}
+      dirty={!!editing || amount !== '' || desc !== ''}
       footer={
         <>
           <Pressable onPress={onClose} style={[s.btn, s.btnGhost]}>
             <Text style={s.btnGhostText}>Cancelar</Text>
           </Pressable>
           <Pressable onPress={submit} style={[s.btn, { backgroundColor: accent, flex: 2 }]}>
-            <Text style={s.btnText}>{isExpense ? 'Adicionar gasto' : 'Adicionar receita'}</Text>
+            <Text style={s.btnText}>{editing ? 'Salvar alterações' : isExpense ? 'Adicionar gasto' : 'Adicionar receita'}</Text>
           </Pressable>
         </>
       }
     >
-      {!lockedCard && (
+      {inst && (
+        <Text style={s.note}>
+          Compra parcelada · parcela {inst.n}/{inst.of}. Descrição, categoria e cartão valem para todas as parcelas; valor e data valem só para esta.
+        </Text>
+      )}
+
+      {!lockedCard && !inst && (
         <View>
           <Label>Tipo do lançamento</Label>
           <View style={s.typeRow}>
@@ -105,8 +129,8 @@ export default function EntryModal({ visible, cards, lockedCard, onClose, onSubm
       )}
 
       <View style={s.row}>
-        <Field label={nInst > 1 ? 'Valor total' : 'Valor'} prefix="R$" placeholder="0,00" keyboardType="decimal-pad" value={amount} onChangeText={setAmount} autoFocus style={{ flex: 1 }} big />
-        {isExpense && (
+        <Field label={inst ? 'Valor desta parcela' : nInst > 1 ? 'Valor total' : 'Valor'} prefix="R$" placeholder="0,00" keyboardType="decimal-pad" value={amount} onChangeText={setAmount} autoFocus style={{ flex: 1 }} big />
+        {isExpense && !editing && (
           <Field
             label="Parcelas"
             suffix="x"
@@ -186,6 +210,12 @@ export default function EntryModal({ visible, cards, lockedCard, onClose, onSubm
           {cards.length > 0 && <Text style={s.help}>Segure um cartão para removê-lo.</Text>}
         </View>
       )}
+
+      {editing && onDelete && (
+        <Pressable onPress={onDelete} style={s.delete}>
+          <Text style={s.deleteText}>Excluir este lançamento</Text>
+        </Pressable>
+      )}
     </Sheet>
   );
 }
@@ -224,6 +254,9 @@ const makeStyles = (t: Theme) =>
     typeTitle: { fontSize: 16, fontWeight: '800', color: t.text },
     typeHint: { fontSize: 11, color: t.textMuted, marginTop: 1 },
 
+    note: { fontSize: 12, lineHeight: 17, color: t.amber, backgroundColor: t.amberSoft, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8 },
+    delete: { alignSelf: 'flex-start', paddingVertical: 6 },
+    deleteText: { color: t.red, fontWeight: '700', fontSize: 14 },
     preview: { fontSize: 13, fontWeight: '700', color: t.amber, backgroundColor: t.amberSoft, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, marginTop: -4 },
 
     chip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20, borderWidth: 1.5, borderColor: t.border, backgroundColor: t.surface, marginRight: 8 },

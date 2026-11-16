@@ -81,3 +81,6 @@ export const addDays = (iso: string, k: number) => {
   const d = new Date(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10)) + k);
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
+
+/** 2590 -> "25,90", for filling a money input with an existing value. */
+export const centsToField = (cents: number) => (cents / 100).toFixed(2).replace('.', ',');

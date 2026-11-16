@@ -6,6 +6,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { exportBackup, pickBackup } from './src/backup';
 import CardModal, { CardValues } from './src/CardModal';
 import EntryModal, { EntryValues } from './src/EntryModal';
+import { applyEdit, buildEntries } from './src/ops';
 import { loadData, saveData } from './src/storage';
 import { Theme, ThemeContext, darkTheme, lightTheme } from './src/theme';
 import { AppData, Card, Transaction, emptyData } from './src/types';
@@ -23,7 +24,7 @@ function Main() {
   const [data, setData] = useState<AppData | null>(null);
   const [month, setMonth] = useState(today().slice(0, 7));
   const [tab, setTab] = useState('all'); // 'all' or a card id
-  const [formOpen, setFormOpen] = useState(false);
+  const [entryForm, setEntryForm] = useState<{ tx: Transaction | null } | null>(null); // null = closed; tx null = new entry
   const [cardForm, setCardForm] = useState<{ card: Card | null } | null>(null); // null = closed; card null = new
   const queue = useRef<Promise<unknown>>(Promise.resolve());
 
@@ -52,39 +53,47 @@ function Main() {
     if (data) persist({ ...data, settings: { ...data.settings, theme: mode === 'dark' ? 'light' : 'dark' } });
   };
 
-  /** Called by the popup. Returns true when the entry was saved. */
-  const submit = (v: EntryValues): boolean => {
+  /** Called by the popup. Creates a new entry or applies the edit. Returns true when saved. */
+  const saveEntry = (v: EntryValues, editing: Transaction | null): boolean => {
     const cents = parseMoneyToCents(v.amount);
     if (!data || !Number.isFinite(cents) || cents <= 0) {
       Alert.alert('Valor inválido', 'Informe um valor maior que zero.');
       return false;
     }
-    const n = v.type === 'expense' ? Math.floor(Number(v.installments) || 1) : 1;
-    if (n < 1 || n > MAX_INSTALLMENTS) {
+    // never point at a card that no longer exists (e.g. after restoring a backup)
+    const cardId = v.cardId && data.cards.some((c) => c.id === v.cardId) ? v.cardId : undefined;
+
+    if (editing) {
+      persist({
+        ...data,
+        transactions: applyEdit(data.transactions, editing, {
+          type: v.type,
+          amountCents: cents,
+          description: v.desc.trim(),
+          category: v.category,
+          date: v.date,
+          cardId,
+        }),
+      });
+      setMonth(v.date.slice(0, 7));
+      return true;
+    }
+
+    const times = v.type === 'expense' ? Math.floor(Number(v.installments) || 1) : 1;
+    if (times < 1 || times > MAX_INSTALLMENTS) {
       Alert.alert('Parcelas inválidas', `Use de 1 a ${MAX_INSTALLMENTS}.`);
       return false;
     }
-    const base = Math.floor(cents / n);
-    if (base < 1) {
+    if (Math.floor(cents / times) < 1) {
       Alert.alert('Valor pequeno demais', 'Cada parcela precisa ter pelo menos R$ 0,01.');
       return false;
     }
-    const rest = cents - base * n; // leftover cents go to the first installment, so the sum is exact
     const groupId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const now = new Date().toISOString();
-    // never point at a card that no longer exists (e.g. after restoring a backup)
-    const cardOk = v.cardId && data.cards.some((c) => c.id === v.cardId) ? v.cardId : undefined;
-    const created: Transaction[] = Array.from({ length: n }, (_, i) => ({
-      id: `${groupId}-${i + 1}`,
-      type: v.type,
-      amountCents: base + (i === 0 ? rest : 0),
-      category: v.category,
-      description: v.desc.trim(),
-      date: addMonths(v.date, i),
-      cardId: v.type === 'expense' ? cardOk : undefined,
-      installment: n > 1 ? { n: i + 1, of: n, groupId } : undefined,
-      createdAt: now,
-    }));
+    const created = buildEntries(
+      { type: v.type, amountCents: cents, description: v.desc.trim(), category: v.category, date: v.date, cardId, times },
+      groupId,
+      new Date().toISOString(),
+    );
     persist({ ...data, transactions: [...created, ...data.transactions] });
     setMonth(v.date.slice(0, 7)); // jump to the month where the new row lives
     return true;
@@ -135,9 +144,12 @@ function Main() {
     ]);
   };
 
-  const remove = (tx: Transaction) => {
+  const remove = (tx: Transaction, onDone?: () => void) => {
     if (!data) return;
-    const only = () => persist({ ...data, transactions: data.transactions.filter((x) => x.id !== tx.id) });
+    const only = () => {
+      persist({ ...data, transactions: data.transactions.filter((x) => x.id !== tx.id) });
+      onDone?.();
+    };
     const inst = tx.installment;
     if (!inst) {
       return Alert.alert('Excluir lançamento?', undefined, [
@@ -151,7 +163,10 @@ function Main() {
       {
         text: 'Todas',
         style: 'destructive',
-        onPress: () => persist({ ...data, transactions: data.transactions.filter((x) => x.installment?.groupId !== inst.groupId) }),
+        onPress: () => {
+          persist({ ...data, transactions: data.transactions.filter((x) => x.installment?.groupId !== inst.groupId) });
+          onDone?.();
+        },
       },
     ]);
   };
@@ -320,7 +335,7 @@ function Main() {
                   item.installment ? { k: 'inst', text: `Parcela ${item.installment.n}/${item.installment.of}`, color: t.amber } : null,
                 ].filter((x): x is { k: string; text: string; color: string } => x !== null);
                 return (
-                  <Pressable onLongPress={() => remove(item)} style={({ pressed }) => [s.row, pressed && { backgroundColor: t.surfaceAlt }]}>
+                  <Pressable onPress={() => setEntryForm({ tx: item })} onLongPress={() => remove(item)} style={({ pressed }) => [s.row, pressed && { backgroundColor: t.surfaceAlt }]}>
                     <Text style={s.rowDate}>{shortDate(item.date)}</Text>
                     <View style={s.flex1}>
                       <Text style={s.rowTitle} numberOfLines={1}>
@@ -354,12 +369,12 @@ function Main() {
           </View>
 
           {/* Botão que abre o popup de novo lançamento */}
-          <Pressable style={s.fab} onPress={() => setFormOpen(true)} accessibilityRole="button" accessibilityLabel="Novo lançamento">
+          <Pressable style={s.fab} onPress={() => setEntryForm({ tx: null })} accessibilityRole="button" accessibilityLabel="Novo lançamento">
             <Text style={s.fabPlus}>＋</Text>
             <Text style={s.fabText}>{onCard ? 'Novo gasto' : 'Novo'}</Text>
           </Pressable>
         </View>
-        <Text style={s.hint}>Segure uma linha para excluir</Text>
+        <Text style={s.hint}>Toque numa linha para editar · segure para excluir</Text>
 
         <View style={s.footer}>
           <Pressable style={[s.footBtn, s.bRight]} onPress={() => exportBackup(data).catch((e) => Alert.alert('Erro', String(e?.message ?? e)))}>
@@ -381,11 +396,13 @@ function Main() {
           onDelete={cardForm?.card ? () => removeCard(cardForm.card!, () => setCardForm(null)) : undefined}
         />
         <EntryModal
-          visible={formOpen}
+          visible={entryForm !== null}
           cards={data.cards}
           lockedCard={activeCard}
-          onClose={() => setFormOpen(false)}
-          onSubmit={submit}
+          editing={entryForm?.tx ?? null}
+          onDelete={entryForm?.tx ? () => remove(entryForm.tx!, () => setEntryForm(null)) : undefined}
+          onClose={() => setEntryForm(null)}
+          onSubmit={(v) => saveEntry(v, entryForm?.tx ?? null)}
           onCreateCard={createCard}
           onRemoveCard={removeCard}
         />
