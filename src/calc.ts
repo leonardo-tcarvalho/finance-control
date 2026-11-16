@@ -31,6 +31,16 @@ export function invoiceKey(card: Pick<Card, 'closingDay'>, dateIso: string): str
   return Number(dateIso.slice(8, 10)) > Math.min(closing, daysIn(month)) ? shiftMonth(month, 1) : month;
 }
 
+/**
+ * The month an entry is listed and counted in. A card purchase belongs to the month of its invoice, so when it was
+ * registered, or bought, does not decide it: an installment bought on Nov 16 after the closing day starts in December.
+ * Everything else belongs to the month of its date.
+ */
+export function monthOf(t: Pick<Transaction, 'date' | 'cardId'>, cards: Card[]): string {
+  const card = t.cardId ? cards.find((c) => c.id === t.cardId) : undefined;
+  return card ? invoiceKey(card, t.date) : t.date.slice(0, 7);
+}
+
 /** Due date (yyyy-mm-dd) of the invoice that closes in `month`, or null when the card has no due day. */
 export function dueDate(card: Pick<Card, 'closingDay' | 'dueDay'>, month: string): string | null {
   if (!card.dueDay) return null;
@@ -112,10 +122,10 @@ export interface MonthPoint {
 }
 
 /** Income and net spending for the `count` months ending at `endMonth` (oldest first). */
-export function monthlySeries(list: Transaction[], endMonth: string, count: number): MonthPoint[] {
+export function monthlySeries(list: Transaction[], cards: Card[], endMonth: string, count: number): MonthPoint[] {
   const months = Array.from({ length: count }, (_, i) => shiftMonth(endMonth, i - (count - 1)));
   return months.map((month) => {
-    const { income, expense } = totalsOf(list.filter((t) => t.date.startsWith(month)));
+    const { income, expense } = totalsOf(list.filter((t) => monthOf(t, cards) === month));
     return { month, income, expense };
   });
 }

@@ -9,7 +9,7 @@ import Drawer, { DrawerDivider, DrawerItem, DrawerSection } from './src/Drawer';
 import { PlusIcon, TrayArrow } from './src/Icons';
 import RowActions from './src/RowActions';
 import EntryModal, { EntryValues } from './src/EntryModal';
-import { committedOnCard, sortCardsByLimit, dueDate, filterRows, invoiceRows, isPaid, monthlySeries, spendByCategory, spendByPayment, spendOf } from './src/calc';
+import { committedOnCard, sortCardsByLimit, dueDate, filterRows, invoiceRows, isPaid, monthOf, monthlySeries, spendByCategory, spendByPayment, spendOf } from './src/calc';
 import { applyEdit, buildEntries, groupOf } from './src/ops';
 import { loadData, saveData } from './src/storage';
 import { dueOf, isOverdue, isPending, monthTotals, movedIntoPaidInvoice, overdueSummary, payKind } from './src/status';
@@ -107,7 +107,8 @@ function Main() {
       });
       if (refusePaidInvoice(next)) return false;
       persist({ ...data, transactions: next });
-      setMonth(v.date.slice(0, 7));
+      const saved = next.find((x) => x.id === editing.id);
+      if (saved) setMonth(monthOf(saved, data.cards));
       return true;
     }
 
@@ -135,7 +136,7 @@ function Main() {
     const next = [...created, ...data.transactions];
     if (refusePaidInvoice(next)) return false;
     persist({ ...data, transactions: next });
-    setMonth(v.date.slice(0, 7)); // jump to the month where the new row lives
+    setMonth(monthOf(created[0], data.cards)); // jump to the month where the first new row is listed
     return true;
   };
 
@@ -240,7 +241,7 @@ function Main() {
   const rows = useMemo(
     () =>
       (data?.transactions ?? [])
-        .filter((x) => x.date.startsWith(month))
+        .filter((x) => monthOf(x, data?.cards ?? []) === month)
         .sort((a, b) => (a.date === b.date ? b.createdAt.localeCompare(a.createdAt) : b.date.localeCompare(a.date))),
     [data, month],
   );
@@ -274,7 +275,7 @@ function Main() {
     setCardForm({ card });
   };
   const byCategory = useMemo(() => spendByCategory(rows), [rows]);
-  const series = useMemo(() => monthlySeries(data?.transactions ?? [], month, 6), [data, month]);
+  const series = useMemo(() => monthlySeries(data?.transactions ?? [], data?.cards ?? [], month, 6), [data, month]);
   const cardNameOf = (id?: string) => data?.cards.find((c) => c.id === id)?.name ?? '';
   const methodNameOf = (m?: string) => (m ? methodLabel(m as never) : '');
   const shownRows = useMemo(

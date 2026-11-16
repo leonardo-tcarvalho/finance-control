@@ -1,4 +1,4 @@
-import { dueDate, invoiceKey, isPaid, incomeOf, spendOf } from './calc';
+import { dueDate, invoiceKey, isPaid, incomeOf, monthOf, spendOf } from './calc';
 import { Card, Transaction } from './types';
 
 /** What decides whether an entry is paid: nothing (income), its card's invoice, or its own flag. */
@@ -46,7 +46,7 @@ export function overdueSummary(list: Transaction[], cards: Card[], todayIso: str
   const rows = list
     .filter((t) => isOverdue(t, cards, todayIso))
     .sort((a, b) => (dueOf(a, cards) as string).localeCompare(dueOf(b, cards) as string));
-  return { count: rows.length, cents: rows.reduce((sum, t) => sum + spendOf(t), 0), oldestMonth: rows.length ? rows[0].date.slice(0, 7) : null };
+  return { count: rows.length, cents: rows.reduce((sum, t) => sum + spendOf(t), 0), oldestMonth: rows.length ? monthOf(rows[0], cards) : null };
 }
 
 /**
