@@ -25,6 +25,12 @@
     },
     "plugins": [
       "expo-sharing"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "0eb38f29-9edc-4309-bbc9-396d3fc63e20"
+      }
+    },
+    "owner": "leonardotrc"
   }
 }
