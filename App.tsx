@@ -10,7 +10,7 @@ import EntryModal, { EntryValues } from './src/EntryModal';
 import { budgetStatus, committedOnCard, dueDate, filterRows, invoiceRows, isPaid, monthlySeries, spendByCategory, spendByPayment, spendOf } from './src/calc';
 import { applyEdit, buildEntries, groupOf } from './src/ops';
 import { loadData, saveData } from './src/storage';
-import { isPending, monthTotals, movedIntoPaidInvoice, payKind } from './src/status';
+import { dueOf, isOverdue, isPending, monthTotals, movedIntoPaidInvoice, payKind } from './src/status';
 import Summary from './src/Summary';
 import { Theme, ThemeContext, darkTheme, lightTheme } from './src/theme';
 import { AppData, Card, DEFAULT_CATEGORIES, Transaction, emptyData, methodLabel } from './src/types';
@@ -491,6 +491,8 @@ function Main() {
                   const card = item.cardId ? data.cards.find((c) => c.id === item.cardId) : undefined;
                   const kind = payKind(item);
                   const pending = isPending(item, data.cards);
+                  const overdue = isOverdue(item, data.cards, today());
+                  const due = dueOf(item, data.cards);
                   const parts = [
                     item.description ? { k: 'cat', text: item.category, color: t.textMuted } : null,
                     card ? { k: 'card', text: `💳 ${card.name}`, color: t.link } : null,
@@ -498,19 +500,20 @@ function Main() {
                     !card && item.method ? { k: 'method', text: methodLabel(item.method), color: t.textMuted } : null,
                     item.installment ? { k: 'inst', text: `Parcela ${item.installment.n}/${item.installment.of}`, color: t.amber } : null,
                     item.recurring ? { k: 'rec', text: `Recorrente ${item.recurring.n}/${item.recurring.of}`, color: t.amber } : null,
-                    kind === 'other' && pending ? { k: 'pend', text: 'Pendente', color: t.amber } : null,
+                    overdue ? { k: 'over', text: 'Vencido', color: t.red } : kind === 'other' && pending ? { k: 'pend', text: 'Pendente', color: t.amber } : null,
+                    kind === 'other' && pending && due ? { k: 'due', text: `vence ${shortDate(due)}`, color: overdue ? t.red : t.textMuted } : null,
                   ].filter((x): x is { k: string; text: string; color: string } => x !== null);
                   return (
                     <Pressable
                       onPress={() => setEntryForm({ tx: item })}
                       onLongPress={() => remove(item)}
-                      style={({ pressed }) => [s.row, pressed && { backgroundColor: t.surfaceAlt }]}
+                      style={({ pressed }) => [s.row, overdue && s.rowOverdue, pressed && { backgroundColor: t.surfaceAlt }]}
                     >
                       {kind === 'other' ? (
                         <Pressable
                           onPress={() => togglePaid(item)}
                           hitSlop={10}
-                          style={[s.check, !pending && s.checkOn]}
+                          style={[s.check, !pending && s.checkOn, overdue && s.checkOver]}
                           accessibilityRole="checkbox"
                           accessibilityState={{ checked: !pending }}
                           accessibilityLabel={pending ? 'Marcar como pago' : 'Marcar como pendente'}
@@ -674,8 +677,10 @@ const makeStyles = (t: Theme) =>
     listHead: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, backgroundColor: t.surfaceAlt },
     th: { fontSize: 10, fontWeight: '800', color: t.textMuted, letterSpacing: 0.6 },
     row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth * 2, borderBottomColor: t.border },
+    rowOverdue: { backgroundColor: t.redSoft, borderLeftWidth: 4, borderLeftColor: t.red, paddingLeft: 10 },
     check: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: t.amber, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
     checkOn: { backgroundColor: t.greenStrong, borderColor: t.greenStrong },
+    checkOver: { borderColor: t.red },
     checkMark: { color: '#fff', fontSize: 13, fontWeight: '900', marginTop: -1 },
     checkSpace: { width: 34 },
     rowDate: { width: 48, fontSize: 12, fontWeight: '600', color: t.textMuted },
