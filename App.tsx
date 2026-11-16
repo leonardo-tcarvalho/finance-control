@@ -195,7 +195,7 @@ function Main() {
 
         {/* Menu de navegação: Geral + uma aba por cartão */}
         <View style={s.tabBar}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={s.tabScroll}>
             {[{ id: 'all', label: 'Geral' }, ...data.cards.map((c) => ({ id: c.id, label: `💳 ${c.name}` }))].map((item) => {
               const on = (activeCard?.id ?? 'all') === item.id;
               return (
@@ -209,34 +209,19 @@ function Main() {
           </ScrollView>
         </View>
 
-        {/* Resumo: células lado a lado, rótulo em cima e valor embaixo */}
-        <View style={[s.grid, { marginTop: 10 }]}>
-          {onCard ? (
-            <View key="card-summary">
-              <View style={s.gridRow}>
-                <Text style={[s.hCell, s.flex1, s.bRight]}>FATURA DO MÊS</Text>
-                <Text style={[s.hCell, { width: 120 }]}>LANÇAMENTOS</Text>
-              </View>
-              <View style={s.gridRow}>
-                <Text style={[s.vCell, s.flex1, s.bRight, { color: t.red }]}>{brl(cardSpend)}</Text>
-                <Text style={[s.vCell, { width: 120, color: t.text }]}>{tabRows.length}</Text>
-              </View>
-            </View>
-          ) : (
-            <View key="all-summary">
-              <View style={s.gridRow}>
-                <Text style={[s.hCell, s.flex1, s.bRight]}>ENTRADAS</Text>
-                <Text style={[s.hCell, s.flex1, s.bRight]}>SAÍDAS</Text>
-                <Text style={[s.hCell, s.flex1]}>SALDO</Text>
-              </View>
-              <View style={s.gridRow}>
-                <Text style={[s.vCell, s.flex1, s.bRight, { color: t.green }]}>{brl(totals.income)}</Text>
-                <Text style={[s.vCell, s.flex1, s.bRight, { color: t.red }]}>{brl(totals.expense)}</Text>
-                <Text style={[s.vCell, s.flex1, { color: totals.balance >= 0 ? t.green : t.red }]}>{brl(totals.balance)}</Text>
-              </View>
-            </View>
-          )}
-        </View>
+        {/* Resumo em cartões */}
+        {onCard ? (
+          <View key="card-summary" style={s.stats}>
+            <Stat s={s} label="Fatura do mês" value={brl(cardSpend)} color={t.red} flex={2} />
+            <Stat s={s} label="Lançamentos" value={String(tabRows.length)} color={t.text} />
+          </View>
+        ) : (
+          <View key="all-summary" style={s.stats}>
+            <Stat s={s} label="Entradas" value={brl(totals.income)} color={t.green} />
+            <Stat s={s} label="Saídas" value={brl(totals.expense)} color={t.red} />
+            <Stat s={s} label="Saldo" value={brl(totals.balance)} color={totals.balance >= 0 ? t.green : t.red} />
+          </View>
+        )}
 
         {/* Tabela de lançamentos */}
         <View style={[s.grid, s.table]}>
@@ -334,6 +319,17 @@ function Main() {
   );
 }
 
+function Stat({ s, label, value, color, flex = 1 }: { s: ReturnType<typeof makeStyles>; label: string; value: string; color: string; flex?: number }) {
+  return (
+    <View style={[s.stat, { flex }]}>
+      <Text style={s.statLabel}>{label}</Text>
+      <Text style={[s.statValue, { color }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+        {value}
+      </Text>
+    </View>
+  );
+}
+
 const makeStyles = (t: Theme) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: t.bg },
@@ -344,18 +340,24 @@ const makeStyles = (t: Theme) =>
     muted: { color: t.textMuted },
     bRight: { borderRightWidth: StyleSheet.hairlineWidth * 2, borderRightColor: t.border },
 
-    topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 10 },
-    title: { fontSize: 18, fontWeight: '800', color: t.text },
-    monthNav: { flexDirection: 'row', alignItems: 'center', backgroundColor: t.surface, borderRadius: 6, borderWidth: 1, borderColor: t.border },
-    navBtn: { paddingHorizontal: 10, paddingVertical: 2 },
-    navArrow: { fontSize: 20, fontWeight: '700', color: t.text },
-    monthText: { fontSize: 12, fontWeight: '700', color: t.text, minWidth: 104, textAlign: 'center' },
+    topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 10, paddingBottom: 6 },
+    title: { fontSize: 19, fontWeight: '800', color: t.text, letterSpacing: -0.3 },
+    monthNav: { flexDirection: 'row', alignItems: 'center', backgroundColor: t.surface, borderRadius: 20, borderWidth: 1, borderColor: t.border },
+    navBtn: { paddingHorizontal: 12, paddingVertical: 4 },
+    navArrow: { fontSize: 20, fontWeight: '700', color: t.primary },
+    monthText: { fontSize: 12, fontWeight: '700', color: t.text, minWidth: 100, textAlign: 'center' },
 
-    tabBar: { backgroundColor: t.surface, borderTopWidth: 1, borderBottomWidth: 1, borderColor: t.border },
-    tab: { paddingHorizontal: 16, paddingVertical: 11, borderBottomWidth: 3, borderBottomColor: 'transparent', maxWidth: 190 },
-    tabOn: { borderBottomColor: t.primary, backgroundColor: t.surfaceAlt },
+    tabBar: { paddingVertical: 6 },
+    tabScroll: { paddingHorizontal: 16, gap: 8 },
+    tab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: t.surface, borderWidth: 1, borderColor: t.border, maxWidth: 190 },
+    tabOn: { backgroundColor: t.primary, borderColor: t.primary },
     tabText: { fontSize: 13, fontWeight: '600', color: t.textMuted },
-    tabTextOn: { color: t.text, fontWeight: '800' },
+    tabTextOn: { color: t.onPrimary, fontWeight: '800' },
+
+    stats: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginTop: 6 },
+    stat: { backgroundColor: t.surface, borderRadius: 16, borderWidth: 1, borderColor: t.border, paddingHorizontal: 12, paddingVertical: 11 },
+    statLabel: { fontSize: 11, fontWeight: '700', color: t.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
+    statValue: { fontSize: 16, fontWeight: '800', marginTop: 4 },
 
     grid: { marginHorizontal: 12, backgroundColor: t.surface, borderWidth: 1, borderColor: t.border },
     gridRow: { flexDirection: 'row', borderBottomWidth: StyleSheet.hairlineWidth * 2, borderBottomColor: t.border },

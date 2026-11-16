@@ -14,11 +14,14 @@ export interface Theme {
   textFaint: string;
   primary: string; // main action / selected state
   onPrimary: string;
+  primarySoft: string; // tinted background for selected things
   link: string;
   green: string; // money in (text)
   red: string; // money out (text)
   greenStrong: string; // filled buttons
   redStrong: string;
+  greenSoft: string;
+  redSoft: string;
   amber: string; // installments, warnings
   amberSoft: string;
   focusBg: string; // focused input background
@@ -27,49 +30,55 @@ export interface Theme {
 
 export const lightTheme: Theme = {
   dark: false,
-  bg: '#eef2f7',
+  bg: '#f4f6fb',
   surface: '#ffffff',
-  surfaceAlt: '#e2e8f0',
+  surfaceAlt: '#eef1f8',
   zebra: '#f8fafc',
-  border: '#cbd5e1',
-  borderStrong: '#94a3b8',
+  border: '#e4e8f1',
+  borderStrong: '#c3cbdc',
   text: '#0f172a',
-  textMuted: '#64748b',
-  textFaint: '#94a3b8',
-  primary: '#0f172a',
+  textMuted: '#5b6578',
+  textFaint: '#97a0b2',
+  primary: '#4f46e5',
   onPrimary: '#ffffff',
-  link: '#2563eb',
+  primarySoft: '#eceeff',
+  link: '#4f46e5',
   green: '#15803d',
-  red: '#b91c1c',
-  greenStrong: '#15803d',
-  redStrong: '#b91c1c',
+  red: '#dc2626',
+  greenStrong: '#16a34a',
+  redStrong: '#dc2626',
+  greenSoft: '#e6f6ec',
+  redSoft: '#fdeaea',
   amber: '#b45309',
   amberSoft: '#fffbeb',
-  focusBg: '#f8fbff',
-  overlay: 'rgba(15,23,42,0.55)',
+  focusBg: '#f5f6ff',
+  overlay: 'rgba(15,23,42,0.5)',
 };
 
 export const darkTheme: Theme = {
   dark: true,
-  bg: '#0b1120',
-  surface: '#121a2c',
-  surfaceAlt: '#1b2740',
+  bg: '#0a0f1e',
+  surface: '#121a30',
+  surfaceAlt: '#1a2442',
   zebra: '#0f1626',
-  border: '#26334f',
-  borderStrong: '#3b4a6b',
-  text: '#e6ebf5',
-  textMuted: '#9aa7bf',
-  textFaint: '#66748f',
-  primary: '#e6ebf5',
-  onPrimary: '#0b1120',
-  link: '#60a5fa',
+  border: '#222e4d',
+  borderStrong: '#38476b',
+  text: '#e8ecf6',
+  textMuted: '#9aa6c0',
+  textFaint: '#65718d',
+  primary: '#6366f1',
+  onPrimary: '#ffffff',
+  primarySoft: '#1e2450',
+  link: '#8b93ff',
   green: '#4ade80',
   red: '#f87171',
   greenStrong: '#16a34a',
   redStrong: '#dc2626',
+  greenSoft: '#12301f',
+  redSoft: '#3a1519',
   amber: '#fbbf24',
   amberSoft: '#2a2208',
-  focusBg: '#16223a',
+  focusBg: '#17214a',
   overlay: 'rgba(0,0,0,0.65)',
 };
 
