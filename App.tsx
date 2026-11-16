@@ -568,7 +568,6 @@ function Main() {
           <DrawerItem icon={t.dark ? '☀️' : '🌙'} label={t.dark ? 'Tema claro' : 'Tema escuro'} onPress={toggleTheme} />
           <DrawerItem icon={<TrayArrow dir="up" color={t.text} />} label="Exportar backup" onPress={() => { setMenuOpen(false); exportBackup(data).catch((e) => Alert.alert('Erro', String(e?.message ?? e))); }} />
           <DrawerItem icon={<TrayArrow dir="down" color={t.text} />} label="Restaurar backup" onPress={() => { setMenuOpen(false); restore(); }} />
-          <DrawerItem icon="🌐" label="Idioma" sub="Em breve" onPress={() => Alert.alert('Idioma', 'Escolher o idioma ainda não está disponível. Fica para uma próxima versão.')} />
         </Drawer>
 
         <CardModal
