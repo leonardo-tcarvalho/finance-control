@@ -7,9 +7,10 @@ import { exportBackup, pickBackup } from './src/backup';
 import BudgetModal from './src/BudgetModal';
 import CardModal, { CardValues } from './src/CardModal';
 import EntryModal, { EntryValues } from './src/EntryModal';
-import { budgetStatus, committedOnCard, dueDate, filterRows, invoiceRows, isPaid, monthlySeries, spendByCategory, spendByPayment, spendOf, totalsOf } from './src/calc';
+import { budgetStatus, committedOnCard, dueDate, filterRows, invoiceRows, isPaid, monthlySeries, spendByCategory, spendByPayment, spendOf } from './src/calc';
 import { applyEdit, buildEntries, groupOf } from './src/ops';
 import { loadData, saveData } from './src/storage';
+import { monthTotals } from './src/status';
 import Summary from './src/Summary';
 import { Theme, ThemeContext, darkTheme, lightTheme } from './src/theme';
 import { AppData, Card, DEFAULT_CATEGORIES, Transaction, emptyData, methodLabel } from './src/types';
@@ -242,7 +243,7 @@ function Main() {
     [data, month],
   );
 
-  const totals = useMemo(() => totalsOf(rows), [rows]);
+  const totals = useMemo(() => monthTotals(rows, data?.cards ?? []), [rows, data]);
 
   // active tab: falls back to "Geral" if its card is gone
   const activeCard = data?.cards.find((c) => c.id === tab) ?? null;
@@ -270,7 +271,7 @@ function Main() {
     [tabRows, query, activeCat, data],
   );
   const filtering = query.trim() !== '' || activeCat !== null;
-  const shownTotals = totalsOf(shownRows);
+  const shownTotals = monthTotals(shownRows, data?.cards ?? []);
   const byPayment = useMemo(() => spendByPayment(rows, cardNameOf, methodNameOf), [rows, data]);
 
   const goal = data?.settings?.budgetCents;
@@ -378,8 +379,8 @@ function Main() {
         ) : (
           <View key="all-summary">
             <View style={s.stats}>
-              <Stat s={s} label="Entradas" value={brl(totals.income)} color={t.green} />
-              <Stat s={s} label="Saídas" value={brl(totals.expense)} color={t.red} />
+              <Stat s={s} label="Receitas" value={brl(totals.income)} color={t.green} />
+              <Stat s={s} label="Gastos" value={brl(totals.expense)} color={t.red} sub={totals.pending > 0 ? `${brl(totals.pending)} pendentes` : undefined} />
               <Stat s={s} label="Saldo" value={brl(totals.balance)} color={totals.balance >= 0 ? t.green : t.red} />
             </View>
             {budget ? (
@@ -562,13 +563,18 @@ function Main() {
   );
 }
 
-function Stat({ s, label, value, color, flex = 1 }: { s: ReturnType<typeof makeStyles>; label: string; value: string; color: string; flex?: number }) {
+function Stat({ s, label, value, color, flex = 1, sub }: { s: ReturnType<typeof makeStyles>; label: string; value: string; color: string; flex?: number; sub?: string }) {
   return (
     <View style={[s.stat, { flex }]}>
       <Text style={s.statLabel}>{label}</Text>
       <Text style={[s.statValue, { color }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
         {value}
       </Text>
+      {sub && (
+        <Text style={s.statSub} numberOfLines={2}>
+          {sub}
+        </Text>
+      )}
     </View>
   );
 }
@@ -598,6 +604,7 @@ const makeStyles = (t: Theme) =>
     stats: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginTop: 6 },
     stat: { backgroundColor: t.surface, borderRadius: 16, borderWidth: 1, borderColor: t.border, paddingHorizontal: 12, paddingVertical: 11 },
     statLabel: { fontSize: 11, fontWeight: '700', color: t.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
+    statSub: { fontSize: 10, fontWeight: '700', color: t.amber, marginTop: 2 },
     statValue: { fontSize: 16, fontWeight: '800', marginTop: 4 },
 
     invoiceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: 16, marginTop: 10 },
