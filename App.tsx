@@ -11,7 +11,12 @@ const RED = '#b91c1c';
 const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
 const brl = (cents: number) => (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const today = () => new Date().toISOString().slice(0, 10);
+const pad = (n: number) => String(n).padStart(2, '0');
+// local date (toISOString would be UTC and flip to "tomorrow" after 21h in Brazil)
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
 const shortDate = (iso: string) => iso.slice(8, 10) + '/' + iso.slice(5, 7);
 const monthLabel =(key: string) => `${MONTHS[Number(key.slice(5, 7)) - 1]} ${key.slice(0, 4)}`;
 const shiftMonth = (key: string, delta: number) => {
