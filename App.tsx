@@ -223,66 +223,64 @@ function Main() {
           </View>
         )}
 
-        {/* Tabela de lançamentos */}
-        <View style={[s.grid, s.table]}>
-          <View style={[s.gridRow, s.headRow]}>
-            <Text style={[s.hCell, s.cDate, s.bRight]}>DATA</Text>
-            <Text style={[s.hCell, s.flex1, s.bRight]}>DESCRIÇÃO</Text>
-            <Text style={[s.hCell, s.cCat, s.bRight]}>CATEGORIA</Text>
-            <Text style={[s.hCell, s.cVal, s.right]}>VALOR</Text>
-          </View>
-          <FlatList
-            data={tabRows}
-            keyExtractor={(x) => x.id}
-            style={{ flex: 1 }}
-            contentContainerStyle={{ paddingBottom: 72 }} // room so the floating button never hides the last row
-            ListEmptyComponent={
-              <Text style={s.empty}>
-                {activeCard ? `Nenhum gasto no ${activeCard.name} em ${monthLabel(month)}.` : `Nenhum lançamento em ${monthLabel(month)}.`}
-                {'\n'}Toque em “Novo” para adicionar.
+        {/* Lista de lançamentos */}
+        <View style={s.listWrap}>
+          <View style={s.listCard}>
+            <View style={s.listHead}>
+              <Text style={[s.th, { width: 48 }]}>DATA</Text>
+              <Text style={[s.th, s.flex1]}>DESCRIÇÃO</Text>
+              <Text style={s.th}>VALOR</Text>
+            </View>
+            <FlatList
+              data={tabRows}
+              keyExtractor={(x) => x.id}
+              style={s.flex1}
+              contentContainerStyle={{ paddingBottom: 72 }} // room so the floating button never hides the last row
+              ListEmptyComponent={
+                <Text style={s.empty}>
+                  {activeCard ? `Nenhum gasto no ${activeCard.name} em ${monthLabel(month)}.` : `Nenhum lançamento em ${monthLabel(month)}.`}
+                  {'\n'}Toque em “Novo” para adicionar.
+                </Text>
+              }
+              renderItem={({ item }) => {
+                const card = item.cardId ? data.cards.find((c) => c.id === item.cardId) : undefined;
+                const parts = [
+                  item.description ? { k: 'cat', text: item.category, color: t.textMuted } : null,
+                  card ? { k: 'card', text: `💳 ${card.name}`, color: t.link } : null,
+                  item.installment ? { k: 'inst', text: `Parcela ${item.installment.n}/${item.installment.of}`, color: t.amber } : null,
+                ].filter((x): x is { k: string; text: string; color: string } => x !== null);
+                return (
+                  <Pressable onLongPress={() => remove(item)} style={({ pressed }) => [s.row, pressed && { backgroundColor: t.surfaceAlt }]}>
+                    <Text style={s.rowDate}>{shortDate(item.date)}</Text>
+                    <View style={s.flex1}>
+                      <Text style={s.rowTitle} numberOfLines={1}>
+                        {item.description || item.category}
+                      </Text>
+                      {parts.length > 0 && (
+                        <Text style={s.rowSub} numberOfLines={1}>
+                          {parts.map((x, i) => (
+                            <Text key={x.k} style={{ color: x.color }}>
+                              {i > 0 ? '  ·  ' : ''}
+                              {x.text}
+                            </Text>
+                          ))}
+                        </Text>
+                      )}
+                    </View>
+                    <Text style={[s.rowValue, { color: item.type === 'income' ? t.green : t.red }]} numberOfLines={1}>
+                      {item.type === 'income' ? '+' : '−'} {brl(item.amountCents)}
+                    </Text>
+                  </Pressable>
+                );
+              }}
+            />
+            {/* Total, fixo no rodapé do cartão */}
+            <View style={s.listFoot}>
+              <Text style={s.footLabel}>
+                Total · {tabRows.length} {tabRows.length === 1 ? 'linha' : 'linhas'}
               </Text>
-            }
-            renderItem={({ item, index }) => (
-              <Pressable onLongPress={() => remove(item)} style={[s.gridRow, s.dataRow, index % 2 === 1 && s.zebra]}>
-                <Text style={[s.cell, s.cDate, s.bRight, s.muted]} numberOfLines={1}>
-                  {shortDate(item.date)}
-                </Text>
-                <View style={[s.flex1, s.bRight, s.catCell]}>
-                  <Text style={s.catText} numberOfLines={1}>
-                    {item.description || '—'}
-                  </Text>
-                  {item.installment && (
-                    <Text style={s.instText}>
-                      Parcela {item.installment.n}/{item.installment.of}
-                    </Text>
-                  )}
-                </View>
-                <View style={[s.cCat, s.bRight, s.catCell]}>
-                  <Text style={[s.catText, s.muted]} numberOfLines={1}>
-                    {item.category}
-                  </Text>
-                  {item.cardId && (
-                    <Text style={s.cardText} numberOfLines={1}>
-                      💳 {data.cards.find((c) => c.id === item.cardId)?.name ?? '—'}
-                    </Text>
-                  )}
-                </View>
-                <Text style={[s.cell, s.cVal, s.right, s.bold, { color: item.type === 'income' ? t.green : t.red }]} numberOfLines={1}>
-                  {item.type === 'income' ? '+' : '−'} {brl(item.amountCents)}
-                </Text>
-              </Pressable>
-            )}
-          />
-          {/* Linha de total, fixa no rodapé da tabela */}
-          <View style={[s.gridRow, s.totalRow]}>
-            <Text style={[s.cell, s.flex1, s.bold]}>
-              TOTAL · {tabRows.length} {tabRows.length === 1 ? 'linha' : 'linhas'}
-            </Text>
-            {onCard ? (
-              <Text style={[s.cell, s.right, s.bold, { color: t.red }]}>{brl(cardSpend)}</Text>
-            ) : (
-              <Text style={[s.cell, s.right, s.bold, { color: totals.balance >= 0 ? t.green : t.red }]}>{brl(totals.balance)}</Text>
-            )}
+              <Text style={[s.footValue, { color: onCard ? t.red : totals.balance >= 0 ? t.green : t.red }]}>{brl(onCard ? cardSpend : totals.balance)}</Text>
+            </View>
           </View>
 
           {/* Botão que abre o popup de novo lançamento */}
@@ -335,9 +333,6 @@ const makeStyles = (t: Theme) =>
     container: { flex: 1, backgroundColor: t.bg },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: t.bg },
     flex1: { flex: 1 },
-    right: { textAlign: 'right' },
-    bold: { fontWeight: '700' },
-    muted: { color: t.textMuted },
     bRight: { borderRightWidth: StyleSheet.hairlineWidth * 2, borderRightColor: t.border },
 
     topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 10, paddingBottom: 6 },
@@ -359,31 +354,25 @@ const makeStyles = (t: Theme) =>
     statLabel: { fontSize: 11, fontWeight: '700', color: t.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
     statValue: { fontSize: 16, fontWeight: '800', marginTop: 4 },
 
-    grid: { marginHorizontal: 12, backgroundColor: t.surface, borderWidth: 1, borderColor: t.border },
-    gridRow: { flexDirection: 'row', borderBottomWidth: StyleSheet.hairlineWidth * 2, borderBottomColor: t.border },
-    hCell: { backgroundColor: t.surfaceAlt, paddingHorizontal: 8, paddingVertical: 5, fontSize: 10, fontWeight: '800', color: t.textMuted, letterSpacing: 0.4 },
-    vCell: { paddingHorizontal: 8, paddingVertical: 8, fontSize: 15, fontWeight: '800' },
-
-    table: { flex: 1, marginTop: 10 },
-    headRow: { borderBottomWidth: 1 },
-    dataRow: { alignItems: 'stretch' },
-    zebra: { backgroundColor: t.zebra },
-    cell: { paddingHorizontal: 8, paddingVertical: 9, fontSize: 13, color: t.text },
-    cDate: { width: 64 },
-    cCat: { width: 92 },
-    cVal: { width: 104 },
-    catCell: { paddingHorizontal: 8, paddingVertical: 6, justifyContent: 'center' },
-    catText: { fontSize: 13, color: t.text },
-    cardText: { fontSize: 10, color: t.link, fontWeight: '600', marginTop: 1 },
-    instText: { fontSize: 10, color: t.amber, fontWeight: '700', marginTop: 1 },
-    empty: { textAlign: 'center', color: t.textFaint, marginTop: 24, paddingHorizontal: 12, lineHeight: 20 },
-    totalRow: { backgroundColor: t.surfaceAlt, borderTopWidth: 1, borderTopColor: t.borderStrong, borderBottomWidth: 0 },
-    hint: { textAlign: 'center', fontSize: 11, color: t.textFaint, paddingVertical: 4 },
+    listWrap: { flex: 1, marginHorizontal: 16, marginTop: 12 },
+    listCard: { flex: 1, backgroundColor: t.surface, borderRadius: 18, borderWidth: 1, borderColor: t.border, overflow: 'hidden' },
+    listHead: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, backgroundColor: t.surfaceAlt },
+    th: { fontSize: 10, fontWeight: '800', color: t.textMuted, letterSpacing: 0.6 },
+    row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth * 2, borderBottomColor: t.border },
+    rowDate: { width: 48, fontSize: 12, fontWeight: '600', color: t.textMuted },
+    rowTitle: { fontSize: 15, fontWeight: '600', color: t.text },
+    rowSub: { fontSize: 11, marginTop: 2, color: t.textMuted },
+    rowValue: { fontSize: 15, fontWeight: '800', marginLeft: 10 },
+    listFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 12, backgroundColor: t.surfaceAlt },
+    footLabel: { fontSize: 12, fontWeight: '700', color: t.textMuted },
+    footValue: { fontSize: 16, fontWeight: '800' },
+    empty: { textAlign: 'center', color: t.textFaint, marginTop: 28, paddingHorizontal: 12, lineHeight: 20 },
+    hint: { textAlign: 'center', fontSize: 11, color: t.textFaint, paddingVertical: 6 },
 
     fab: {
       position: 'absolute',
       right: 12,
-      bottom: 52,
+      bottom: 58,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
