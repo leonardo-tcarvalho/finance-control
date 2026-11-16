@@ -11,13 +11,25 @@ const RED = '#b91c1c';
 const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
 const brl = (cents: number) => (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const MAX_INSTALLMENTS = 48;
 const pad = (n: number) => String(n).padStart(2, '0');
 // local date (toISOString would be UTC and flip to "tomorrow" after 21h in Brazil)
 const today = () => {
   const d = new Date();
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
+// same day `k` months later, clamped to the month's last day (31/01 + 1 -> 28/02)
+const addMonths = (iso: string, k: number) => {
+  const y = Number(iso.slice(0, 4));
+  const m = Number(iso.slice(5, 7)) - 1 + k;
+  const d = Number(iso.slice(8, 10));
+  const ty = y + Math.floor(m / 12);
+  const tm = ((m % 12) + 12) % 12;
+  const last = new Date(ty, tm + 1, 0).getDate();
+  return `${ty}-${pad(tm + 1)}-${pad(Math.min(d, last))}`;
+};
 const shortDate = (iso: string) => iso.slice(8, 10) + '/' + iso.slice(5, 7);
+const monthYear = (iso: string) => `${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
 const monthLabel =(key: string) => `${MONTHS[Number(key.slice(5, 7)) - 1]} ${key.slice(0, 4)}`;
 const shiftMonth = (key: string, delta: number) => {
   const d = new Date(Number(key.slice(0, 4)), Number(key.slice(5, 7)) - 1 + delta, 1);
@@ -39,6 +51,7 @@ function Main() {
   const [amount, setAmount] = useState('');
   const [desc, setDesc] = useState('');
   const [category, setCategory] = useState(CATEGORIES[0]);
+  const [installments, setInstallments] = useState(''); // empty = 1x (à vista)
   const [cardId, setCardId] = useState<string | null>(null);
   const [newCard, setNewCard] = useState<string | null>(null); // null = not typing a new card
   const queue = useRef<Promise<unknown>>(Promise.resolve());
@@ -58,19 +71,28 @@ function Main() {
   const add = () => {
     const cents = Math.round(parseFloat(amount.replace(',', '.')) * 100);
     if (!data || !Number.isFinite(cents) || cents <= 0) return Alert.alert('Valor inválido');
-    const tx: Transaction = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    const n = type === 'expense' ? Math.floor(Number(installments) || 1) : 1;
+    if (n < 1 || n > MAX_INSTALLMENTS) return Alert.alert('Parcelas inválidas', `Use de 1 a ${MAX_INSTALLMENTS}.`);
+    const base = Math.floor(cents / n);
+    if (base < 1) return Alert.alert('Valor pequeno demais', 'Cada parcela precisa ter pelo menos R$ 0,01.');
+    const rest = cents - base * n; // leftover cents go to the first installment, so the sum is exact
+    const groupId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const now = new Date().toISOString();
+    const created: Transaction[] = Array.from({ length: n }, (_, i) => ({
+      id: `${groupId}-${i + 1}`,
       type,
-      amountCents: cents,
+      amountCents: base + (i === 0 ? rest : 0),
       category,
       description: desc.trim(),
-      date: today(),
+      date: addMonths(today(), i),
       cardId: type === 'expense' ? cardId ?? undefined : undefined,
-      createdAt: new Date().toISOString(),
-    };
-    persist({ ...data, transactions: [tx, ...data.transactions] });
+      installment: n > 1 ? { n: i + 1, of: n, groupId } : undefined,
+      createdAt: now,
+    }));
+    persist({ ...data, transactions: [...created, ...data.transactions] });
     setAmount('');
     setDesc('');
+    setInstallments('');
     setMonth(today().slice(0, 7)); // jump to the month where the new row lives
   };
 
@@ -105,16 +127,26 @@ function Main() {
     ]);
   };
 
-  const remove = (id: string) =>
-    data &&
-    Alert.alert('Excluir lançamento?', undefined, [
+  const remove = (tx: Transaction) => {
+    if (!data) return;
+    const only = () => persist({ ...data, transactions: data.transactions.filter((t) => t.id !== tx.id) });
+    const inst = tx.installment;
+    if (!inst) {
+      return Alert.alert('Excluir lançamento?', undefined, [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Excluir', style: 'destructive', onPress: only },
+      ]);
+    }
+    Alert.alert(`Excluir parcela ${inst.n}/${inst.of}?`, 'Esta compra é parcelada.', [
       { text: 'Cancelar', style: 'cancel' },
+      { text: 'Só esta', onPress: only },
       {
-        text: 'Excluir',
+        text: 'Todas',
         style: 'destructive',
-        onPress: () => persist({ ...data, transactions: data.transactions.filter((t) => t.id !== id) }),
+        onPress: () => persist({ ...data, transactions: data.transactions.filter((t) => t.installment?.groupId !== inst.groupId) }),
       },
     ]);
+  };
 
   const restore = async () => {
     try {
@@ -162,6 +194,9 @@ function Main() {
     if (none) list.push({ key: '', name: 'Sem cartão', ...none });
     return list;
   }, [rows, data]);
+
+  const nInst = type === 'expense' ? Math.max(1, Math.floor(Number(installments) || 1)) : 1;
+  const previewCents = Math.round(parseFloat(amount.replace(',', '.')) * 100);
 
   if (!data)
     return (
@@ -218,14 +253,33 @@ function Main() {
           </View>
           <View style={s.gridRow}>
             <View style={[s.inputBox, { width: 110 }, s.bRight]}>
-              <Text style={s.inputLabel}>VALOR (R$)</Text>
+              <Text style={s.inputLabel}>{nInst > 1 ? 'TOTAL (R$)' : 'VALOR (R$)'}</Text>
               <TextInput style={s.input} placeholder="0,00" placeholderTextColor="#94a3b8" keyboardType="decimal-pad" value={amount} onChangeText={setAmount} />
             </View>
+            {type === 'expense' && (
+              <View style={[s.inputBox, { width: 84 }, s.bRight]}>
+                <Text style={s.inputLabel}>PARCELAS</Text>
+                <TextInput
+                  style={s.input}
+                  placeholder="1"
+                  placeholderTextColor="#94a3b8"
+                  keyboardType="number-pad"
+                  maxLength={2}
+                  value={installments}
+                  onChangeText={(v) => setInstallments(v.replace(/\D/g, ''))}
+                />
+              </View>
+            )}
             <View style={[s.inputBox, s.flex1]}>
               <Text style={s.inputLabel}>DESCRIÇÃO</Text>
               <TextInput style={s.input} placeholder="Ex.: mercado" placeholderTextColor="#94a3b8" value={desc} onChangeText={setDesc} />
             </View>
           </View>
+          {nInst > 1 && Number.isFinite(previewCents) && previewCents >= nInst && (
+            <Text style={s.preview}>
+              {nInst}x de {brl(Math.floor(previewCents / nInst))} · {monthYear(today())} a {monthYear(addMonths(today(), nInst - 1))}
+            </Text>
+          )}
           <View style={[s.inputBox, { paddingBottom: 6 }]}>
             <Text style={s.inputLabel}>CATEGORIA</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: 4 }}>
@@ -292,13 +346,20 @@ function Main() {
             keyboardShouldPersistTaps="handled"
             ListEmptyComponent={<Text style={s.empty}>Nenhum lançamento em {monthLabel(month)}.</Text>}
             renderItem={({ item, index }) => (
-              <Pressable onLongPress={() => remove(item.id)} style={[s.gridRow, s.dataRow, index % 2 === 1 && s.zebra]}>
+              <Pressable onLongPress={() => remove(item)} style={[s.gridRow, s.dataRow, index % 2 === 1 && s.zebra]}>
                 <Text style={[s.cell, s.cDate, s.bRight, s.muted]} numberOfLines={1}>
                   {shortDate(item.date)}
                 </Text>
-                <Text style={[s.cell, s.flex1, s.bRight]} numberOfLines={1}>
-                  {item.description || '—'}
-                </Text>
+                <View style={[s.flex1, s.bRight, s.catCell]}>
+                  <Text style={s.catText} numberOfLines={1}>
+                    {item.description || '—'}
+                  </Text>
+                  {item.installment && (
+                    <Text style={s.instText}>
+                      Parcela {item.installment.n}/{item.installment.of}
+                    </Text>
+                  )}
+                </View>
                 <View style={[s.cCat, s.bRight, s.catCell]}>
                   <Text style={[s.catText, s.muted]} numberOfLines={1}>
                     {item.category}
@@ -409,6 +470,8 @@ const s = StyleSheet.create({
   cCat: { width: 92 },
   cVal: { width: 104 },
   cCount: { width: 56 },
+  preview: { paddingHorizontal: 8, paddingVertical: 5, fontSize: 12, fontWeight: '700', color: '#b45309', backgroundColor: '#fffbeb', borderBottomWidth: StyleSheet.hairlineWidth * 2, borderBottomColor: LINE },
+  instText: { fontSize: 10, color: '#b45309', fontWeight: '700', marginTop: 1 },
   catCell: { paddingHorizontal: 8, paddingVertical: 6, justifyContent: 'center' },
   catText: { fontSize: 13 },
   cardText: { fontSize: 10, color: '#2563eb', fontWeight: '600', marginTop: 1 },

@@ -13,6 +13,8 @@ export interface Transaction {
   description: string;
   date: string; // ISO yyyy-mm-dd
   cardId?: string; // expenses only; missing = no card (cash, pix...)
+  /** Set on every row of an installment purchase; `groupId` ties the rows together. */
+  installment?: { n: number; of: number; groupId: string };
   createdAt: string;
 }
 
