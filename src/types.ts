@@ -1,4 +1,5 @@
-export type TxType = 'expense' | 'income';
+/** refund = money given back (estorno/reembolso); it offsets spending. */
+export type TxType = 'expense' | 'income' | 'refund';
 
 /** How a non-card entry was paid. Card entries use cardId instead. */
 export type Method = 'pix' | 'debit' | 'cash' | 'boleto' | 'other';

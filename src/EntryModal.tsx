@@ -79,6 +79,7 @@ export default function EntryModal({ visible, cards, lockedCard: pinned, editing
 
   const startDate = parseDateBR(dateText) ?? today();
   const isExpense = type === 'expense';
+  const usesPayment = type !== 'income'; // a refund goes back to a card or method too
   const accent = isExpense ? t.redStrong : t.greenStrong;
   const nInst = isExpense ? Math.max(1, Math.floor(Number(installments) || 1)) : 1;
   const cents = parseMoneyToCents(amount);
@@ -115,7 +116,7 @@ export default function EntryModal({ visible, cards, lockedCard: pinned, editing
             <Text style={s.btnGhostText}>Cancelar</Text>
           </Pressable>
           <Pressable onPress={submit} style={[s.btn, { backgroundColor: accent, flex: 2 }]}>
-            <Text style={s.btnText}>{editing ? 'Salvar alterações' : isExpense ? 'Adicionar gasto' : 'Adicionar receita'}</Text>
+            <Text style={s.btnText}>{editing ? 'Salvar alterações' : isExpense ? 'Adicionar gasto' : type === 'refund' ? 'Adicionar estorno' : 'Adicionar receita'}</Text>
           </Pressable>
         </>
       }
@@ -131,7 +132,8 @@ export default function EntryModal({ visible, cards, lockedCard: pinned, editing
           <Label>Tipo do lançamento</Label>
           <View style={s.typeRow}>
             <TypeButton title="Gasto" hint="Dinheiro que saiu" color={t.redStrong} selected={isExpense} onPress={() => setType('expense')} />
-            <TypeButton title="Receita" hint="Dinheiro que entrou" color={t.greenStrong} selected={!isExpense} onPress={() => setType('income')} />
+            <TypeButton title="Receita" hint="Dinheiro que entrou" color={t.greenStrong} selected={type === 'income'} onPress={() => setType('income')} />
+            <TypeButton title="Estorno" hint="Valor devolvido" color={t.greenStrong} selected={type === 'refund'} onPress={() => setType('refund')} />
           </View>
         </View>
       )}
@@ -181,7 +183,7 @@ export default function EntryModal({ visible, cards, lockedCard: pinned, editing
         </ScrollView>
       </View>
 
-      {isExpense && !lockedCard && (
+      {usesPayment && !lockedCard && (
         <View>
           <Label>Pagamento</Label>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ alignItems: 'center' }}>
@@ -264,11 +266,15 @@ function TypeButton({ title, hint, color, selected, onPress }: { title: string; 
       accessibilityState={{ selected }}
       style={[s.typeBtn, selected && { backgroundColor: color, borderColor: color }]}
     >
-      <View style={[s.radio, selected && { backgroundColor: '#fff', borderColor: '#fff' }]}>{selected && <Text style={[s.radioCheck, { color }]}>✓</Text>}</View>
-      <View style={{ flex: 1 }}>
-        <Text style={[s.typeTitle, selected && { color: '#fff' }]}>{title}</Text>
-        <Text style={[s.typeHint, selected && { color: '#ffffffcc' }]}>{hint}</Text>
+      <View style={s.typeTop}>
+        <View style={[s.radio, selected && { backgroundColor: '#fff', borderColor: '#fff' }]}>{selected && <Text style={[s.radioCheck, { color }]}>✓</Text>}</View>
+        <Text style={[s.typeTitle, selected && { color: '#fff' }]} numberOfLines={1}>
+          {title}
+        </Text>
       </View>
+      <Text style={[s.typeHint, selected && { color: '#ffffffcc' }]} numberOfLines={2}>
+        {hint}
+      </Text>
     </Pressable>
   );
 }
@@ -281,12 +287,13 @@ const makeStyles = (t: Theme) =>
     quickText: { fontSize: 14, fontWeight: '700', color: t.link },
     help: { fontSize: 11, color: t.textFaint, marginTop: 6 },
 
-    typeRow: { flexDirection: 'row', gap: 10 },
-    typeBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 2, borderColor: t.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12, backgroundColor: t.surface, elevation: 1 },
-    radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: t.textFaint, alignItems: 'center', justifyContent: 'center' },
-    radioCheck: { fontSize: 13, fontWeight: '900', marginTop: -1 },
-    typeTitle: { fontSize: 16, fontWeight: '800', color: t.text },
-    typeHint: { fontSize: 11, color: t.textMuted, marginTop: 1 },
+    typeRow: { flexDirection: 'row', gap: 8 },
+    typeBtn: { flex: 1, gap: 4, borderWidth: 2, borderColor: t.border, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 10, backgroundColor: t.surface, elevation: 1 },
+    typeTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    radio: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: t.textFaint, alignItems: 'center', justifyContent: 'center' },
+    radioCheck: { fontSize: 11, fontWeight: '900', marginTop: -1 },
+    typeTitle: { fontSize: 15, fontWeight: '800', color: t.text, flexShrink: 1 },
+    typeHint: { fontSize: 10.5, color: t.textMuted, lineHeight: 13 },
 
     note: { fontSize: 12, lineHeight: 17, color: t.amber, backgroundColor: t.amberSoft, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8 },
     delete: { alignSelf: 'flex-start', paddingVertical: 6 },

@@ -6,6 +6,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { exportBackup, pickBackup } from './src/backup';
 import CardModal, { CardValues } from './src/CardModal';
 import EntryModal, { EntryValues } from './src/EntryModal';
+import { spendOf, totalsOf } from './src/calc';
 import { applyEdit, buildEntries } from './src/ops';
 import { loadData, saveData } from './src/storage';
 import { Theme, ThemeContext, darkTheme, lightTheme } from './src/theme';
@@ -197,18 +198,13 @@ function Main() {
     [data, month],
   );
 
-  const totals = useMemo(() => {
-    let income = 0;
-    let expense = 0;
-    rows.forEach((x) => (x.type === 'income' ? (income += x.amountCents) : (expense += x.amountCents)));
-    return { income, expense, balance: income - expense };
-  }, [rows]);
+  const totals = useMemo(() => totalsOf(rows), [rows]);
 
   // active tab: falls back to "Geral" if its card is gone
   const activeCard = data?.cards.find((c) => c.id === tab) ?? null;
   const onCard = activeCard !== null;
   const tabRows = useMemo(() => (activeCard ? rows.filter((x) => x.cardId === activeCard.id) : rows), [rows, activeCard]);
-  const cardSpend = tabRows.reduce((sum, x) => (x.type === 'expense' ? sum + x.amountCents : sum), 0);
+  const cardSpend = tabRows.reduce((sum, x) => sum + spendOf(x), 0);
 
   // Limit usage. The app has no notion of "paid", so everything from the current month on counts as
   // committed (future installments included); invoices of past months are assumed to be paid.
@@ -216,7 +212,7 @@ function Main() {
     if (!activeCard?.limitCents || !data) return null;
     const from = today().slice(0, 7);
     const used = data.transactions.reduce(
-      (sum, x) => (x.type === 'expense' && x.cardId === activeCard.id && x.date.slice(0, 7) >= from ? sum + x.amountCents : sum),
+      (sum, x) => (x.cardId === activeCard.id && x.date.slice(0, 7) >= from ? sum + spendOf(x) : sum),
       0,
     );
     const total = activeCard.limitCents;
@@ -333,6 +329,7 @@ function Main() {
                 const parts = [
                   item.description ? { k: 'cat', text: item.category, color: t.textMuted } : null,
                   card ? { k: 'card', text: `💳 ${card.name}`, color: t.link } : null,
+                  item.type === 'refund' ? { k: 'refund', text: 'Estorno', color: t.green } : null,
                   !card && item.method ? { k: 'method', text: methodLabel(item.method), color: t.textMuted } : null,
                   item.installment ? { k: 'inst', text: `Parcela ${item.installment.n}/${item.installment.of}`, color: t.amber } : null,
                 ].filter((x): x is { k: string; text: string; color: string } => x !== null);
@@ -354,8 +351,8 @@ function Main() {
                         </Text>
                       )}
                     </View>
-                    <Text style={[s.rowValue, { color: item.type === 'income' ? t.green : t.red }]} numberOfLines={1}>
-                      {item.type === 'income' ? '+' : '−'} {brl(item.amountCents)}
+                    <Text style={[s.rowValue, { color: item.type === 'expense' ? t.red : t.green }]} numberOfLines={1}>
+                      {item.type === 'expense' ? '−' : '+'} {brl(item.amountCents)}
                     </Text>
                   </Pressable>
                 );

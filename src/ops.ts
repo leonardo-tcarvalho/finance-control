@@ -29,8 +29,8 @@ export function buildEntries(i: EntryInput, groupId: string, createdAt: string):
     category: i.category,
     description: i.description,
     date: addMonths(i.date, k),
-    cardId: i.type === 'expense' ? i.cardId : undefined,
-    method: i.type === 'expense' && !i.cardId ? i.method : undefined,
+    cardId: i.type !== 'income' ? i.cardId : undefined,
+    method: i.type !== 'income' && !i.cardId ? i.method : undefined,
     installment: n > 1 ? { n: k + 1, of: n, groupId } : undefined,
     createdAt,
   }));
@@ -63,8 +63,8 @@ export function applyEdit(list: Transaction[], original: Transaction, e: EditInp
         date: e.date,
         description: e.description,
         category: e.category,
-        cardId: type === 'expense' ? e.cardId : undefined,
-        method: type === 'expense' && !e.cardId ? e.method : undefined,
+        cardId: type !== 'income' ? e.cardId : undefined,
+        method: type !== 'income' && !e.cardId ? e.method : undefined,
       };
     }
     if (gid && x.installment?.groupId === gid) return { ...x, description: e.description, category: e.category, cardId: e.cardId, method: e.cardId ? undefined : e.method };
