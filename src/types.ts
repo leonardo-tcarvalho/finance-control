@@ -1,5 +1,4 @@
-/** refund = money given back (estorno/reembolso); it offsets spending. */
-export type TxType = 'expense' | 'income' | 'refund';
+export type TxType = 'expense' | 'income';
 
 /** How a non-card entry was paid. Card entries use cardId instead. */
 export type Method = 'pix' | 'debit' | 'cash' | 'boleto' | 'other';
@@ -50,7 +49,7 @@ export interface AppData {
 
 export const SCHEMA_VERSION = 2;
 export interface Categories {
-  /** used by expenses and refunds */
+  /** used by expenses */
   expense: string[];
   income: string[];
 }

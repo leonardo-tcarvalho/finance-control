@@ -23,7 +23,7 @@ export interface EntryInput {
 export const groupOf = (t: Transaction) => t.installment?.groupId ?? t.recurring?.groupId;
 
 /**
- * Makes paid and due consistent with how the row is paid. Income, refunds and card purchases carry no status of
+ * Makes paid and due consistent with how the row is paid. Income and card purchases carry no status of
  * their own (a card purchase follows its invoice); Pix is paid at once; any other expense is pending, except when it
  * stays in that same group (`prev`) and already has a status, which is kept (an old row without one counts as paid).
  */
@@ -52,8 +52,8 @@ export function buildEntries(i: EntryInput, groupId: string, createdAt: string):
         category: i.category,
         description: i.description,
         date: addMonths(i.date, k),
-        cardId: i.type !== 'income' ? i.cardId : undefined,
-        method: i.type !== 'income' && !i.cardId ? i.method : undefined,
+        cardId: i.type === 'expense' ? i.cardId : undefined,
+        method: i.type === 'expense' && !i.cardId ? i.method : undefined,
         due: i.due ? addMonths(i.due, k) : undefined,
         installment: n > 1 && i.mode === 'installment' ? { n: k + 1, of: n, groupId } : undefined,
         recurring: n > 1 && i.mode === 'recurring' ? { n: k + 1, of: n, groupId } : undefined,
@@ -95,8 +95,8 @@ export function applyEdit(list: Transaction[], original: Transaction, e: EditInp
           date: e.date,
           description: e.description,
           category: e.category,
-          cardId: type !== 'income' ? e.cardId : undefined,
-          method: type !== 'income' && !e.cardId ? e.method : undefined,
+          cardId: type === 'expense' ? e.cardId : undefined,
+          method: type === 'expense' && !e.cardId ? e.method : undefined,
           due: e.due,
         },
         payKind(x),

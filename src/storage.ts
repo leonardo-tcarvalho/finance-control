@@ -29,6 +29,13 @@ function parseCategories(raw: any) {
   return expense && income ? { expense, income } : undefined;
 }
 
+/** The refund type was removed. An old refund is kept as income (money that came back), without card or method. */
+function dropRefund(t: any) {
+  if (t?.type !== 'refund') return t;
+  const { cardId, method, paid, due, ...rest } = t;
+  return { ...rest, type: 'income' };
+}
+
 export function parseData(raw: string): AppData {
   const obj = JSON.parse(raw);
   if (!obj || !Array.isArray(obj.transactions)) throw new Error('Formato inválido');
@@ -38,7 +45,7 @@ export function parseData(raw: string): AppData {
     cards: Array.isArray(obj.cards) ? obj.cards : [],
     settings: obj.settings && typeof obj.settings === 'object' ? obj.settings : undefined,
     categories: parseCategories(obj.categories),
-    transactions: obj.transactions,
+    transactions: obj.transactions.map(dropRefund),
     updatedAt: obj.updatedAt ?? new Date().toISOString(),
   };
 }

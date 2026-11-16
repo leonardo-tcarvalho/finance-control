@@ -1,7 +1,7 @@
 import { dueDate, invoiceKey, isPaid, incomeOf, spendOf } from './calc';
 import { Card, Transaction } from './types';
 
-/** What decides whether an entry is paid: nothing (income, refund), its card's invoice, Pix, or its own flag. */
+/** What decides whether an entry is paid: nothing (income), its card's invoice, Pix, or its own flag. */
 export type PayKind = 'none' | 'card' | 'pix' | 'other';
 
 export const payKind = (t: Pick<Transaction, 'type' | 'cardId' | 'method'>): PayKind =>
@@ -11,7 +11,7 @@ const cardOf = (cards: Card[], id?: string) => cards.find((c) => c.id === id);
 
 /**
  * An expense that is still to be paid. A card purchase is pending until its whole invoice is marked paid; any other
- * non-Pix expense carries its own flag. Income, refunds and Pix are never pending.
+ * non-Pix expense carries its own flag. Income and Pix are never pending.
  */
 export function isPending(t: Transaction, cards: Card[]): boolean {
   const kind = payKind(t);
@@ -51,7 +51,6 @@ export function overdueSummary(list: Transaction[], cards: Card[], todayIso: str
 
 /**
  * Receitas, Gastos, the part of Gastos still pending, and Saldo (receitas minus the gastos that are not pending).
- * Refunds reduce Gastos and count as already paid.
  */
 export function monthTotals(rows: Transaction[], cards: Card[]) {
   let income = 0;

@@ -7,7 +7,7 @@ App pessoal de controle financeiro, 100% local, que registra o que entra e o que
 ### Lançamentos
 
 **Lançamento**:
-Um registro de dinheiro que saiu, entrou ou voltou, com data, valor, categoria e forma de pagamento.
+Um registro de dinheiro que saiu ou entrou, com data, valor, categoria e forma de pagamento.
 _Evitar_: Transação, movimentação
 
 **Gasto**:
@@ -19,7 +19,7 @@ Lançamento de dinheiro que entrou. Só é registrada quando o dinheiro realment
 _Evitar_: Entrada, ganho
 
 **Pendente**:
-Situação de um gasto que ainda não foi pago. Todo gasto nasce pendente, exceto os pagos por Pix, que nascem pagos. Estornos e receitas não têm situação.
+Situação de um gasto que ainda não foi pago. Todo gasto nasce pendente, exceto os pagos por Pix, que nascem pagos. Receitas não têm situação.
 _Evitar_: A pagar, em aberto
 
 **Pago**:
@@ -37,10 +37,6 @@ _Evitar_: Atrasado
 **Saldo**:
 As receitas do mês menos os gastos do mês que não estão pendentes; muda conforme os gastos são marcados como pagos.
 _Evitar_: Balanço, resultado
-
-**Estorno**:
-Lançamento de dinheiro devolvido por um gasto anterior; abate os gastos em vez de somar às receitas.
-_Evitar_: Reembolso, devolução
 
 **Compra parcelada**:
 Um gasto cujo valor total é dividido em vários meses, uma parcela por mês.

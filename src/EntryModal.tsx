@@ -98,9 +98,9 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
   // the chosen category must belong to the list shown for this type
   const selectedCategory = catList.includes(category) ? category : (catList[0] ?? '');
   const isExpense = type === 'expense';
-  const usesPayment = type !== 'income'; // a refund goes back to a card or method too
+  const usesPayment = isExpense; // income carries no payment method
   const accent = isExpense ? t.redStrong : t.greenStrong;
-  // installments and monthly repetition exist only for expenses; income and refunds are always a single entry
+  // installments and monthly repetition exist only for expenses; income is always a single entry
   const canSplit = type === 'expense';
   const canRepeat = type === 'expense';
   const effRepeat: Repeat = (repeat === 'installment' && !canSplit) || (repeat === 'recurring' && !canRepeat) ? 'once' : repeat;
@@ -152,7 +152,7 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
             <Text style={s.btnGhostText}>Cancelar</Text>
           </Pressable>
           <Pressable onPress={submit} style={[s.btn, { backgroundColor: accent, flex: 2 }]}>
-            <Text style={s.btnText}>{editing ? 'Salvar alterações' : isExpense ? 'Adicionar gasto' : type === 'refund' ? 'Adicionar estorno' : 'Adicionar receita'}</Text>
+            <Text style={s.btnText}>{editing ? 'Salvar alterações' : isExpense ? 'Adicionar gasto' : 'Adicionar receita'}</Text>
           </Pressable>
         </>
       }
@@ -169,7 +169,6 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
           <View style={s.typeRow}>
             <TypeButton title="Gasto" hint="Dinheiro que saiu" color={t.redStrong} selected={isExpense} onPress={() => setType('expense')} />
             <TypeButton title="Receita" hint="Dinheiro que entrou" color={t.greenStrong} selected={type === 'income'} onPress={() => setType('income')} />
-            <TypeButton title="Estorno" hint="Valor devolvido" color={t.greenStrong} selected={type === 'refund'} onPress={() => setType('refund')} />
           </View>
         </View>
       )}

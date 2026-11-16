@@ -1,12 +1,12 @@
 import { Card, Transaction } from './types';
 import { shiftMonth } from './utils';
 
-/** How much a row adds to spending: an expense adds, a refund subtracts, income is not spending. */
-export const spendOf = (t: Transaction) => (t.type === 'expense' ? t.amountCents : t.type === 'refund' ? -t.amountCents : 0);
+/** How much a row adds to spending: only an expense does. */
+export const spendOf = (t: Transaction) => (t.type === 'expense' ? t.amountCents : 0);
 
 export const incomeOf = (t: Transaction) => (t.type === 'income' ? t.amountCents : 0);
 
-/** Entradas, Saidas (net of refunds) and Saldo for a set of rows. */
+/** Receitas, Gastos and Saldo for a set of rows. */
 export function totalsOf(rows: Transaction[]) {
   let income = 0;
   let expense = 0;
@@ -49,7 +49,7 @@ export function invoiceRows(list: Transaction[], card: Card, month: string) {
 /**
  * Limit used by a card: everything on invoices not marked as paid. An installment purchase counts in full (the
  * whole purchase is already committed); any other row, including a recurring series, counts once its date has
- * come. Refunds give limit back.
+ * come.
  */
 export function committedOnCard(list: Transaction[], card: Card, todayIso: string) {
   return list.reduce(
@@ -83,7 +83,7 @@ export interface Slice {
   cents: number;
 }
 
-/** Net spending per category (refunds subtract), biggest first; categories that net to zero or less are left out. */
+/** Spending per category, biggest first. */
 export function spendByCategory(rows: Transaction[]): Slice[] {
   const m = new Map<string, number>();
   for (const t of rows) {
