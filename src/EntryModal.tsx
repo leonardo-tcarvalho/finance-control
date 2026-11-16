@@ -3,7 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import Field, { Label } from './Field';
 import Sheet from './Sheet';
 import { Theme, useTheme } from './theme';
-import { CATEGORIES, Card, Transaction, TxType } from './types';
+import { CATEGORIES, Card, METHODS, Method, Transaction, TxType } from './types';
 import { addDays, addMonths, brl, centsToField, formatDateBR, maskDate, monthYear, parseDateBR, parseMoneyToCents, today } from './utils';
 
 export interface EntryValues {
@@ -15,6 +15,7 @@ export interface EntryValues {
   category: string;
   installments: string;
   cardId: string | null;
+  method: Method | null;
 }
 
 interface Props {
@@ -47,6 +48,7 @@ export default function EntryModal({ visible, cards, lockedCard: pinned, editing
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [installments, setInstallments] = useState(''); // empty = 1x (à vista)
   const [cardId, setCardId] = useState<string | null>(null);
+  const [method, setMethod] = useState<Method | null>(null);
   const [newCard, setNewCard] = useState<string | null>(null); // null = not typing a new card
 
   // every time the popup opens it starts clean (and pinned to the card tab, if any)
@@ -60,6 +62,7 @@ export default function EntryModal({ visible, cards, lockedCard: pinned, editing
       setCategory(editing.category);
       setInstallments('');
       setCardId(editing.cardId ?? null);
+      setMethod(editing.method ?? null);
       setNewCard(null);
       return;
     }
@@ -70,6 +73,7 @@ export default function EntryModal({ visible, cards, lockedCard: pinned, editing
     setCategory(CATEGORIES[0]);
     setInstallments('');
     setCardId(lockedCard?.id ?? null);
+    setMethod(null);
     setNewCard(null);
   }, [visible, lockedCard?.id, editing?.id]);
 
@@ -79,12 +83,16 @@ export default function EntryModal({ visible, cards, lockedCard: pinned, editing
   const nInst = isExpense ? Math.max(1, Math.floor(Number(installments) || 1)) : 1;
   const cents = parseMoneyToCents(amount);
   const selectedCard = cardId && cards.some((c) => c.id === cardId) ? cardId : null;
+  const selectedMethod = selectedCard ? null : method;
 
   const createCard = () => {
     const name = (newCard ?? '').trim();
     if (name) {
       const id = onCreateCard(name);
-      if (id) setCardId(id);
+      if (id) {
+        setCardId(id);
+        setMethod(null);
+      }
     }
     setNewCard(null);
   };
@@ -92,7 +100,7 @@ export default function EntryModal({ visible, cards, lockedCard: pinned, editing
   const submit = () => {
     const date = parseDateBR(dateText);
     if (!date) return Alert.alert('Data inválida', 'Use o formato DD/MM/AAAA, por exemplo 15/11/2026.');
-    if (onSubmit({ type, amount, desc, date, category, installments, cardId: lockedCard ? lockedCard.id : selectedCard })) onClose();
+    if (onSubmit({ type, amount, desc, date, category, installments, cardId: lockedCard ? lockedCard.id : selectedCard, method: lockedCard ? null : selectedMethod })) onClose();
   };
 
   return (
@@ -175,13 +183,39 @@ export default function EntryModal({ visible, cards, lockedCard: pinned, editing
 
       {isExpense && !lockedCard && (
         <View>
-          <Label>Cartão</Label>
+          <Label>Pagamento</Label>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ alignItems: 'center' }}>
-            <Pressable onPress={() => setCardId(null)} style={[s.chip, selectedCard === null && s.chipOn]}>
-              <Text style={[s.chipText, selectedCard === null && s.chipTextOn]}>Nenhum</Text>
+            <Pressable
+              onPress={() => {
+                setCardId(null);
+                setMethod(null);
+              }}
+              style={[s.chip, selectedCard === null && selectedMethod === null && s.chipOn]}
+            >
+              <Text style={[s.chipText, selectedCard === null && selectedMethod === null && s.chipTextOn]}>Não informar</Text>
             </Pressable>
+            {METHODS.map((m) => (
+              <Pressable
+                key={m.id}
+                onPress={() => {
+                  setMethod(m.id);
+                  setCardId(null);
+                }}
+                style={[s.chip, selectedMethod === m.id && s.chipOn]}
+              >
+                <Text style={[s.chipText, selectedMethod === m.id && s.chipTextOn]}>{m.label}</Text>
+              </Pressable>
+            ))}
             {cards.map((c) => (
-              <Pressable key={c.id} onPress={() => setCardId(c.id)} onLongPress={() => onRemoveCard(c)} style={[s.chip, selectedCard === c.id && s.chipOn]}>
+              <Pressable
+                key={c.id}
+                onPress={() => {
+                  setCardId(c.id);
+                  setMethod(null);
+                }}
+                onLongPress={() => onRemoveCard(c)}
+                style={[s.chip, selectedCard === c.id && s.chipOn]}
+              >
                 <Text style={[s.chipText, selectedCard === c.id && s.chipTextOn]}>💳 {c.name}</Text>
               </Pressable>
             ))}

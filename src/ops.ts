@@ -1,4 +1,4 @@
-import { Transaction, TxType } from './types';
+import { Method, Transaction, TxType } from './types';
 import { addMonths } from './utils';
 
 export interface EntryInput {
@@ -9,6 +9,7 @@ export interface EntryInput {
   /** ISO date of the purchase (first installment) */
   date: string;
   cardId?: string;
+  method?: Method;
   /** number of installments; 1 = a single entry */
   times: number;
 }
@@ -29,6 +30,7 @@ export function buildEntries(i: EntryInput, groupId: string, createdAt: string):
     description: i.description,
     date: addMonths(i.date, k),
     cardId: i.type === 'expense' ? i.cardId : undefined,
+    method: i.type === 'expense' && !i.cardId ? i.method : undefined,
     installment: n > 1 ? { n: k + 1, of: n, groupId } : undefined,
     createdAt,
   }));
@@ -41,6 +43,7 @@ export interface EditInput {
   category: string;
   date: string;
   cardId?: string;
+  method?: Method;
 }
 
 /**
@@ -61,9 +64,10 @@ export function applyEdit(list: Transaction[], original: Transaction, e: EditInp
         description: e.description,
         category: e.category,
         cardId: type === 'expense' ? e.cardId : undefined,
+        method: type === 'expense' && !e.cardId ? e.method : undefined,
       };
     }
-    if (gid && x.installment?.groupId === gid) return { ...x, description: e.description, category: e.category, cardId: e.cardId };
+    if (gid && x.installment?.groupId === gid) return { ...x, description: e.description, category: e.category, cardId: e.cardId, method: e.cardId ? undefined : e.method };
     return x;
   });
 }

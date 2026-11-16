@@ -9,7 +9,7 @@ import EntryModal, { EntryValues } from './src/EntryModal';
 import { applyEdit, buildEntries } from './src/ops';
 import { loadData, saveData } from './src/storage';
 import { Theme, ThemeContext, darkTheme, lightTheme } from './src/theme';
-import { AppData, Card, Transaction, emptyData } from './src/types';
+import { AppData, Card, Transaction, emptyData, methodLabel } from './src/types';
 import { MAX_INSTALLMENTS, addMonths, brl, monthLabel, parseMoneyToCents, shiftMonth, shortDate, today } from './src/utils';
 
 export default function App() {
@@ -73,6 +73,7 @@ function Main() {
           category: v.category,
           date: v.date,
           cardId,
+          method: v.method ?? undefined,
         }),
       });
       setMonth(v.date.slice(0, 7));
@@ -90,7 +91,7 @@ function Main() {
     }
     const groupId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const created = buildEntries(
-      { type: v.type, amountCents: cents, description: v.desc.trim(), category: v.category, date: v.date, cardId, times },
+      { type: v.type, amountCents: cents, description: v.desc.trim(), category: v.category, date: v.date, cardId, method: v.method ?? undefined, times },
       groupId,
       new Date().toISOString(),
     );
@@ -332,6 +333,7 @@ function Main() {
                 const parts = [
                   item.description ? { k: 'cat', text: item.category, color: t.textMuted } : null,
                   card ? { k: 'card', text: `💳 ${card.name}`, color: t.link } : null,
+                  !card && item.method ? { k: 'method', text: methodLabel(item.method), color: t.textMuted } : null,
                   item.installment ? { k: 'inst', text: `Parcela ${item.installment.n}/${item.installment.of}`, color: t.amber } : null,
                 ].filter((x): x is { k: string; text: string; color: string } => x !== null);
                 return (
