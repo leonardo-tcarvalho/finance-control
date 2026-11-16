@@ -11,12 +11,28 @@ Um registro de dinheiro que saiu, entrou ou voltou, com data, valor, categoria e
 _Evitar_: Transação, movimentação
 
 **Gasto**:
-Lançamento de dinheiro que saiu.
-_Evitar_: Despesa, saída (use "Gastos" também para o total mostrado no mês)
+Lançamento de dinheiro que saiu. "Gastos" também é a soma de todos os gastos do mês, pagos ou não.
+_Evitar_: Despesa, saída
 
 **Receita**:
-Lançamento de dinheiro que entrou.
+Lançamento de dinheiro que entrou. Só é registrada quando o dinheiro realmente entrou, por isso não tem situação de pendente. "Receitas" também é a soma de todas as receitas do mês.
 _Evitar_: Entrada, ganho
+
+**Pendente**:
+Situação de um gasto que ainda não foi pago. Todo gasto nasce pendente, exceto os pagos por Pix, que nascem pagos.
+_Evitar_: A pagar, em aberto
+
+**Pago**:
+Situação de um gasto cujo dinheiro já saiu. Uma compra no cartão de crédito só fica paga quando a fatura inteira é marcada como paga.
+_Evitar_: Quitado, liquidado
+
+**Vencido**:
+Gasto pendente cuja data de vencimento já passou.
+_Evitar_: Atrasado
+
+**Saldo**:
+As receitas do mês menos os gastos do mês que não estão pendentes; muda conforme os gastos são marcados como pagos.
+_Evitar_: Balanço, resultado
 
 **Estorno**:
 Lançamento de dinheiro devolvido por um gasto anterior; abate os gastos em vez de somar às receitas.
@@ -33,7 +49,7 @@ _Evitar_: Assinatura, fixo
 ### Cartões
 
 **Cartão**:
-Cartão de crédito cadastrado, com nome e, opcionalmente, limite, dia de fechamento e dia de vencimento.
+Cartão de crédito cadastrado, com nome e limite obrigatórios e, opcionalmente, dia de fechamento e dia de vencimento.
 
 **Fatura**:
 O conjunto de compras de um cartão que fecham no mesmo mês; uma compra feita depois do dia de fechamento entra na fatura seguinte.
