@@ -54,3 +54,30 @@ export const parseMoneyToCents = (raw: string): number => {
   const n = parseFloat(s);
   return Number.isFinite(n) ? Math.round(n * 100) : NaN;
 };
+
+export const formatDateBR = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
+
+/** "15/11/2026" -> "2026-11-15", or null when it is not a real calendar date. */
+export const parseDateBR = (text: string): string | null => {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(text.trim());
+  if (!m) return null;
+  const d = Number(m[1]);
+  const mo = Number(m[2]);
+  const y = Number(m[3]);
+  const dt = new Date(y, mo - 1, d);
+  if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d || y < 2000 || y > 2100) return null;
+  return `${y}-${pad(mo)}-${pad(d)}`;
+};
+
+/** Adds the slashes while the person types only digits: "15112026" -> "15/11/2026". */
+export const maskDate = (text: string) => {
+  const d = text.replace(/\D/g, '').slice(0, 8);
+  if (d.length <= 2) return d;
+  if (d.length <= 4) return `${d.slice(0, 2)}/${d.slice(2)}`;
+  return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`;
+};
+
+export const addDays = (iso: string, k: number) => {
+  const d = new Date(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10)) + k);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};

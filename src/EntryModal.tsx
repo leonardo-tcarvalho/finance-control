@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Field, { Label } from './Field';
 import Sheet from './Sheet';
 import { Theme, useTheme } from './theme';
 import { CATEGORIES, Card, TxType } from './types';
-import { addMonths, brl, monthYear, parseMoneyToCents, today } from './utils';
+import { addDays, addMonths, brl, formatDateBR, maskDate, monthYear, parseDateBR, parseMoneyToCents, today } from './utils';
 
 export interface EntryValues {
   type: TxType;
   amount: string;
   desc: string;
+  /** ISO yyyy-mm-dd of the purchase (first installment) */
+  date: string;
   category: string;
   installments: string;
   cardId: string | null;
@@ -34,6 +36,7 @@ export default function EntryModal({ visible, cards, lockedCard, onClose, onSubm
   const [type, setType] = useState<TxType>('expense');
   const [amount, setAmount] = useState('');
   const [desc, setDesc] = useState('');
+  const [dateText, setDateText] = useState(formatDateBR(today()));
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [installments, setInstallments] = useState(''); // empty = 1x (à vista)
   const [cardId, setCardId] = useState<string | null>(null);
@@ -45,12 +48,14 @@ export default function EntryModal({ visible, cards, lockedCard, onClose, onSubm
     setType('expense');
     setAmount('');
     setDesc('');
+    setDateText(formatDateBR(today()));
     setCategory(CATEGORIES[0]);
     setInstallments('');
     setCardId(lockedCard?.id ?? null);
     setNewCard(null);
   }, [visible, lockedCard?.id]);
 
+  const startDate = parseDateBR(dateText) ?? today();
   const isExpense = type === 'expense';
   const accent = isExpense ? t.redStrong : t.greenStrong;
   const nInst = isExpense ? Math.max(1, Math.floor(Number(installments) || 1)) : 1;
@@ -67,7 +72,9 @@ export default function EntryModal({ visible, cards, lockedCard, onClose, onSubm
   };
 
   const submit = () => {
-    if (onSubmit({ type, amount, desc, category, installments, cardId: lockedCard ? lockedCard.id : selectedCard })) onClose();
+    const date = parseDateBR(dateText);
+    if (!date) return Alert.alert('Data inválida', 'Use o formato DD/MM/AAAA, por exemplo 15/11/2026.');
+    if (onSubmit({ type, amount, desc, date, category, installments, cardId: lockedCard ? lockedCard.id : selectedCard })) onClose();
   };
 
   return (
@@ -115,11 +122,21 @@ export default function EntryModal({ visible, cards, lockedCard, onClose, onSubm
       </View>
       {nInst > 1 && Number.isFinite(cents) && cents >= nInst && (
         <Text style={s.preview}>
-          {nInst}x de {brl(Math.floor(cents / nInst))} · {monthYear(today())} a {monthYear(addMonths(today(), nInst - 1))}
+          {nInst}x de {brl(Math.floor(cents / nInst))} · {monthYear(startDate)} a {monthYear(addMonths(startDate, nInst - 1))}
         </Text>
       )}
 
       <Field label="Descrição (opcional)" placeholder="Ex.: mercado, salário, uber…" value={desc} onChangeText={setDesc} />
+
+      <View style={s.dateRow}>
+        <Field label="Data" placeholder="DD/MM/AAAA" keyboardType="number-pad" maxLength={10} value={dateText} onChangeText={(v) => setDateText(maskDate(v))} style={{ flex: 1 }} />
+        <Pressable onPress={() => setDateText(formatDateBR(today()))} style={s.quick}>
+          <Text style={s.quickText}>Hoje</Text>
+        </Pressable>
+        <Pressable onPress={() => setDateText(formatDateBR(addDays(today(), -1)))} style={s.quick}>
+          <Text style={s.quickText}>Ontem</Text>
+        </Pressable>
+      </View>
 
       <View>
         <Label>Categoria</Label>
@@ -195,6 +212,9 @@ function TypeButton({ title, hint, color, selected, onPress }: { title: string; 
 const makeStyles = (t: Theme) =>
   StyleSheet.create({
     row: { flexDirection: 'row', gap: 10 },
+    dateRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+    quick: { minHeight: 50, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1.5, borderColor: t.border, backgroundColor: t.surface, alignItems: 'center', justifyContent: 'center' },
+    quickText: { fontSize: 14, fontWeight: '700', color: t.link },
     help: { fontSize: 11, color: t.textFaint, marginTop: 6 },
 
     typeRow: { flexDirection: 'row', gap: 10 },

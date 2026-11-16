@@ -80,13 +80,13 @@ function Main() {
       amountCents: base + (i === 0 ? rest : 0),
       category: v.category,
       description: v.desc.trim(),
-      date: addMonths(today(), i),
+      date: addMonths(v.date, i),
       cardId: v.type === 'expense' ? cardOk : undefined,
       installment: n > 1 ? { n: i + 1, of: n, groupId } : undefined,
       createdAt: now,
     }));
     persist({ ...data, transactions: [...created, ...data.transactions] });
-    setMonth(today().slice(0, 7)); // jump to the month where the new row lives
+    setMonth(v.date.slice(0, 7)); // jump to the month where the new row lives
     return true;
   };
 
