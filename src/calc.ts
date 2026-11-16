@@ -1,4 +1,4 @@
-import { Transaction } from './types';
+import { Card, Transaction } from './types';
 import { shiftMonth } from './utils';
 
 /** How much a row adds to spending: an expense adds, a refund subtracts, income is not spending. */
@@ -17,15 +17,43 @@ export function totalsOf(rows: Transaction[]) {
   return { income, expense, balance: income - expense };
 }
 
+const daysIn = (month: string) => new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).getDate();
+
 /**
- * Limit used by a card. Installments count in full (the whole purchase is already committed); other rows,
- * including a recurring series, count only once their date has come. Months before the current one are
- * assumed paid.
+ * The invoice a purchase lands on, named by the month the invoice closes in (yyyy-mm). Without a closing day the
+ * invoice is simply the purchase's own month. A purchase made after the closing day goes to the next invoice;
+ * a closing day past the end of a short month (31 in February) means the last day of that month.
  */
-export function committedOnCard(list: Transaction[], cardId: string, todayIso: string) {
-  const from = todayIso.slice(0, 7);
+export function invoiceKey(card: Pick<Card, 'closingDay'>, dateIso: string): string {
+  const month = dateIso.slice(0, 7);
+  const closing = card.closingDay;
+  if (!closing) return month;
+  return Number(dateIso.slice(8, 10)) > Math.min(closing, daysIn(month)) ? shiftMonth(month, 1) : month;
+}
+
+/** Due date (yyyy-mm-dd) of the invoice that closes in `month`, or null when the card has no due day. */
+export function dueDate(card: Pick<Card, 'closingDay' | 'dueDay'>, month: string): string | null {
+  if (!card.dueDay) return null;
+  // a due day before the closing day means it falls in the month after the closing
+  const dueMonth = card.closingDay && card.dueDay <= card.closingDay ? shiftMonth(month, 1) : month;
+  return `${dueMonth}-${String(Math.min(card.dueDay, daysIn(dueMonth))).padStart(2, '0')}`;
+}
+
+export const isPaid = (card: Pick<Card, 'paid'>, month: string) => !!card.paid?.includes(month);
+
+/** Rows of one invoice of a card. */
+export function invoiceRows(list: Transaction[], card: Card, month: string) {
+  return list.filter((t) => t.cardId === card.id && invoiceKey(card, t.date) === month);
+}
+
+/**
+ * Limit used by a card: everything on invoices not marked as paid. An installment purchase counts in full (the
+ * whole purchase is already committed); any other row, including a recurring series, counts once its date has
+ * come. Refunds give limit back.
+ */
+export function committedOnCard(list: Transaction[], card: Card, todayIso: string) {
   return list.reduce(
-    (sum, x) => (x.cardId === cardId && x.date.slice(0, 7) >= from && (x.installment || x.date <= todayIso) ? sum + spendOf(x) : sum),
+    (sum, x) => (x.cardId === card.id && !isPaid(card, invoiceKey(card, x.date)) && (x.installment || x.date <= todayIso) ? sum + spendOf(x) : sum),
     0,
   );
 }

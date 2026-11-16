@@ -9,6 +9,12 @@ export interface Card {
   name: string;
   /** credit limit in cents; absent when the user did not set one */
   limitCents?: number;
+  /** day of the month the invoice closes; purchases after it go to the next invoice */
+  closingDay?: number;
+  /** day of the month the invoice is due */
+  dueDay?: number;
+  /** invoices already paid, as yyyy-mm of the month the invoice closes in */
+  paid?: string[];
 }
 
 export interface Transaction {
