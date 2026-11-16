@@ -19,7 +19,7 @@ Lançamento de dinheiro que entrou. Só é registrada quando o dinheiro realment
 _Evitar_: Entrada, ganho
 
 **Pendente**:
-Situação de um gasto que ainda não foi pago. Todo gasto nasce pendente, exceto os pagos por Pix, que nascem pagos.
+Situação de um gasto que ainda não foi pago. Todo gasto nasce pendente, exceto os pagos por Pix, que nascem pagos. Estornos e receitas não têm situação.
 _Evitar_: A pagar, em aberto
 
 **Pago**:
@@ -47,13 +47,13 @@ Um gasto cujo valor total é dividido em vários meses, uma parcela por mês.
 _Evitar_: Parcelamento
 
 **Lançamento recorrente**:
-Um lançamento que repete o mesmo valor todo mês, por uma quantidade de meses definida pela pessoa.
+Um gasto que repete o mesmo valor todo mês, por uma quantidade de meses definida pela pessoa, como um boleto pago em partes. Receitas não se repetem.
 _Evitar_: Assinatura, fixo
 
 ### Cartões
 
 **Cartão**:
-Cartão de crédito cadastrado, com nome e limite obrigatórios e, opcionalmente, dia de fechamento e dia de vencimento.
+Cartão de crédito cadastrado, com nome, limite, dia de fechamento e dia de vencimento, todos obrigatórios.
 
 **Fatura**:
 O conjunto de compras de um cartão que fecham no mesmo mês; uma compra feita depois do dia de fechamento entra na fatura seguinte.
