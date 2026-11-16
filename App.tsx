@@ -10,7 +10,7 @@ import EntryModal, { EntryValues } from './src/EntryModal';
 import { budgetStatus, committedOnCard, dueDate, filterRows, invoiceRows, isPaid, monthlySeries, spendByCategory, spendByPayment, spendOf } from './src/calc';
 import { applyEdit, buildEntries, groupOf } from './src/ops';
 import { loadData, saveData } from './src/storage';
-import { monthTotals } from './src/status';
+import { monthTotals, movedIntoPaidInvoice } from './src/status';
 import Summary from './src/Summary';
 import { Theme, ThemeContext, darkTheme, lightTheme } from './src/theme';
 import { AppData, Card, DEFAULT_CATEGORIES, Transaction, emptyData, methodLabel } from './src/types';
@@ -89,20 +89,27 @@ function Main() {
     // never point at a card that no longer exists (e.g. after restoring a backup)
     const cardId = v.cardId && data.cards.some((c) => c.id === v.cardId) ? v.cardId : undefined;
 
+    // a purchase cannot be created or moved into an invoice that is already paid
+    const refusePaidInvoice = (next: Transaction[]) => {
+      const hit = movedIntoPaidInvoice(data.transactions, next, data.cards);
+      if (!hit) return false;
+      Alert.alert('Fatura já paga', `A fatura de ${monthLabel(hit.month)} do cartão ${hit.card.name} já está paga. Reabra a fatura para lançar nela.`);
+      return true;
+    };
+
     if (editing) {
-      persist({
-        ...data,
-        transactions: applyEdit(data.transactions, editing, {
-          type: v.type,
-          amountCents: cents,
-          description: v.desc.trim(),
-          category: v.category,
-          date: v.date,
-          cardId,
-          method: v.method ?? undefined,
-          due: v.due || undefined,
-        }),
+      const next = applyEdit(data.transactions, editing, {
+        type: v.type,
+        amountCents: cents,
+        description: v.desc.trim(),
+        category: v.category,
+        date: v.date,
+        cardId,
+        method: v.method ?? undefined,
+        due: v.due || undefined,
       });
+      if (refusePaidInvoice(next)) return false;
+      persist({ ...data, transactions: next });
       setMonth(v.date.slice(0, 7));
       return true;
     }
@@ -128,7 +135,9 @@ function Main() {
       groupId,
       new Date().toISOString(),
     );
-    persist({ ...data, transactions: [...created, ...data.transactions] });
+    const next = [...created, ...data.transactions];
+    if (refusePaidInvoice(next)) return false;
+    persist({ ...data, transactions: next });
     setMonth(v.date.slice(0, 7)); // jump to the month where the new row lives
     return true;
   };
