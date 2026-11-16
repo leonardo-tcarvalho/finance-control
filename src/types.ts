@@ -48,6 +48,9 @@ export interface AppData {
 }
 
 export const SCHEMA_VERSION = 2;
+/** Income has no category of its own to pick: every income carries this one, and its description says what it is. */
+export const INCOME_CATEGORY = 'Receita';
+
 export interface Categories {
   /** used by expenses */
   expense: string[];

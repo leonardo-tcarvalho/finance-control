@@ -3,7 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import Field, { Label } from './Field';
 import Sheet from './Sheet';
 import { Theme, useTheme } from './theme';
-import { Card, Categories, DEFAULT_CATEGORIES, METHODS, Method, Transaction, TxType, categoriesFor } from './types';
+import { Card, Categories, DEFAULT_CATEGORIES, INCOME_CATEGORY, METHODS, Method, Transaction, TxType, categoriesFor } from './types';
 import { MAX_INSTALLMENTS, MAX_RECURRING, addDays, addMonths, brl, centsToField, formatDateBR, maskDate, monthYear, parseDateBR, parseMoneyToCents, today } from './utils';
 
 export type Repeat = 'once' | 'installment' | 'recurring';
@@ -93,7 +93,7 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
   }, [visible, lockedCard?.id, editing?.id]);
 
   const startDate = parseDateBR(dateText) ?? today();
-  const kind: 'expense' | 'income' = type === 'income' ? 'income' : 'expense';
+  const kind = 'expense' as const; // only expenses have categories to choose from
   const catList = categoriesFor(categories, type, editing && editing.type === type ? editing.category : undefined);
   // the chosen category must belong to the list shown for this type
   const selectedCategory = catList.includes(category) ? category : (catList[0] ?? '');
@@ -131,13 +131,14 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
   const submit = () => {
     const date = parseDateBR(dateText);
     if (!date) return Alert.alert('Data inválida', 'Use o formato DD/MM/AAAA, por exemplo 15/11/2026.');
+    if (!isExpense && desc.trim() === '') return Alert.alert('Descrição obrigatória', 'Escreva o que é esta receita, por exemplo: salário, venda do notebook.');
     let due = '';
     if (showDue && dueText.trim() !== '') {
       const parsed = parseDateBR(dueText);
       if (!parsed) return Alert.alert('Vencimento inválido', 'Use o formato DD/MM/AAAA, ou deixe em branco para usar a data do lançamento.');
       due = parsed;
     }
-    if (onSubmit({ type, amount, desc, date, category: selectedCategory, repeat: effRepeat, times, cardId: lockedCard ? lockedCard.id : selectedCard, method: lockedCard ? null : selectedMethod, due })) onClose();
+    if (onSubmit({ type, amount, desc, date, category: isExpense ? selectedCategory : INCOME_CATEGORY, repeat: effRepeat, times, cardId: lockedCard ? lockedCard.id : selectedCard, method: lockedCard ? null : selectedMethod, due })) onClose();
   };
 
   return (
@@ -230,7 +231,12 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
         </Text>
       )}
 
-      <Field label="Descrição (opcional)" placeholder="Ex.: mercado, salário, uber…" value={desc} onChangeText={setDesc} />
+      <Field
+        label={isExpense ? 'Descrição (opcional)' : 'O que é esta receita?'}
+        placeholder={isExpense ? 'Ex.: mercado, uber, farmácia…' : 'Ex.: salário, venda do notebook, freelance…'}
+        value={desc}
+        onChangeText={setDesc}
+      />
 
       <View style={s.dateRow}>
         <Field label="Data" placeholder="DD/MM/AAAA" keyboardType="number-pad" maxLength={10} value={dateText} onChangeText={(v) => setDateText(maskDate(v))} style={{ flex: 1 }} />
@@ -251,38 +257,40 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
         </View>
       )}
 
-      <View>
-        <Label>Categoria</Label>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ alignItems: 'center' }}>
-          {catList.map((c) => (
-            <Pressable key={c} onPress={() => setCategory(c)} onLongPress={() => removeCategory(c)} style={[s.chip, selectedCategory === c && s.chipOn]}>
-              <Text style={[s.chipText, selectedCategory === c && s.chipTextOn]}>{c}</Text>
-            </Pressable>
-          ))}
-          {newCategory === null ? (
-            <Pressable onPress={() => setNewCategory('')} style={[s.chip, { borderColor: t.link, borderStyle: 'dashed' }]}>
-              <Text style={[s.chipText, { color: t.link, fontWeight: '700' }]}>+ Nova</Text>
-            </Pressable>
-          ) : (
-            <View style={s.newCardBox}>
-              <TextInput
-                autoFocus
-                style={s.newCardInput}
-                placeholder="Nome da categoria"
-                placeholderTextColor={t.textFaint}
-                value={newCategory}
-                onChangeText={setNewCategory}
-                onSubmitEditing={createCategory}
-                returnKeyType="done"
-              />
-              <Pressable onPress={createCategory} hitSlop={8}>
-                <Text style={{ color: t.link, fontWeight: '800' }}>OK</Text>
+      {isExpense && (
+        <View>
+          <Label>Categoria</Label>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ alignItems: 'center' }}>
+            {catList.map((c) => (
+              <Pressable key={c} onPress={() => setCategory(c)} onLongPress={() => removeCategory(c)} style={[s.chip, selectedCategory === c && s.chipOn]}>
+                <Text style={[s.chipText, selectedCategory === c && s.chipTextOn]}>{c}</Text>
               </Pressable>
-            </View>
-          )}
-        </ScrollView>
-        <Text style={s.help}>Segure uma categoria para removê-la.</Text>
-      </View>
+            ))}
+            {newCategory === null ? (
+              <Pressable onPress={() => setNewCategory('')} style={[s.chip, { borderColor: t.link, borderStyle: 'dashed' }]}>
+                <Text style={[s.chipText, { color: t.link, fontWeight: '700' }]}>+ Nova</Text>
+              </Pressable>
+            ) : (
+              <View style={s.newCardBox}>
+                <TextInput
+                  autoFocus
+                  style={s.newCardInput}
+                  placeholder="Nome da categoria"
+                  placeholderTextColor={t.textFaint}
+                  value={newCategory}
+                  onChangeText={setNewCategory}
+                  onSubmitEditing={createCategory}
+                  returnKeyType="done"
+                />
+                <Pressable onPress={createCategory} hitSlop={8}>
+                  <Text style={{ color: t.link, fontWeight: '800' }}>OK</Text>
+                </Pressable>
+              </View>
+            )}
+          </ScrollView>
+          <Text style={s.help}>Segure uma categoria para removê-la.</Text>
+        </View>
+      )}
 
       {usesPayment && !lockedCard && (
         <View>

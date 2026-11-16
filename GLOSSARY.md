@@ -15,7 +15,7 @@ Lançamento de dinheiro que saiu. "Gastos" também é a soma de todos os gastos 
 _Evitar_: Despesa, saída
 
 **Receita**:
-Lançamento de dinheiro que entrou. Só é registrada quando o dinheiro realmente entrou, por isso não tem situação de pendente. "Receitas" também é a soma de todas as receitas do mês.
+Lançamento de dinheiro que entrou. Só é registrada quando o dinheiro realmente entrou, por isso não tem situação de pendente. Não tem categoria para escolher e a descrição, obrigatória, diz o que é. "Receitas" também é a soma de todas as receitas do mês.
 _Evitar_: Entrada, ganho
 
 **Pendente**:

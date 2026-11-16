@@ -460,7 +460,7 @@ function Main() {
                   // income carries no status; every expense is paid, pending or overdue
                   const status = kind === 'none' ? null : overdue ? 'overdue' : pending ? 'pending' : 'paid';
                   const parts = [
-                    item.description ? { k: 'cat', text: item.category, color: t.textMuted } : null,
+                    item.description && item.type === 'expense' ? { k: 'cat', text: item.category, color: t.textMuted } : null,
                     card ? { k: 'card', text: `💳 ${card.name}`, color: t.link } : null,
                     !card && item.method ? { k: 'method', text: methodLabel(item.method), color: t.textMuted } : null,
                     item.installment ? { k: 'inst', text: `Parcela ${item.installment.n}/${item.installment.of}`, color: t.amber } : null,
