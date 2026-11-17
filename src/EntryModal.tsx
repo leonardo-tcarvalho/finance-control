@@ -154,10 +154,10 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
       dirty={!!editing || amount !== '' || desc !== ''}
       footer={
         <>
-          <Pressable onPress={onClose} style={[s.btn, s.btnGhost]}>
+          <Pressable onPress={onClose} style={[s.btn, s.btnGhost]} accessibilityRole="button">
             <Text style={s.btnGhostText}>Cancelar</Text>
           </Pressable>
-          <Pressable onPress={submit} style={[s.btn, { backgroundColor: accent, flex: 2 }]}>
+          <Pressable onPress={submit} style={[s.btn, { backgroundColor: accent, flex: 2 }]} accessibilityRole="button">
             <Text style={s.btnText}>{editing ? 'Salvar alterações' : isExpense ? 'Adicionar gasto' : 'Adicionar receita'}</Text>
           </Pressable>
         </>
@@ -367,7 +367,7 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
       )}
 
       {editing && onDelete && (
-        <Pressable onPress={onDelete} style={s.delete}>
+        <Pressable onPress={onDelete} style={s.delete} accessibilityRole="button">
           <Text style={s.deleteText}>Excluir este lançamento</Text>
         </Pressable>
       )}
