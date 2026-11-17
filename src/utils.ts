@@ -53,6 +53,7 @@ export const parseMoneyToCents = (raw: string): number => {
     const parts = s.split('.');
     if (parts.length > 2 || (parts.length === 2 && parts[1].length === 3)) s = parts.join('');
   }
+  if ((s.split('.')[1] ?? '').length > 2) return NaN; // "1,500" must not be silently rounded to 1,50
   const n = parseFloat(s);
   return Number.isFinite(n) ? Math.round(n * 100) : NaN;
 };
