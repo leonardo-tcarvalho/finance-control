@@ -103,12 +103,9 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
   // the chosen category must belong to the list shown for this type
   const selectedCategory = catList.includes(category) ? category : (catList[0] ?? '');
   const isExpense = type === 'expense';
-  const usesPayment = isExpense; // income carries no payment method
   const accent = isExpense ? t.redStrong : t.greenStrong;
   // installments and monthly repetition exist only for expenses; income is always a single entry
-  const canSplit = type === 'expense';
-  const canRepeat = type === 'expense';
-  const effRepeat: Repeat = (repeat === 'installment' && !canSplit) || (repeat === 'recurring' && !canRepeat) ? 'once' : repeat;
+  const effRepeat: Repeat = repeat !== 'once' && !isExpense ? 'once' : repeat;
   const nTimes = effRepeat === 'once' ? 1 : Math.max(1, Math.floor(Number(times) || 1));
   // installments already paid: only meaningful for an installment purchase, and at least one must remain
   const paidN = effRepeat === 'installment' ? Math.min(Math.max(0, Math.floor(Number(paidText) || 0)), Math.max(0, nTimes - 1)) : 0;
@@ -193,19 +190,19 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
         big
       />
 
-      {!editing && (canSplit || canRepeat) && (
+      {!editing && isExpense && (
         <View>
           <Label>Repetição</Label>
           <View style={s.repeatRow}>
             <Pressable onPress={() => setRepeat('once')} style={[s.chip, effRepeat === 'once' && s.chipOn]}>
               <Text style={[s.chipText, effRepeat === 'once' && s.chipTextOn]}>Uma vez</Text>
             </Pressable>
-            {canSplit && (
+            {isExpense && (
               <Pressable onPress={() => setRepeat('installment')} style={[s.chip, effRepeat === 'installment' && s.chipOn]}>
                 <Text style={[s.chipText, effRepeat === 'installment' && s.chipTextOn]}>Parcelado</Text>
               </Pressable>
             )}
-            {canRepeat && (
+            {isExpense && (
               <Pressable onPress={() => setRepeat('recurring')} style={[s.chip, effRepeat === 'recurring' && s.chipOn]}>
                 <Text style={[s.chipText, effRepeat === 'recurring' && s.chipTextOn]}>Recorrente</Text>
               </Pressable>
@@ -315,7 +312,7 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
         </View>
       )}
 
-      {usesPayment && !lockedCard && (
+      {isExpense && !lockedCard && (
         <View>
           <Label>Pagamento</Label>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ alignItems: 'center' }}>
