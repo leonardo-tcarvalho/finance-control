@@ -43,7 +43,7 @@ export default function Drawer({ visible, onClose, children }: Props) {
     <Modal visible={mounted} transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
       <View style={s.root}>
         <Animated.View style={[s.backdrop, { opacity: progress }]}>
-          <Pressable style={s.fill} onPress={onClose} accessibilityLabel="Fechar menu" />
+          <Pressable style={s.fill} onPress={onClose} accessibilityRole="button" accessibilityLabel="Fechar menu" />
         </Animated.View>
         <Animated.View style={[s.panel, { width: panelWidth, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 8, transform: [{ translateX }] }]}>
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
