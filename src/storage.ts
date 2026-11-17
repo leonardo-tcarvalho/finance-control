@@ -99,7 +99,8 @@ export async function saveData(data: AppData): Promise<AppData> {
   if (main.exists) main.delete();
   await tmp.move(main);
 
-  await snapshotDaily(json);
+  // data.json is already saved: a failed daily snapshot (e.g. full disk) must not look like a failed save
+  await snapshotDaily(json).catch(() => {});
   return next;
 }
 
