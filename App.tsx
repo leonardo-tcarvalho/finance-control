@@ -386,7 +386,7 @@ function Main() {
                 <Text style={s.limitNote}>Conta parcelas futuras e todas as faturas que ainda não foram marcadas como pagas.</Text>
               </View>
             ) : (
-              <Pressable onPress={() => setCardForm({ card: activeCard })} style={s.limitBox} hitSlop={6}>
+              <Pressable onPress={() => setCardForm({ card: activeCard })} style={s.limitBox} hitSlop={6} accessibilityRole="button">
                 <Text style={s.limitNote}>Sem limite cadastrado. Toque para informar e ver o limite disponível.</Text>
               </Pressable>
             )}
@@ -406,7 +406,7 @@ function Main() {
         ) : (
           <>
           {activeCard && (
-            <Pressable onPress={() => setCardForm({ card: activeCard })} style={s.editRow} hitSlop={8}>
+            <Pressable onPress={() => setCardForm({ card: activeCard })} style={s.editRow} hitSlop={8} accessibilityRole="button">
               <Text style={s.editLink}>✎ Editar cartão</Text>
             </Pressable>
           )}
