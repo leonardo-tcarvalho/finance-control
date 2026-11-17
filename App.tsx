@@ -617,7 +617,6 @@ const makeStyles = (t: Theme) =>
     container: { flex: 1, backgroundColor: t.bg },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: t.bg },
     flex1: { flex: 1 },
-    bRight: { borderRightWidth: StyleSheet.hairlineWidth * 2, borderRightColor: t.border },
 
     topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 10, paddingBottom: 6 },
     title: { fontSize: 19, fontWeight: '800', color: t.text, letterSpacing: -0.3 },
@@ -631,13 +630,6 @@ const makeStyles = (t: Theme) =>
     menuIcon: { fontSize: 20, color: t.text, marginTop: -1 },
     drawerTitle: { fontSize: 20, fontWeight: '800', color: t.text, letterSpacing: -0.3, paddingHorizontal: 12, paddingTop: 8, paddingBottom: 4 },
     drawerEmpty: { fontSize: 12, color: t.textFaint, paddingHorizontal: 12, paddingVertical: 6 },
-    tabBar: { paddingVertical: 6 },
-    tabScroll: { paddingHorizontal: 16, gap: 8 },
-    tab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: t.surface, borderWidth: 1, borderColor: t.border, maxWidth: 190 },
-    tabOn: { backgroundColor: t.primary, borderColor: t.primary },
-    tabAdd: { borderColor: t.link, borderStyle: 'dashed', backgroundColor: 'transparent' },
-    tabText: { fontSize: 13, fontWeight: '600', color: t.textMuted },
-    tabTextOn: { color: t.onPrimary, fontWeight: '800' },
 
     alert: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 16, marginTop: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: t.red, backgroundColor: t.redSoft },
     alertText: { flex: 1, fontSize: 13, fontWeight: '800', color: t.red },
@@ -706,7 +698,4 @@ const makeStyles = (t: Theme) =>
     fabPlus: { color: t.onPrimary, fontSize: 18, fontWeight: '800', marginTop: -1 },
     fabText: { color: t.onPrimary, fontSize: 15, fontWeight: '800' },
 
-    footer: { flexDirection: 'row', backgroundColor: t.surface, borderTopWidth: 1, borderTopColor: t.border },
-    footBtn: { flex: 1, alignItems: 'center', paddingVertical: 12 },
-    link: { color: t.link, fontWeight: '700', fontSize: 13 },
   });
