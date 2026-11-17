@@ -382,7 +382,7 @@ function TypeButton({ title, hint, color, selected, onPress }: { title: string; 
     <Pressable
       onPress={onPress}
       accessibilityRole="radio"
-      accessibilityState={{ selected }}
+      accessibilityState={{ checked: selected }}
       style={[s.typeBtn, selected && { backgroundColor: color, borderColor: color }]}
     >
       <View style={s.typeTop}>
