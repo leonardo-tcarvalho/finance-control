@@ -47,12 +47,17 @@ export function parseData(raw: string): AppData {
   if (!cards.every((c: any) => typeof c?.id === 'string' && typeof c?.name === 'string' && (c.paid === undefined || Array.isArray(c.paid)))) {
     throw new Error('Formato inválido');
   }
+  const transactions = obj.transactions.map(dropRefund);
+  // a transaction without these fields passes the loader but crashes the sort and the totals on every launch
+  const valid = (t: any) =>
+    typeof t?.id === 'string' && typeof t.date === 'string' && typeof t.createdAt === 'string' && (t.type === 'expense' || t.type === 'income') && Number.isInteger(t.amountCents);
+  if (!transactions.every(valid)) throw new Error('Formato inválido');
   return {
     schemaVersion: SCHEMA_VERSION,
     cards,
     settings: obj.settings && typeof obj.settings === 'object' ? obj.settings : undefined,
     categories: parseCategories(obj.categories),
-    transactions: obj.transactions.map(dropRefund),
+    transactions,
     updatedAt: obj.updatedAt ?? new Date().toISOString(),
   };
 }
