@@ -240,12 +240,12 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
           <Text style={s.help}>Se a compra já estava em andamento, diga quantas já foram pagas. O app cria só as que faltam, e a data abaixo passa a ser a da próxima parcela.</Text>
         </View>
       )}
-      {nTimes > 1 && Number.isFinite(cents) && cents >= nTimes && effRepeat === 'installment' && (
+      {nTimes > 1 && nTimes <= MAX_INSTALLMENTS && Number.isFinite(cents) && cents >= nTimes && effRepeat === 'installment' && (
         <Text style={s.preview}>
           {paidN > 0 ? `Faltam ${remaining} de ${nTimes}` : `${nTimes}x`} de {brl(Math.floor(cents / nTimes))} · {monthYear(startDate)} a {monthYear(addMonths(startDate, remaining - 1))}
         </Text>
       )}
-      {nTimes > 1 && Number.isFinite(cents) && cents > 0 && effRepeat === 'recurring' && (
+      {nTimes > 1 && nTimes <= MAX_RECURRING && Number.isFinite(cents) && cents > 0 && effRepeat === 'recurring' && (
         <Text style={s.preview}>
           {nTimes} meses de {brl(cents)} (total {brl(cents * nTimes)}) · {monthYear(startDate)} a {monthYear(addMonths(startDate, nTimes - 1))}
         </Text>
