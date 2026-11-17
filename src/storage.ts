@@ -42,9 +42,14 @@ export function parseData(raw: string): AppData {
   const obj = JSON.parse(raw);
   if (!obj || !Array.isArray(obj.transactions)) throw new Error('Formato inválido');
   // v1 -> v2: `cards` did not exist, old transactions simply have no cardId
+  const cards = Array.isArray(obj.cards) ? obj.cards : [];
+  // a card without id/name or with a non-array `paid` would crash the screens that sort and read it
+  if (!cards.every((c: any) => typeof c?.id === 'string' && typeof c?.name === 'string' && (c.paid === undefined || Array.isArray(c.paid)))) {
+    throw new Error('Formato inválido');
+  }
   return {
     schemaVersion: SCHEMA_VERSION,
-    cards: Array.isArray(obj.cards) ? obj.cards : [],
+    cards,
     settings: obj.settings && typeof obj.settings === 'object' ? obj.settings : undefined,
     categories: parseCategories(obj.categories),
     transactions: obj.transactions.map(dropRefund),
