@@ -68,14 +68,12 @@ interface ItemProps {
   label: string;
   /** second line, smaller */
   sub?: string;
-  /** right-aligned detail, e.g. an amount */
-  trailing?: string;
   active?: boolean;
   onPress: () => void;
 }
 
 /** One tappable row of the menu. */
-export function DrawerItem({ icon, label, sub, trailing, active, onPress }: ItemProps) {
+export function DrawerItem({ icon, label, sub, active, onPress }: ItemProps) {
   const t = useTheme();
   const s = useMemo(() => makeStyles(t), [t]);
   return (
@@ -91,11 +89,6 @@ export function DrawerItem({ icon, label, sub, trailing, active, onPress }: Item
           </Text>
         ) : null}
       </View>
-      {trailing ? (
-        <Text style={[s.trailing, active && s.labelOn]} numberOfLines={1}>
-          {trailing}
-        </Text>
-      ) : null}
     </Pressable>
   );
 }
@@ -121,5 +114,4 @@ const makeStyles = (t: Theme) =>
     label: { fontSize: 15, fontWeight: '600', color: t.text },
     labelOn: { color: t.link, fontWeight: '800' },
     sub: { fontSize: 11, color: t.textMuted, marginTop: 1 },
-    trailing: { fontSize: 12, fontWeight: '700', color: t.textMuted, maxWidth: 110 },
   });
