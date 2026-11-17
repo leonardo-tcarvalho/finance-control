@@ -15,7 +15,7 @@ import { loadData, saveData } from './src/storage';
 import { dueOf, isOverdue, isPending, monthTotals, movedIntoPaidInvoice, overdueSummary, payKind } from './src/status';
 import Summary from './src/Summary';
 import { Theme, ThemeContext, darkTheme, lightTheme } from './src/theme';
-import { AppData, Card, DEFAULT_CATEGORIES, Transaction, emptyData, methodLabel } from './src/types';
+import { AppData, Card, DEFAULT_CATEGORIES, Transaction, emptyData, Method, methodLabel } from './src/types';
 import { MAX_INSTALLMENTS, MAX_RECURRING, brl, formatDateBR, monthLabel, parseMoneyToCents, shiftMonth, shortDate, today } from './src/utils';
 
 export default function App() {
@@ -282,7 +282,7 @@ function Main() {
   const byCategory = useMemo(() => spendByCategory(rows), [rows]);
   const series = useMemo(() => monthlySeries(data?.transactions ?? [], data?.cards ?? [], month, 6), [data, month]);
   const cardNameOf = (id?: string) => data?.cards.find((c) => c.id === id)?.name ?? '';
-  const methodNameOf = (m?: string) => (m ? methodLabel(m as never) : '');
+  const methodNameOf = (m?: Method) => (m ? methodLabel(m) : '');
   const shownRows = useMemo(
     () => filterRows(tabRows, { query }, cardNameOf, methodNameOf),
     [tabRows, query, data],

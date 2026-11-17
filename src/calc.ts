@@ -1,4 +1,4 @@
-import { Card, Transaction } from './types';
+import { Card, Transaction, Method } from './types';
 import { shiftMonth } from './utils';
 
 /** How much a row adds to spending: only an expense does. */
@@ -79,7 +79,7 @@ export interface RowFilter {
  * Keeps the rows that match the typed text (description, category, card name, payment method label)
  * Every word typed must match somewhere, so "mercado pix" narrows down.
  */
-export function filterRows(rows: Transaction[], f: RowFilter, cardName: (id?: string) => string, methodName: (m?: string) => string): Transaction[] {
+export function filterRows(rows: Transaction[], f: RowFilter, cardName: (id?: string) => string, methodName: (m?: Method) => string): Transaction[] {
   const words = fold(f.query).split(/\s+/).filter(Boolean);
   if (!words.length) return rows;
   return rows.filter((t) => {
@@ -104,7 +104,7 @@ export function spendByCategory(rows: Transaction[]): Slice[] {
 }
 
 /** Spending per way of paying: the card name, the method label, or "Não informado". */
-export function spendByPayment(rows: Transaction[], cardName: (id?: string) => string, methodName: (m?: string) => string): Slice[] {
+export function spendByPayment(rows: Transaction[], cardName: (id?: string) => string, methodName: (m?: Method) => string): Slice[] {
   const m = new Map<string, number>();
   for (const t of rows) {
     const v = spendOf(t);
