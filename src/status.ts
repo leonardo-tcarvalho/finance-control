@@ -10,7 +10,7 @@ export const payKind = (t: Pick<Transaction, 'type' | 'cardId' | 'method'>): Pay
 const cardOf = (cards: Card[], id?: string) => cards.find((c) => c.id === id);
 
 /**
- * An expense that is still to be paid. A card purchase is pending until its whole invoice is marked paid; any other
+ * An expense that is still to be paid. A card purchase is pending until its whole invoice is marked paid; any
  * other expense (Pix included) carries its own flag. Income is never pending.
  */
 export function isPending(t: Transaction, cards: Card[]): boolean {
