@@ -403,7 +403,6 @@ function TypeButton({ title, hint, color, selected, onPress }: { title: string; 
 
 const makeStyles = (t: Theme) =>
   StyleSheet.create({
-    row: { flexDirection: 'row', gap: 10 },
     repeatRow: { flexDirection: 'row' },
     dateRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
     quick: { minHeight: 50, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1.5, borderColor: t.border, backgroundColor: t.surface, alignItems: 'center', justifyContent: 'center' },
