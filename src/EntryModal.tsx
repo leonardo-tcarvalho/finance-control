@@ -287,7 +287,7 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
               </Pressable>
             ))}
             {newCategory === null ? (
-              <Pressable onPress={() => setNewCategory('')} style={[s.chip, { borderColor: t.link, borderStyle: 'dashed' }]}>
+              <Pressable onPress={() => setNewCategory('')} style={[s.chip, { borderColor: t.link, borderStyle: 'dashed' }]} accessibilityRole="button">
                 <Text style={[s.chipText, { color: t.link, fontWeight: '700' }]}>+ Nova</Text>
               </Pressable>
             ) : (
@@ -302,7 +302,7 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
                   onSubmitEditing={createCategory}
                   returnKeyType="done"
                 />
-                <Pressable onPress={createCategory} hitSlop={8}>
+                <Pressable onPress={createCategory} hitSlop={8} accessibilityRole="button" accessibilityLabel="Criar categoria">
                   <Text style={{ color: t.link, fontWeight: '800' }}>OK</Text>
                 </Pressable>
               </View>
@@ -364,6 +364,7 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
                 })
               }
               style={[s.chip, { borderColor: t.link, borderStyle: 'dashed' }]}
+              accessibilityRole="button"
             >
               <Text style={[s.chipText, { color: t.link, fontWeight: '700' }]}>+ Novo cartão</Text>
             </Pressable>
