@@ -282,7 +282,7 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
           <Label>Categoria</Label>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ alignItems: 'center' }}>
             {catList.map((c) => (
-              <Pressable key={c} onPress={() => setCategory(c)} onLongPress={() => removeCategory(c)} style={[s.chip, selectedCategory === c && s.chipOn]}>
+              <Pressable key={c} onPress={() => setCategory(c)} onLongPress={() => removeCategory(c)} style={[s.chip, selectedCategory === c && s.chipOn]} accessibilityRole="radio" accessibilityState={{ checked: selectedCategory === c }}>
                 <Text style={[s.chipText, selectedCategory === c && s.chipTextOn]}>{c}</Text>
               </Pressable>
             ))}
