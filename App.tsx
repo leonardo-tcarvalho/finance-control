@@ -18,6 +18,8 @@ import { Theme, ThemeContext, darkTheme, lightTheme } from './src/theme';
 import { AppData, Card, DEFAULT_CATEGORIES, Transaction, emptyData, Method, methodLabel } from './src/types';
 import { MAX_INSTALLMENTS, MAX_RECURRING, brl, formatDateBR, monthLabel, parseMoneyToCents, shiftMonth, shortDate, today } from './src/utils';
 
+const newId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
 export default function App() {
   return (
     <SafeAreaProvider>
@@ -132,7 +134,7 @@ function Main() {
       Alert.alert('Valor pequeno demais', 'Cada parcela precisa ter pelo menos R$ 0,01.');
       return false;
     }
-    const groupId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const groupId = newId();
     const created = buildEntries(
       { type: v.type, amountCents: cents, description: v.desc.trim(), category: v.category, date: v.date, cardId, method: v.method ?? undefined, due: v.due || undefined, times, mode, paidCount },
       groupId,
@@ -156,7 +158,7 @@ function Main() {
     if (editing) {
       persist({ ...data, cards: data.cards.map((c) => (c.id === editing.id ? { ...c, name: v.name, limitCents, closingDay, dueDay } : c)) });
     } else {
-      const card: Card = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name: v.name, limitCents, closingDay, dueDay };
+      const card: Card = { id: newId(), name: v.name, limitCents, closingDay, dueDay };
       persist({ ...data, cards: [...data.cards, card] });
       onCreated?.(card.id);
     }
