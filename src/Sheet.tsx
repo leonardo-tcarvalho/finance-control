@@ -47,7 +47,7 @@ export default function Sheet({ visible, title, onClose, dirty = false, footer, 
             <Text style={s.title} numberOfLines={1}>
               {title}
             </Text>
-            <Pressable onPress={onClose} hitSlop={12} style={s.closeBtn} accessibilityLabel="Fechar">
+            <Pressable onPress={onClose} hitSlop={12} style={s.closeBtn} accessibilityRole="button" accessibilityLabel="Fechar">
               <Text style={s.closeText}>✕</Text>
             </Pressable>
           </View>
