@@ -62,7 +62,8 @@ async function tryRead(f: File): Promise<AppData | null> {
 
 export async function loadData(): Promise<AppData> {
   ensureDirs();
-  const candidates: File[] = [mainFile(), prevFile(), ...listBackups()];
+  // the validated tmp file is newer than main when a save died between deleting main and moving tmp over it
+  const candidates: File[] = [mainFile(), tmpFile(), prevFile(), ...listBackups()];
   for (const f of candidates) {
     const data = await tryRead(f);
     if (data) return data;
