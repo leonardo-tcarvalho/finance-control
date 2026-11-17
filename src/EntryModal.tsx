@@ -120,7 +120,7 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
     const name = (newCategory ?? '').trim();
     if (name) {
       onAddCategory(kind, name);
-      setCategory(name);
+      setCategory(catList.find((c) => c.toLowerCase() === name.toLowerCase()) ?? name); // the app ignores a duplicate, so select the one that exists
     }
     setNewCategory(null);
   };
