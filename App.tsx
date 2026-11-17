@@ -596,9 +596,9 @@ function Main() {
   );
 }
 
-function Stat({ s, label, value, color, flex = 1, sub }: { s: ReturnType<typeof makeStyles>; label: string; value: string; color: string; flex?: number; sub?: string }) {
+function Stat({ s, label, value, color, sub }: { s: ReturnType<typeof makeStyles>; label: string; value: string; color: string; sub?: string }) {
   return (
-    <View style={[s.stat, { flex }]}>
+    <View style={s.stat}>
       <Text style={s.statLabel}>{label}</Text>
       <Text style={[s.statValue, { color }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
         {value}
@@ -635,7 +635,7 @@ const makeStyles = (t: Theme) =>
     alertText: { flex: 1, fontSize: 13, fontWeight: '800', color: t.red },
     alertGo: { fontSize: 13, fontWeight: '800', color: t.red },
     stats: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginTop: 6 },
-    stat: { backgroundColor: t.surface, borderRadius: 16, borderWidth: 1, borderColor: t.border, paddingHorizontal: 12, paddingVertical: 11 },
+    stat: { flex: 1, backgroundColor: t.surface, borderRadius: 16, borderWidth: 1, borderColor: t.border, paddingHorizontal: 12, paddingVertical: 11 },
     statLabel: { fontSize: 11, fontWeight: '700', color: t.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
     statSub: { fontSize: 10, fontWeight: '700', color: t.amber, marginTop: 2 },
     statValue: { fontSize: 16, fontWeight: '800', marginTop: 4 },
