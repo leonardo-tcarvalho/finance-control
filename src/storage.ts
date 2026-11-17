@@ -109,7 +109,3 @@ async function snapshotDaily(json: string) {
   await snap.write(json); // one per day, latest state of that day
   listBackups().slice(MAX_BACKUPS).forEach((f) => f.delete());
 }
-
-export function getMainFile(): File {
-  return mainFile();
-}
