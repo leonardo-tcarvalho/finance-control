@@ -19,5 +19,11 @@ export async function exportBackup(data: AppData): Promise<void> {
 export async function pickBackup(): Promise<AppData | null> {
   const res = await DocumentPicker.getDocumentAsync({ type: ['application/json', 'text/*', '*/*'], copyToCacheDirectory: true });
   if (res.canceled) return null;
-  return parseData(await new File(res.assets[0].uri).text());
+  const text = await new File(res.assets[0].uri).text();
+  try {
+    return parseData(text);
+  } catch (e) {
+    if (e instanceof SyntaxError) throw new Error('O arquivo não é um backup válido do app.');
+    throw e;
+  }
 }
