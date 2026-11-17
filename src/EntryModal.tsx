@@ -322,6 +322,8 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
                 setMethod(null);
               }}
               style={[s.chip, selectedCard === null && selectedMethod === null && s.chipOn]}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: selectedCard === null && selectedMethod === null }}
             >
               <Text style={[s.chipText, selectedCard === null && selectedMethod === null && s.chipTextOn]}>Não informar</Text>
             </Pressable>
@@ -333,6 +335,8 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
                   setCardId(null);
                 }}
                 style={[s.chip, selectedMethod === m.id && s.chipOn]}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: selectedMethod === m.id }}
               >
                 <Text style={[s.chipText, selectedMethod === m.id && s.chipTextOn]}>{m.label}</Text>
               </Pressable>
@@ -346,6 +350,8 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
                 }}
                 onLongPress={() => onRemoveCard(c)}
                 style={[s.chip, selectedCard === c.id && s.chipOn]}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: selectedCard === c.id }}
               >
                 <Text style={[s.chipText, selectedCard === c.id && s.chipTextOn]}>💳 {c.name}</Text>
               </Pressable>
