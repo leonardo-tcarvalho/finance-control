@@ -17,6 +17,7 @@ const backupsDir = () => new Directory(dir(), 'backups');
 const mainFile = () => new File(dir(), 'data.json');
 const tmpFile = () => new File(dir(), 'data.json.tmp');
 const prevFile = () => new File(dir(), 'data.prev.json');
+const corruptFile = () => new File(dir(), 'data.corrupt.json');
 
 function ensureDirs() {
   if (!dir().exists) dir().create({ intermediates: true });
@@ -96,12 +97,21 @@ export async function saveData(data: AppData): Promise<AppData> {
   if (!(await tryRead(tmp))) throw new Error('Falha ao validar gravação');
 
   const main = mainFile();
-  if (main.exists && (await tryRead(main))) {
+  const mainOk = main.exists && !!(await tryRead(main));
+  if (mainOk) {
     const prev = prevFile();
     if (prev.exists) prev.delete();
     await main.copy(prev);
   }
-  if (main.exists) main.delete();
+  if (main.exists) {
+    if (!mainOk) {
+      // an unreadable main may still hold something recoverable: keep a copy instead of losing it
+      const bad = corruptFile();
+      if (bad.exists) bad.delete();
+      await main.copy(bad);
+    }
+    main.delete();
+  }
   await tmp.move(main);
 
   // data.json is already saved: a failed daily snapshot (e.g. full disk) must not look like a failed save
