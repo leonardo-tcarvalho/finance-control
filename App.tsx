@@ -415,9 +415,10 @@ function Main() {
           {tabRows.length > 0 && (
             <View style={s.searchWrap}>
               <View style={s.searchBox}>
-                <Text style={s.searchIcon}>🔎</Text>
+                <Text style={s.searchIcon} importantForAccessibility="no" accessibilityElementsHidden>🔎</Text>
                 <TextInput
                   style={s.searchInput}
+                  accessibilityLabel="Buscar lançamentos"
                   placeholder="Buscar por descrição, categoria, cartão…"
                   placeholderTextColor={t.textFaint}
                   value={query}
