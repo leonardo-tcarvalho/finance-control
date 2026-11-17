@@ -1,7 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useColorScheme } from 'react-native';
+import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View, useColorScheme } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { exportBackup, pickBackup } from './src/backup';
 import CardModal, { CardValues } from './src/CardModal';
@@ -16,7 +16,7 @@ import { dueOf, isOverdue, isPending, monthTotals, movedIntoPaidInvoice, overdue
 import Summary from './src/Summary';
 import { Theme, ThemeContext, darkTheme, lightTheme } from './src/theme';
 import { AppData, Card, DEFAULT_CATEGORIES, Transaction, emptyData, methodLabel } from './src/types';
-import { MAX_INSTALLMENTS, MAX_RECURRING, addMonths, brl, formatDateBR, monthLabel, parseMoneyToCents, shiftMonth, shortDate, today } from './src/utils';
+import { MAX_INSTALLMENTS, MAX_RECURRING, brl, formatDateBR, monthLabel, parseMoneyToCents, shiftMonth, shortDate, today } from './src/utils';
 
 export default function App() {
   return (
