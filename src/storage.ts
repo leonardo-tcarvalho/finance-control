@@ -24,10 +24,11 @@ function ensureDirs() {
   if (!backupsDir().exists) backupsDir().create({ intermediates: true });
 }
 
-function parseCategories(raw: any) {
-  const clean = (v: any) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string' && x.trim()).map((x) => x.trim()) : null);
-  const expense = clean(raw?.expense);
-  const income = clean(raw?.income);
+function parseCategories(raw: unknown) {
+  const r = raw as { expense?: unknown; income?: unknown } | null | undefined;
+  const clean = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && !!x.trim()).map((x) => x.trim()) : null);
+  const expense = clean(r?.expense);
+  const income = clean(r?.income);
   return expense && income ? { expense, income } : undefined;
 }
 
