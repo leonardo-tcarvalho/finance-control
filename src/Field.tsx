@@ -39,6 +39,7 @@ export default function Field({ label, prefix, suffix, big, style, ...input }: F
       <View style={[s.field, focused && s.fieldFocus]}>
         {prefix && <Text style={s.affix}>{prefix}</Text>}
         <TextInput
+          accessibilityLabel={label}
           {...input}
           placeholderTextColor={t.textFaint}
           onFocus={() => setFocused(true)}
