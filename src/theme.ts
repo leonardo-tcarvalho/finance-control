@@ -6,7 +6,6 @@ export interface Theme {
   bg: string; // screen background
   surface: string; // cards, sheets, inputs
   surfaceAlt: string; // table headers, totals, subtle fills
-  zebra: string; // alternate row
   border: string;
   borderStrong: string; // input outlines
   text: string;
@@ -34,7 +33,6 @@ export const lightTheme: Theme = {
   bg: '#f4f6fb',
   surface: '#ffffff',
   surfaceAlt: '#eef1f8',
-  zebra: '#f8fafc',
   border: '#e4e8f1',
   borderStrong: '#c3cbdc',
   text: '#0f172a',
@@ -62,7 +60,6 @@ export const darkTheme: Theme = {
   bg: '#0a0f1e',
   surface: '#121a30',
   surfaceAlt: '#1a2442',
-  zebra: '#0f1626',
   border: '#222e4d',
   borderStrong: '#38476b',
   text: '#e8ecf6',
