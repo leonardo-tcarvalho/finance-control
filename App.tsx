@@ -238,8 +238,8 @@ function Main() {
           { text: 'Restaurar', onPress: () => persist(imported) },
         ],
       );
-    } catch (e: any) {
-      Alert.alert('Arquivo inválido', String(e?.message ?? e));
+    } catch (e) {
+      Alert.alert('Arquivo inválido', e instanceof Error ? e.message : String(e));
     }
   };
 
