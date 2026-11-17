@@ -45,7 +45,7 @@ export function isOverdue(t: Transaction, cards: Card[], todayIso: string): bool
 export function overdueSummary(list: Transaction[], cards: Card[], todayIso: string) {
   const rows = list
     .filter((t) => isOverdue(t, cards, todayIso))
-    .sort((a, b) => (dueOf(a, cards) as string).localeCompare(dueOf(b, cards) as string));
+    .sort((a, b) => (dueOf(a, cards) ?? '').localeCompare(dueOf(b, cards) ?? ''));
   return { count: rows.length, cents: rows.reduce((sum, t) => sum + spendOf(t), 0), oldestMonth: rows.length ? monthOf(rows[0], cards) : null };
 }
 
