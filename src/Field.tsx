@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { KeyboardTypeOptions, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardTypeOptions, StyleProp, StyleSheet, Text, TextInput, View, ViewStyle } from 'react-native';
 import { Theme, useTheme } from './theme';
 
 function useStyles() {
@@ -25,7 +25,7 @@ export interface FieldProps {
   autoFocus?: boolean;
   big?: boolean;
   onSubmitEditing?: () => void;
-  style?: object;
+  style?: StyleProp<ViewStyle>;
 }
 
 // bordered, labelled input; the border highlights while it is being edited
