@@ -67,10 +67,10 @@ export default function CardModal({ visible, card, onClose, onSave, onDelete }: 
       dirty={name !== (card?.name ?? '') || limit !== toField(card?.limitCents) || closing !== (card?.closingDay ? String(card.closingDay) : '') || due !== (card?.dueDay ? String(card.dueDay) : '')}
       footer={
         <>
-          <Pressable onPress={onClose} style={[s.btn, s.btnGhost]}>
+          <Pressable onPress={onClose} style={[s.btn, s.btnGhost]} accessibilityRole="button">
             <Text style={s.btnGhostText}>Cancelar</Text>
           </Pressable>
-          <Pressable onPress={submit} style={[s.btn, { backgroundColor: t.primary, flex: 2 }]}>
+          <Pressable onPress={submit} style={[s.btn, { backgroundColor: t.primary, flex: 2 }]} accessibilityRole="button">
             <Text style={[s.btnText, { color: t.onPrimary }]}>{card ? 'Salvar' : 'Cadastrar cartão'}</Text>
           </Pressable>
         </>
@@ -87,7 +87,7 @@ export default function CardModal({ visible, card, onClose, onSave, onDelete }: 
       <Text style={s.help}>Compras feitas depois do dia de fechamento entram na fatura seguinte. O vencimento define quando a fatura fica vencida.</Text>
 
       {card && onDelete && (
-        <Pressable onPress={onDelete} style={s.delete}>
+        <Pressable onPress={onDelete} style={s.delete} accessibilityRole="button">
           <Text style={s.deleteText}>Remover este cartão</Text>
         </Pressable>
       )}
