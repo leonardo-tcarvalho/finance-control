@@ -77,7 +77,7 @@ export function DrawerItem({ icon, label, sub, active, onPress }: ItemProps) {
   const t = useTheme();
   const s = useMemo(() => makeStyles(t), [t]);
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [s.item, active && s.itemOn, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityState={{ selected: !!active }}>
+    <Pressable onPress={onPress} style={({ pressed }) => [s.item, active && s.itemOn, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityLabel={sub ? `${label}, ${sub}` : label} accessibilityState={{ selected: !!active }}>
       {typeof icon === 'string' ? <Text style={s.icon}>{icon}</Text> : <View style={s.iconBox}>{icon}</View>}
       <View style={s.itemText}>
         <Text style={[s.label, active && s.labelOn]} numberOfLines={1}>
