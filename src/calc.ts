@@ -103,7 +103,7 @@ export function spendByCategory(rows: Transaction[]): Slice[] {
   return Array.from(m, ([label, cents]) => ({ label, cents })).filter((s) => s.cents > 0).sort((a, b) => b.cents - a.cents);
 }
 
-/** Net spending per way of paying: the card name, the method label, or "Não informado". */
+/** Spending per way of paying: the card name, the method label, or "Não informado". */
 export function spendByPayment(rows: Transaction[], cardName: (id?: string) => string, methodName: (m?: string) => string): Slice[] {
   const m = new Map<string, number>();
   for (const t of rows) {
@@ -121,7 +121,7 @@ export interface MonthPoint {
   expense: number;
 }
 
-/** Income and net spending for the `count` months ending at `endMonth` (oldest first). */
+/** Income and spending for the `count` months ending at `endMonth` (oldest first). */
 export function monthlySeries(list: Transaction[], cards: Card[], endMonth: string, count: number): MonthPoint[] {
   const months = Array.from({ length: count }, (_, i) => shiftMonth(endMonth, i - (count - 1)));
   return months.map((month) => {

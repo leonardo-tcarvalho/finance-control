@@ -106,7 +106,7 @@ function Bars({ s, slices, color }: { s: Styles; slices: Slice[]; color: string 
 
 const CHART_H = 110;
 
-/** One column per month with the net spending, all drawn to the same scale. */
+/** One column per month with the spending, all drawn to the same scale. */
 function Evolution({ s, series }: { s: Styles; series: MonthPoint[] }) {
   const t = useTheme();
   const max = Math.max(1, ...series.map((p) => p.expense));
