@@ -260,10 +260,10 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
 
       <View style={s.dateRow}>
         <Field label={paidN > 0 ? 'Data da próxima parcela' : 'Data'} placeholder="DD/MM/AAAA" keyboardType="number-pad" maxLength={10} value={dateText} onChangeText={(v) => setDateText(maskDate(v))} style={{ flex: 1 }} />
-        <Pressable onPress={() => setDateText(formatDateBR(today()))} style={s.quick}>
+        <Pressable onPress={() => setDateText(formatDateBR(today()))} style={s.quick} accessibilityRole="button">
           <Text style={s.quickText}>Hoje</Text>
         </Pressable>
-        <Pressable onPress={() => setDateText(formatDateBR(addDays(today(), -1)))} style={s.quick}>
+        <Pressable onPress={() => setDateText(formatDateBR(addDays(today(), -1)))} style={s.quick} accessibilityRole="button">
           <Text style={s.quickText}>Ontem</Text>
         </Pressable>
       </View>
