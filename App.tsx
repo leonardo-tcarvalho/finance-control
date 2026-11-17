@@ -523,7 +523,7 @@ function Main() {
           </View>
           </>
         )}
-        {!inSummary && <Text style={s.hint}>Toque numa linha para marcar como pago, editar ou excluir</Text>}
+        {!inSummary && <Text style={s.hint}>{onCard ? 'Toque numa linha para editar ou excluir' : 'Toque numa linha para marcar como pago, editar ou excluir'}</Text>}
 
         <Drawer visible={menuOpen} onClose={() => setMenuOpen(false)}>
           <Text style={s.drawerTitle}>Controle de Gastos</Text>
