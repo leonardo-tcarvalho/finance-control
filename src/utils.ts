@@ -38,6 +38,7 @@ export const shiftMonth = (key: string, delta: number) => {
  * digits is read as a thousands separator, so "12.500" is 12500 and "25.5" is 25.5.
  */
 export const parseMoneyToCents = (raw: string): number => {
+  if (raw.includes('-')) return NaN; // a minus sign must not turn "-50" into 50
   let s = raw.replace(/[^\d.,]/g, '');
   if (!s) return NaN;
   const lastComma = s.lastIndexOf(',');
