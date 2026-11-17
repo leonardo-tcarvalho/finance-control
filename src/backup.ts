@@ -3,10 +3,11 @@ import * as Sharing from 'expo-sharing';
 import { File, Paths } from 'expo-file-system';
 import { AppData } from './types';
 import { parseData } from './storage';
+import { today } from './utils';
 
 /** Opens the share sheet so the user can save the JSON to Drive/iCloud/Files/WhatsApp, etc. */
 export async function exportBackup(data: AppData): Promise<void> {
-  const f = new File(Paths.cache, `finance-control-backup-${new Date().toISOString().slice(0, 10)}.json`);
+  const f = new File(Paths.cache, `finance-control-backup-${today()}.json`);
   if (f.exists) f.delete();
   f.create();
   await f.write(JSON.stringify(data, null, 2)); // async: must finish before sharing
