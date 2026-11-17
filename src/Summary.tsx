@@ -29,8 +29,8 @@ export default function Summary({ rows, series, byCategory, byPayment }: Props) 
     <ScrollView style={s.flex1} contentContainerStyle={s.body} showsVerticalScrollIndicator={false}>
       <Card title="Neste mês" s={s}>
         <View style={s.kpis}>
-          <Kpi s={s} label="Saiu" value={brl(totals.expense)} color={t.red} />
-          <Kpi s={s} label="Entrou" value={brl(totals.income)} color={t.green} />
+          <Kpi s={s} label="Gastos" value={brl(totals.expense)} color={t.red} />
+          <Kpi s={s} label="Receitas" value={brl(totals.income)} color={t.green} />
         </View>
         {delta !== null && (
           <Text style={s.note}>
