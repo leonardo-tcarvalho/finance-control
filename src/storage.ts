@@ -1,5 +1,6 @@
 import { Directory, File, Paths } from 'expo-file-system';
 import { AppData, SCHEMA_VERSION, emptyData } from './types';
+import { today } from './utils';
 
 /**
  * Persistence strategy (local only, no network):
@@ -103,7 +104,7 @@ export async function saveData(data: AppData): Promise<AppData> {
 }
 
 async function snapshotDaily(json: string) {
-  const name = `${new Date().toISOString().slice(0, 10)}.json`;
+  const name = `${today()}.json`;
   const snap = new File(backupsDir(), name);
   if (!snap.exists) snap.create();
   await snap.write(json); // one per day, latest state of that day
