@@ -328,11 +328,11 @@ function Main() {
             </Text>
           </View>
           <View style={s.monthNav}>
-            <Pressable hitSlop={8} onPress={() => setMonth(shiftMonth(month, -1))} style={s.navBtn}>
+            <Pressable hitSlop={8} onPress={() => setMonth(shiftMonth(month, -1))} style={s.navBtn} accessibilityRole="button" accessibilityLabel="Mês anterior">
               <Text style={s.navArrow}>‹</Text>
             </Pressable>
             <Text style={s.monthText}>{monthLabel(month)}</Text>
-            <Pressable hitSlop={8} onPress={() => setMonth(shiftMonth(month, 1))} style={s.navBtn}>
+            <Pressable hitSlop={8} onPress={() => setMonth(shiftMonth(month, 1))} style={s.navBtn} accessibilityRole="button" accessibilityLabel="Próximo mês">
               <Text style={s.navArrow}>›</Text>
             </Pressable>
           </View>
