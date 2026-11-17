@@ -427,7 +427,7 @@ function Main() {
                   autoCorrect={false}
                 />
                 {query !== '' && (
-                  <Pressable onPress={() => setQuery('')} hitSlop={10} accessibilityLabel="Limpar busca">
+                  <Pressable onPress={() => setQuery('')} hitSlop={10} accessibilityRole="button" accessibilityLabel="Limpar busca">
                     <Text style={s.searchClear}>✕</Text>
                   </Pressable>
                 )}
