@@ -454,7 +454,7 @@ function Main() {
                       : activeCard
                         ? `Nenhum gasto no ${activeCard.name} em ${monthLabel(month)}.`
                         : `Nenhum lançamento em ${monthLabel(month)}.`}
-                    {filtering ? '' : '\nToque em “Novo” para adicionar.'}
+                    {filtering ? '' : `\nToque em “${onCard ? 'Novo gasto' : 'Novo'}” para adicionar.`}
                   </Text>
                 }
                 renderItem={({ item }) => {
