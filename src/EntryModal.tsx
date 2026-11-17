@@ -194,16 +194,16 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
         <View>
           <Label>Repetição</Label>
           <View style={s.repeatRow}>
-            <Pressable onPress={() => setRepeat('once')} style={[s.chip, effRepeat === 'once' && s.chipOn]}>
+            <Pressable onPress={() => setRepeat('once')} style={[s.chip, effRepeat === 'once' && s.chipOn]} accessibilityRole="radio" accessibilityState={{ checked: effRepeat === 'once' }}>
               <Text style={[s.chipText, effRepeat === 'once' && s.chipTextOn]}>Uma vez</Text>
             </Pressable>
             {isExpense && (
-              <Pressable onPress={() => setRepeat('installment')} style={[s.chip, effRepeat === 'installment' && s.chipOn]}>
+              <Pressable onPress={() => setRepeat('installment')} style={[s.chip, effRepeat === 'installment' && s.chipOn]} accessibilityRole="radio" accessibilityState={{ checked: effRepeat === 'installment' }}>
                 <Text style={[s.chipText, effRepeat === 'installment' && s.chipTextOn]}>Parcelado</Text>
               </Pressable>
             )}
             {isExpense && (
-              <Pressable onPress={() => setRepeat('recurring')} style={[s.chip, effRepeat === 'recurring' && s.chipOn]}>
+              <Pressable onPress={() => setRepeat('recurring')} style={[s.chip, effRepeat === 'recurring' && s.chipOn]} accessibilityRole="radio" accessibilityState={{ checked: effRepeat === 'recurring' }}>
                 <Text style={[s.chipText, effRepeat === 'recurring' && s.chipTextOn]}>Recorrente</Text>
               </Pressable>
             )}
