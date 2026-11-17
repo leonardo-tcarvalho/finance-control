@@ -19,6 +19,7 @@ import { AppData, Card, DEFAULT_CATEGORIES, Transaction, emptyData, Method, meth
 import { MAX_INSTALLMENTS, MAX_RECURRING, brl, formatDateBR, monthLabel, parseMoneyToCents, shiftMonth, shortDate, today } from './src/utils';
 
 const newId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const byNewest = (a: Transaction, b: Transaction) => (a.date === b.date ? b.createdAt.localeCompare(a.createdAt) : b.date.localeCompare(a.date));
 
 export default function App() {
   return (
@@ -249,7 +250,7 @@ function Main() {
     () =>
       (data?.transactions ?? [])
         .filter((x) => monthOf(x, data?.cards ?? []) === month)
-        .sort((a, b) => (a.date === b.date ? b.createdAt.localeCompare(a.createdAt) : b.date.localeCompare(a.date))),
+        .sort(byNewest),
     [data, month],
   );
 
@@ -262,7 +263,7 @@ function Main() {
   const tabRows = useMemo(
     () =>
       activeCard
-        ? invoiceRows(data?.transactions ?? [], activeCard, month).sort((a, b) => (a.date === b.date ? b.createdAt.localeCompare(a.createdAt) : b.date.localeCompare(a.date)))
+        ? invoiceRows(data?.transactions ?? [], activeCard, month).sort(byNewest)
         : rows,
     [rows, activeCard, data, month],
   );
