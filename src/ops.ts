@@ -15,7 +15,7 @@ export interface EntryInput {
   due?: string;
   /** how many months the entry covers; 1 = a single entry */
   times: number;
-  /** installment: the amount is the total and is split; recurring: the amount repeats every month */
+  /** installment: the amount is the value of each installment; recurring: the amount repeats every month; either way every row gets it as is */
   mode: 'installment' | 'recurring';
   /** installments of a purchase already paid before it was registered; only the remaining ones are created */
   paidCount?: number;
@@ -37,23 +37,20 @@ function settle(x: Transaction, prev: PayKind | null): Transaction {
 
 /**
  * One row for a single entry, or one row per month for an installment purchase.
- * The total is divided in cents and the leftover goes to the first row, so the rows always add up exactly.
+ * The person gives the value of the installment, so every row has that value and the total is value x times.
  * When some installments were already paid, only the rest are created, numbered from the next one (4/12, 5/12...),
- * starting at `date`; the leftover cent belonged to the first installment, which was already paid, so it is dropped.
+ * starting at `date`.
  */
 export function buildEntries(i: EntryInput, groupId: string, createdAt: string): Transaction[] {
   const n = Math.max(1, i.times);
   const paid = i.mode === 'installment' ? Math.min(Math.max(0, Math.floor(i.paidCount ?? 0)), n - 1) : 0;
-  const split = i.mode === 'installment' ? n : 1;
-  const base = Math.floor(i.amountCents / split);
-  const rest = i.amountCents - base * split;
   return Array.from({ length: n - paid }, (_, j) => {
     const k = paid + j; // position in the whole purchase
     return settle(
       {
         id: `${groupId}-${k + 1}`,
         type: i.type,
-        amountCents: i.mode === 'installment' ? base + (k === 0 ? rest : 0) : i.amountCents,
+        amountCents: i.amountCents,
         category: i.category,
         description: i.description,
         date: addMonths(i.date, j),
