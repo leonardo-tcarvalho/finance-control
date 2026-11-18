@@ -2,7 +2,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
 import { File, Paths } from 'expo-file-system';
 import { AppData } from './types';
-import { parseData } from './storage';
+import { parseData, rescueFile } from './storage';
 import { today } from './utils';
 
 /** Opens the share sheet so the user can save the JSON to Drive/iCloud/Files/WhatsApp, etc. */
@@ -26,4 +26,12 @@ export async function pickBackup(): Promise<AppData | null> {
     if (e instanceof SyntaxError) throw new Error('O arquivo não é um backup válido do app.');
     throw e;
   }
+}
+
+/** For the load-error screen: shares the raw data file untouched so it can be kept or inspected. */
+export async function shareRawData(): Promise<void> {
+  const f = rescueFile();
+  if (!f) throw new Error('Nenhum arquivo de dados encontrado');
+  if (!(await Sharing.isAvailableAsync())) throw new Error('Compartilhamento indisponível neste dispositivo');
+  await Sharing.shareAsync(f.uri, { mimeType: 'application/json', dialogTitle: 'Salvar arquivo de dados' });
 }

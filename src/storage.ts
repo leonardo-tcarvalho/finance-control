@@ -8,6 +8,7 @@ import { today } from './utils';
  *  - atomic write: write `data.json.tmp`, validate, then replace `data.json`
  *  - before each overwrite the previous good file is kept as `data.prev.json`
  *  - one dated snapshot per day in `backups/`, last MAX_BACKUPS are kept
+ *  - before a manual restore, the in-memory state is written to `backups/antes-de-restaurar-<time>.json` (never cleaned up)
  *  - on load, if main file is missing/corrupt we fall back to prev, then newest backup
  *  - export/import lets the user keep a copy outside the app (see backup.ts)
  */
@@ -39,6 +40,14 @@ function dropRefund(t: any) {
   return { ...rest, type: 'income' };
 }
 
+/** yyyy-mm-dd that exists on the calendar (rejects 2026-02-31 and 2026-13-01). */
+const isRealDate = (d: string) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
+  if (!m) return false;
+  const dt = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+  return dt.getUTCFullYear() === +m[1] && dt.getUTCMonth() === +m[2] - 1 && dt.getUTCDate() === +m[3];
+};
+
 export function parseData(raw: string): AppData {
   const obj = JSON.parse(raw);
   if (!obj || !Array.isArray(obj.transactions)) throw new Error('Formato inválido');
@@ -51,7 +60,7 @@ export function parseData(raw: string): AppData {
   const transactions = obj.transactions.map(dropRefund);
   // a transaction without these fields passes the loader but crashes the sort and the totals on every launch
   const valid = (t: any) =>
-    typeof t?.id === 'string' && typeof t.date === 'string' && typeof t.createdAt === 'string' && (t.type === 'expense' || t.type === 'income') && Number.isInteger(t.amountCents);
+    typeof t?.id === 'string' && typeof t.date === 'string' && typeof t.createdAt === 'string' && (t.type === 'expense' || t.type === 'income') && Number.isInteger(t.amountCents) && t.amountCents >= 0 && isRealDate(t.date);
   if (!transactions.every(valid)) throw new Error('Formato inválido');
   return {
     schemaVersion: SCHEMA_VERSION,
@@ -80,17 +89,37 @@ export async function loadData(): Promise<AppData> {
     if (data) return data;
   }
   // listing backups can throw: only do it when the main files are no good
-  for (const f of listBackups()) {
+  // pre-restore copies come last: they are only a safety net, daily snapshots are the normal fallback
+  const files = [...listBackups(), ...listRestorePoints()];
+  for (const f of files) {
     const data = await tryRead(f);
     if (data) return data;
   }
-  return emptyData();
+  // data files exist but none is readable: starting empty would let the next save overwrite what may still be recoverable
+  // (an empty tmp is a first install that died between create and write: nothing to protect)
+  if (mainFile().exists || prevFile().exists || (tmpFile().exists && (tmpFile().size ?? 0) > 0) || files.length > 0) throw new Error('Dados ilegíveis');
+  return emptyData(); // first launch: nothing was ever saved
 }
 
-function listBackups(): File[] {
-  if (!backupsDir().exists) return [];
-  return (backupsDir().list().filter((e) => e instanceof File) as File[])
-    .sort((a, b) => b.name.localeCompare(a.name)); // newest first (name = ISO date)
+/** The file most likely to still hold the user's data, as-is (even if unreadable), so it can be shared for rescue. */
+export const rescueFile = (): File | undefined =>
+  [mainFile(), prevFile(), ...listBackups(), ...listRestorePoints()].find((f) => f.exists && (f.size ?? 0) > 0);
+
+const listIn = (re: RegExp): File[] =>
+  backupsDir().exists
+    ? (backupsDir().list().filter((e) => e instanceof File && re.test(e.name)) as File[]).sort((a, b) => b.name.localeCompare(a.name)) // newest first (name = ISO date)
+    : [];
+
+/** Daily snapshots only (yyyy-mm-dd.json): the only files the MAX_BACKUPS cleanup may delete. */
+const listBackups = () => listIn(/^\d{4}-\d{2}-\d{2}\.json$/);
+const listRestorePoints = () => listIn(/^antes-de-restaurar-.*\.json$/);
+
+/** Writes the in-memory state to a file that is never reused or cleaned up, before a restore replaces it. */
+export async function saveRestorePoint(data: AppData): Promise<void> {
+  ensureDirs();
+  const f = new File(backupsDir(), `antes-de-restaurar-${new Date().toISOString().replace(/[:.]/g, '-')}.json`);
+  f.create();
+  await f.write(JSON.stringify(data, null, 2));
 }
 
 export async function saveData(data: AppData): Promise<AppData> {

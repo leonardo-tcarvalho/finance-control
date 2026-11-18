@@ -3,7 +3,7 @@ import * as SystemUI from 'expo-system-ui';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View, useColorScheme } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { exportBackup, pickBackup } from './src/backup';
+import { exportBackup, pickBackup, shareRawData } from './src/backup';
 import CardModal, { CardValues } from './src/CardModal';
 import Drawer, { DrawerDivider, DrawerItem, DrawerSection } from './src/Drawer';
 import { PlusIcon, TrayArrow } from './src/Icons';
@@ -11,11 +11,11 @@ import RowActions from './src/RowActions';
 import EntryModal, { EntryValues } from './src/EntryModal';
 import { committedOnCard, sortCardsByLimit, dueDate, filterRows, invoiceRows, isPaid, monthOf, monthlySeries, spendByCategory, spendByPayment, spendOf } from './src/calc';
 import { applyEdit, buildEntries, groupOf } from './src/ops';
-import { loadData, saveData } from './src/storage';
+import { loadData, saveData, saveRestorePoint } from './src/storage';
 import { dueOf, isOverdue, isPending, monthTotals, movedIntoPaidInvoice, overdueSummary, payKind } from './src/status';
 import Summary from './src/Summary';
 import { Theme, ThemeContext, darkTheme, lightTheme } from './src/theme';
-import { AppData, Card, DEFAULT_CATEGORIES, Transaction, emptyData, Method, methodLabel } from './src/types';
+import { AppData, Card, DEFAULT_CATEGORIES, Transaction, Method, methodLabel } from './src/types';
 import { MAX_INSTALLMENTS, MAX_RECURRING, brl, formatDateBR, monthLabel, parseMoneyToCents, shiftMonth, shortDate, today } from './src/utils';
 
 const newId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -31,6 +31,7 @@ export default function App() {
 
 function Main() {
   const [data, setData] = useState<AppData | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false); // data stays null then, so every edit and persist is blocked
   const [month, setMonth] = useState(today().slice(0, 7));
   const [tab, setTab] = useState('all'); // 'all', 'summary' or a card id
   const [menuOpen, setMenuOpen] = useState(false);
@@ -50,7 +51,7 @@ function Main() {
   }, [t.bg]);
 
   useEffect(() => {
-    loadData().then(setData).catch(() => setData(emptyData()));
+    loadData().then(setData).catch(() => setLoadFailed(true));
   }, []);
 
   // serialize writes so concurrent edits never interleave on disk
@@ -235,10 +236,26 @@ function Main() {
       if (!imported || !data) return;
       Alert.alert(
         'Restaurar backup?',
-        `Substitui os ${data.transactions.length} lançamentos atuais por ${imported.transactions.length} do arquivo. O estado atual continua nos backups automáticos.`,
+        `Substitui os ${data.transactions.length} lançamentos atuais por ${imported.transactions.length} do arquivo. Uma cópia do estado atual é guardada em backups/antes-de-restaurar-… antes de substituir.`,
         [
           { text: 'Cancelar', style: 'cancel' },
-          { text: 'Restaurar', onPress: () => persist(imported) },
+          {
+            text: 'Restaurar',
+            // runs in the write queue (which never rejects, so an earlier failed save cannot block it): the copy
+            // must land first, and when it fails the imported data is neither shown nor saved
+            onPress: () => {
+              queue.current = queue.current.then(async () => {
+                try {
+                  await saveRestorePoint(data);
+                } catch (e) {
+                  Alert.alert('Não foi possível guardar o estado atual', `A restauração foi cancelada. ${e instanceof Error ? e.message : String(e)}`);
+                  return;
+                }
+                setData(imported);
+                await saveData(imported).catch((e) => Alert.alert('Erro ao salvar', String(e?.message ?? e)));
+              });
+            },
+          },
         ],
       );
     } catch (e) {
@@ -311,7 +328,14 @@ function Main() {
   if (!data)
     return (
       <SafeAreaView style={s.center}>
-        <Text style={{ color: t.text }}>Carregando…</Text>
+        <Text style={{ color: t.text, textAlign: 'center', padding: 24 }}>
+          {loadFailed ? 'Não foi possível ler seus dados. Seus arquivos não foram alterados e nada será gravado enquanto este aviso aparecer. Você pode fechar e abrir o app para tentar de novo ou compartilhar o arquivo de dados para guardá-lo.' : 'Carregando…'}
+        </Text>
+        {loadFailed && (
+          <Pressable onPress={() => shareRawData().catch((e) => Alert.alert('Erro', String(e?.message ?? e)))} accessibilityRole="button" style={{ padding: 12 }}>
+            <Text style={{ color: t.text, textDecorationLine: 'underline' }}>Compartilhar arquivo de dados</Text>
+          </Pressable>
+        )}
       </SafeAreaView>
     );
 
