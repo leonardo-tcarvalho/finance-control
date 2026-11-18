@@ -1,3 +1,5 @@
+Status: implementado
+
 # Levantamento: parcela pelo valor da parcela e relatório anual
 
 Resultado da leitura de `App.tsx`, `src/EntryModal.tsx`, `src/ops.ts`, `src/calc.ts` e `src/Summary.tsx`. Decisões tomadas onde o pedido deixava aberto; qualquer uma pode ser mudada antes da implementação.
