@@ -16,7 +16,7 @@ import { dueOf, isOverdue, isPending, monthTotals, movedIntoPaidInvoice, overdue
 import AnnualReport from './src/AnnualReport';
 import Summary from './src/Summary';
 import { Theme, ThemeContext, darkTheme, lightTheme } from './src/theme';
-import { AppData, Card, DEFAULT_CATEGORIES, Transaction, Method, methodLabel } from './src/types';
+import { AppData, Card, DEFAULT_CATEGORIES, INVESTMENT_CATEGORY, Transaction, Method, methodLabel } from './src/types';
 import { MAX_INSTALLMENTS, MAX_RECURRING, brl, formatDateBR, monthLabel, parseMoneyToCents, shiftMonth, shortDate, today } from './src/utils';
 
 const newId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -88,11 +88,17 @@ function Main() {
       Alert.alert('Valor inválido', 'Informe um valor maior que zero.');
       return false;
     }
+    // an investment has no card, method, vencimento or repetition, whatever the form still holds
+    const isInvestment = v.type === 'investment';
+    const invest = isInvestment
+      ? { bank: v.bank, currentValueCents: v.currentValue.trim() ? parseMoneyToCents(v.currentValue) : undefined, ratePct: v.rate }
+      : {};
     // never point at a card that no longer exists (e.g. after restoring a backup)
-    const cardId = v.cardId && data.cards.some((c) => c.id === v.cardId) ? v.cardId : undefined;
+    const cardId = !isInvestment && v.cardId && data.cards.some((c) => c.id === v.cardId) ? v.cardId : undefined;
 
     // a purchase cannot be created or moved into an invoice that is already paid
     const refusePaidInvoice = (next: Transaction[]) => {
+      if (isInvestment) return false;
       const hit = movedIntoPaidInvoice(data.transactions, next, data.cards);
       if (!hit) return false;
       Alert.alert('Fatura já paga', `A fatura de ${monthLabel(hit.month)} do cartão ${hit.card.name} já está paga. Reabra a fatura para lançar nela.`);
@@ -100,16 +106,23 @@ function Main() {
     };
 
     if (editing) {
-      const next = applyEdit(data.transactions, editing, {
-        type: v.type,
-        amountCents: cents,
-        description: v.desc.trim(),
-        category: v.category,
-        date: v.date,
-        cardId,
-        method: v.method ?? undefined,
-        due: v.due || undefined,
-      });
+      let next: Transaction[];
+      try {
+        next = applyEdit(data.transactions, editing, {
+          type: v.type,
+          amountCents: cents,
+          description: v.desc.trim(),
+          category: isInvestment ? INVESTMENT_CATEGORY : v.category,
+          date: v.date,
+          cardId,
+          method: isInvestment ? undefined : (v.method ?? undefined),
+          due: isInvestment ? undefined : v.due || undefined,
+          ...invest,
+        });
+      } catch (e) {
+        Alert.alert(isInvestment ? 'Investimento inválido' : 'Não foi possível salvar', e instanceof Error ? e.message : String(e));
+        return false;
+      }
       if (refusePaidInvoice(next)) return false;
       persist({ ...data, transactions: next });
       const saved = next.find((x) => x.id === editing.id);
@@ -119,7 +132,7 @@ function Main() {
 
     // "once" is a single row; otherwise the series needs at least two months
     let times = 1;
-    if (v.repeat !== 'once') {
+    if (v.repeat !== 'once' && !isInvestment) {
       const max = v.repeat === 'recurring' ? MAX_RECURRING : MAX_INSTALLMENTS;
       times = Math.floor(Number(v.times) || 0);
       if (times < 2 || times > max) {
@@ -128,17 +141,36 @@ function Main() {
       }
     }
     const mode = v.repeat === 'recurring' ? 'recurring' : 'installment';
-    const paidCount = mode === 'installment' ? Math.floor(Number(v.paidInstallments) || 0) : 0;
+    const paidCount = mode === 'installment' && !isInvestment ? Math.floor(Number(v.paidInstallments) || 0) : 0;
     if (paidCount < 0 || paidCount >= times) {
       Alert.alert('Parcelas pagas inválidas', `Informe de 0 a ${times - 1}: precisa sobrar pelo menos uma parcela a pagar.`);
       return false;
     }
     const groupId = newId();
-    const created = buildEntries(
-      { type: v.type, amountCents: cents, description: v.desc.trim(), category: v.category, date: v.date, cardId, method: v.method ?? undefined, due: v.due || undefined, times, mode, paidCount },
-      groupId,
-      new Date().toISOString(),
-    );
+    let created: Transaction[];
+    try {
+      created = buildEntries(
+        {
+          type: v.type,
+          amountCents: cents,
+          description: v.desc.trim(),
+          category: isInvestment ? INVESTMENT_CATEGORY : v.category,
+          date: v.date,
+          cardId,
+          method: isInvestment ? undefined : (v.method ?? undefined),
+          due: isInvestment ? undefined : v.due || undefined,
+          times,
+          mode,
+          paidCount,
+          ...invest,
+        },
+        groupId,
+        new Date().toISOString(),
+      );
+    } catch (e) {
+      Alert.alert(isInvestment ? 'Investimento inválido' : 'Não foi possível salvar', e instanceof Error ? e.message : String(e));
+      return false;
+    }
     const next = [...created, ...data.transactions];
     if (refusePaidInvoice(next)) return false;
     persist({ ...data, transactions: next });
