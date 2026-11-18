@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dueDate, filterRows, goalMessage, goalProgress, installmentCommitment, gainLabel, investedShare, gainOf, gainPctOf, invoiceKey, titleOf } from './calc';
+import { dueDate, filterRows, goalMessage, goalProgress, installmentCommitment, installmentText, gainLabel, investedShare, gainOf, gainPctOf, invoiceKey, titleOf } from './calc';
 import { Transaction } from './types';
 
 describe('invoiceKey', () => {
@@ -134,8 +134,13 @@ describe('installmentCommitment', () => {
     const at = (cents: number) => installmentCommitment([mk('income', 10000), parc(cents)], 30);
     expect(at(2900)?.over).toBe(false);
     expect(at(3000)?.over).toBe(false);
+    expect(at(3001)?.over).toBe(true);
+    expect(at(3040)?.over).toBe(true); // pct still reads 30
     expect(at(3100)?.over).toBe(true);
     expect(installmentCommitment([mk('income', 10000), parc(9000)])?.over).toBe(false); // no limit
+  });
+  it('over uses the exact amounts, not the rounded percent', () => {
+    expect(installmentCommitment([mk('income', 40476), parc(12345)], 30)).toMatchObject({ pct: 30, over: true }); // 30,4996%
   });
   it('rounds to the nearest percent, not down', () => {
     expect(installmentCommitment([mk('income', 3), parc(2)])?.pct).toBe(67);
@@ -154,5 +159,21 @@ describe('goalMessage', () => {
   it('says by how much it was passed above 100%', () => {
     expect(msg(10100)).toBe('Passou da meta em R$ 1,00.');
     expect(msg(10001)).toBe('Passou da meta em R$ 0,01.');
+  });
+});
+
+describe('installmentText', () => {
+  const txt = (c: Parameters<typeof installmentText>[0], limit?: number) => installmentText(c, limit).replace(/\s/g, ' ');
+  const c = { installments: 3000, income: 10000, pct: 30, over: false };
+  it('without a limit there is no comparison', () => {
+    expect(txt(c)).toBe('30% da renda em parcelas (R$ 30,00 de R$ 100,00).');
+  });
+  it('at the limit it shows the limit and no warning', () => {
+    expect(txt(c, 30)).toBe('30% da renda em parcelas (R$ 30,00 de R$ 100,00). Limite: 30%.');
+  });
+  it('above the limit it says by how much', () => {
+    expect(txt({ ...c, installments: 3100, pct: 31, over: true }, 30)).toBe('31% da renda em parcelas (R$ 31,00 de R$ 100,00). Limite: 30%. Acima do limite em R$ 1,00.');
+    expect(txt({ ...c, installments: 3040, over: true }, 30)).toBe('30% da renda em parcelas (R$ 30,40 de R$ 100,00). Limite: 30%. Acima do limite em R$ 0,40.');
+    expect(txt({ installments: 152000, income: 500000, pct: 30, over: true }, 30)).toBe('30% da renda em parcelas (R$ 1.520,00 de R$ 5.000,00). Limite: 30%. Acima do limite em R$ 20,00.');
   });
 });

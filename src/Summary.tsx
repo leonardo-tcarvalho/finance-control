@@ -1,6 +1,6 @@
 import { ReactNode, useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { MonthPoint, Slice, goalMessage, goalProgress, investedShare, reserveLevel, savingsRate, totalsOf } from './calc';
+import { MonthPoint, Slice, goalMessage, goalProgress, installmentCommitment, installmentText, investedShare, reserveLevel, savingsRate, totalsOf } from './calc';
 import { Theme, useTheme } from './theme';
 import { Transaction } from './types';
 import { MONTHS, brl, signedPct } from './utils';
@@ -16,11 +16,13 @@ interface Props {
   reserveMonths: number | null;
   /** monthly spending goal in cents; absent = no goal, no card */
   goalCents?: number;
+  /** max share of the month's income committed to installments, whole percent; absent = no limit */
+  installmentPct?: number;
 }
 
 export const monthShort = (key: string) => MONTHS[Number(key.slice(5, 7)) - 1].slice(0, 3);
 
-export default function Summary({ rows, series, byCategory, byPayment, reserveMonths, goalCents }: Props) {
+export default function Summary({ rows, series, byCategory, byPayment, reserveMonths, goalCents, installmentPct }: Props) {
   const t = useTheme();
   const s = useMemo(() => makeStyles(t), [t]);
   const totals = totalsOf(rows);
@@ -31,6 +33,8 @@ export default function Summary({ rows, series, byCategory, byPayment, reserveMo
   const reserve = reserveMonths !== null && reserveMonths > 0 ? { months: reserveMonths, ...reserveLevel(reserveMonths) } : null;
   const showShare = share !== null && totals.invested > 0;
   const saved = savingsRate(current.income, current.expense);
+  const commitment = installmentCommitment(rows, installmentPct);
+  const inst = commitment && commitment.installments > 0 ? commitment : null; // needs income and installments in the month
   const goal = goalProgress(totals.expense, goalCents); // every expense of the month, paid or pending
 
   return (
@@ -65,10 +69,11 @@ export default function Summary({ rows, series, byCategory, byPayment, reserveMo
         </Card>
       )}
 
-      {(saved !== null || showShare || reserve) && (
+      {(saved !== null || showShare || reserve || inst) && (
         <Card title="Saúde financeira" s={s}>
           {saved !== null && <Text style={s.note}>Taxa de poupança do mês: {signedPct(saved)} da renda.</Text>}
           {showShare && <Text style={s.note}>Parte da renda aplicada no mês: {share}%.</Text>}
+          {inst && <Text style={[s.note, inst.over && { color: t.red }]}>{installmentText(inst, installmentPct)}</Text>}
           {reserve && (
             <Text style={s.note}>
               Reserva de emergência: {String(reserve.months).replace('.', ',')} {reserve.months === 1 ? 'mês' : 'meses'} de gastos ({reserve.level}). {reserve.text}

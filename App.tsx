@@ -492,7 +492,7 @@ function Main() {
         )}
 
         {inSummary ? (
-          <Summary rows={rows} series={series} byCategory={byCategory} byPayment={byPayment} reserveMonths={reserveMonths} goalCents={data.limits?.spendingGoalCents} />
+          <Summary rows={rows} series={series} byCategory={byCategory} byPayment={byPayment} reserveMonths={reserveMonths} goalCents={data.limits?.spendingGoalCents} installmentPct={data.limits?.installmentPct} />
         ) : inAnnual ? (
           <AnnualReport list={data.transactions} cards={data.cards} cardName={cardNameOf} methodName={methodNameOf} />
         ) : (
