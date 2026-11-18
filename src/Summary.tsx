@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MonthPoint, Slice, investedShare, reserveLevel, savingsRate, totalsOf } from './calc';
 import { Theme, useTheme } from './theme';
 import { Transaction } from './types';
-import { MONTHS, brl } from './utils';
+import { MONTHS, brl, signedPct } from './utils';
 
 interface Props {
   /** rows of the selected month */
@@ -49,7 +49,7 @@ export default function Summary({ rows, series, byCategory, byPayment, reserveMo
 
       {(saved !== null || showShare || reserve) && (
         <Card title="Saúde financeira" s={s}>
-          {saved !== null && <Text style={s.note}>Taxa de poupança do mês: {saved}% da renda.</Text>}
+          {saved !== null && <Text style={s.note}>Taxa de poupança do mês: {signedPct(saved)} da renda.</Text>}
           {showShare && <Text style={s.note}>Parte da renda aplicada no mês: {share}%.</Text>}
           {reserve && (
             <Text style={s.note}>
