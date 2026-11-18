@@ -6,15 +6,20 @@ export const spendOf = (t: Transaction) => (t.type === 'expense' ? t.amountCents
 
 export const incomeOf = (t: Transaction) => (t.type === 'income' ? t.amountCents : 0);
 
-/** Receitas, Gastos and Saldo for a set of rows. */
+/** How much a row puts into investments: only an investment does. It is neither spending nor income. */
+export const investedOf = (t: Transaction) => (t.type === 'investment' ? t.amountCents : 0);
+
+/** Receitas, Gastos, Investido and Saldo (receitas minus gastos minus investido) for a set of rows. */
 export function totalsOf(rows: Transaction[]) {
   let income = 0;
   let expense = 0;
+  let invested = 0;
   for (const t of rows) {
     income += incomeOf(t);
     expense += spendOf(t);
+    invested += investedOf(t);
   }
-  return { income, expense, balance: income - expense };
+  return { income, expense, invested, balance: income - expense - invested };
 }
 
 const daysIn = (month: string) => new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).getDate();
