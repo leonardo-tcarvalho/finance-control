@@ -84,7 +84,9 @@ export async function loadData(): Promise<AppData> {
     const data = await tryRead(f);
     if (data) return data;
   }
-  return emptyData();
+  // data files exist but none is readable: starting empty would let the next save overwrite what may still be recoverable
+  if ([mainFile(), tmpFile(), prevFile()].some((f) => f.exists) || listBackups().length > 0) throw new Error('Dados ilegíveis');
+  return emptyData(); // first launch: nothing was ever saved
 }
 
 function listBackups(): File[] {

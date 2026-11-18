@@ -15,7 +15,7 @@ import { loadData, saveData } from './src/storage';
 import { dueOf, isOverdue, isPending, monthTotals, movedIntoPaidInvoice, overdueSummary, payKind } from './src/status';
 import Summary from './src/Summary';
 import { Theme, ThemeContext, darkTheme, lightTheme } from './src/theme';
-import { AppData, Card, DEFAULT_CATEGORIES, Transaction, emptyData, Method, methodLabel } from './src/types';
+import { AppData, Card, DEFAULT_CATEGORIES, Transaction, Method, methodLabel } from './src/types';
 import { MAX_INSTALLMENTS, MAX_RECURRING, brl, formatDateBR, monthLabel, parseMoneyToCents, shiftMonth, shortDate, today } from './src/utils';
 
 const newId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -31,6 +31,7 @@ export default function App() {
 
 function Main() {
   const [data, setData] = useState<AppData | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false); // data stays null then, so every edit and persist is blocked
   const [month, setMonth] = useState(today().slice(0, 7));
   const [tab, setTab] = useState('all'); // 'all', 'summary' or a card id
   const [menuOpen, setMenuOpen] = useState(false);
@@ -50,7 +51,7 @@ function Main() {
   }, [t.bg]);
 
   useEffect(() => {
-    loadData().then(setData).catch(() => setData(emptyData()));
+    loadData().then(setData).catch(() => setLoadFailed(true));
   }, []);
 
   // serialize writes so concurrent edits never interleave on disk
@@ -311,7 +312,9 @@ function Main() {
   if (!data)
     return (
       <SafeAreaView style={s.center}>
-        <Text style={{ color: t.text }}>Carregando…</Text>
+        <Text style={{ color: t.text, textAlign: 'center', padding: 24 }}>
+          {loadFailed ? 'Não foi possível ler seus dados, reinicie o app. Seus arquivos não foram alterados.' : 'Carregando…'}
+        </Text>
       </SafeAreaView>
     );
 
