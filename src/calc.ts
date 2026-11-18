@@ -216,16 +216,18 @@ const worthOf = (t: Transaction) => t.currentValueCents ?? t.amountCents;
 
 /** Investments grouped by bank, the one worth the most first (equal values in name order). */
 export function portfolioByBank(list: Transaction[]): Holding[] {
-  const m = new Map<string, { applied: number; current: number }>();
+  // "nubank", "Nubank " and " NUBANK" are one bank: group by the trimmed lowercase name and show the first spelling found
+  const m = new Map<string, { bank: string; applied: number; current: number }>();
   for (const t of list) {
     if (t.type !== 'investment') continue;
-    const bank = t.bank ?? '';
-    const h = m.get(bank) ?? { applied: 0, current: 0 };
+    const bank = (t.bank ?? '').trim();
+    const key = bank.toLowerCase();
+    const h = m.get(key) ?? { bank, applied: 0, current: 0 };
     h.applied += t.amountCents;
     h.current += worthOf(t);
-    m.set(bank, h);
+    m.set(key, h);
   }
-  return Array.from(m, ([bank, h]) => holding(bank, h.applied, h.current)).sort((a, b) => b.current - a.current || a.bank.localeCompare(b.bank, 'pt-BR'));
+  return Array.from(m.values(), (h) => holding(h.bank, h.applied, h.current)).sort((a, b) => b.current - a.current || a.bank.localeCompare(b.bank, 'pt-BR'));
 }
 
 /** Applied, current value and gain over every investment. */
