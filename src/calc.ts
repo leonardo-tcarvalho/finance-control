@@ -256,3 +256,6 @@ export const titleOf = (t: Transaction) => t.description || (t.type === 'investm
 
 /** Whole percent of the income that was invested, or null when there was no income to compare with. */
 export const investedShare = (invested: number, income: number): number | null => (income > 0 ? Math.round((invested / income) * 100) : null);
+
+/** Whole percent of the income left after spending ((income - expense) / income); negative when spending passed the income, null without income. */
+export const savingsRate = (income: number, expense: number): number | null => (income > 0 ? Math.round(((income - expense) / income) * 100) : null);

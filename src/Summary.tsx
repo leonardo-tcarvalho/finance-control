@@ -1,6 +1,6 @@
 import { ReactNode, useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { MonthPoint, Slice, investedShare, totalsOf } from './calc';
+import { MonthPoint, Slice, investedShare, savingsRate, totalsOf } from './calc';
 import { Theme, useTheme } from './theme';
 import { Transaction } from './types';
 import { MONTHS, brl } from './utils';
@@ -24,7 +24,7 @@ export default function Summary({ rows, series, byCategory, byPayment }: Props) 
   const previous = series.length > 1 ? series[series.length - 2] : undefined;
   const delta = previous && previous.expense > 0 ? Math.round(((current.expense - previous.expense) / previous.expense) * 100) : null;
   const share = investedShare(totals.invested, totals.income);
-  const saved = current.income > 0 ? Math.round(((current.income - current.expense) / current.income) * 100) : null;
+  const saved = savingsRate(current.income, current.expense);
 
   return (
     <ScrollView style={s.flex1} contentContainerStyle={s.body} showsVerticalScrollIndicator={false}>
