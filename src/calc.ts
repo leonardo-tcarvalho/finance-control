@@ -243,11 +243,12 @@ export const gainOf = (t: Transaction) => (t.type === 'investment' && t.currentV
 export const gainPctOf = (t: Transaction) => (t.amountCents > 0 ? Math.round((gainOf(t) / t.amountCents) * 100) : 0);
 
 /** "+ R$ 10,00 (+10%)", "− R$ 5,00 (−5%)"; no sign when the yield is zero. */
-export function gainLabel(t: Transaction): string {
-  const g = gainOf(t);
-  const sign = g > 0 ? '+' : g < 0 ? '−' : '';
-  return `${sign ? sign + ' ' : ''}${brl(Math.abs(g))} (${sign}${Math.abs(gainPctOf(t))}%)`;
+export function gainText(gain: number, pct: number): string {
+  const sign = gain > 0 ? '+' : gain < 0 ? '−' : '';
+  return `${sign ? sign + ' ' : ''}${brl(Math.abs(gain))} (${sign}${Math.abs(pct)}%)`;
 }
+
+export const gainLabel = (t: Transaction) => gainText(gainOf(t), gainPctOf(t));
 
 /** What to call a row in lists and sheets: its description, else the bank for an investment, else the category. */
 export const titleOf = (t: Transaction) => t.description || (t.type === 'investment' ? `Investimento · ${t.bank ?? ''}` : t.category);

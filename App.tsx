@@ -9,7 +9,7 @@ import Drawer, { DrawerDivider, DrawerItem, DrawerSection } from './src/Drawer';
 import { PlusIcon, TrayArrow } from './src/Icons';
 import RowActions from './src/RowActions';
 import EntryModal, { EntryValues } from './src/EntryModal';
-import { committedOnCard, gainLabel, gainOf, titleOf, sortCardsByLimit, dueDate, filterRows, invoiceRows, isPaid, monthOf, monthlySeries, spendByCategory, spendByPayment, spendOf } from './src/calc';
+import { committedOnCard, gainLabel, gainOf, gainText, portfolioTotals, titleOf, sortCardsByLimit, dueDate, filterRows, invoiceRows, isPaid, monthOf, monthlySeries, spendByCategory, spendByPayment, spendOf } from './src/calc';
 import { applyEdit, buildEntries, groupOf } from './src/ops';
 import { loadData, saveData, saveRestorePoint } from './src/storage';
 import { dueOf, isOverdue, isPending, monthTotals, movedIntoPaidInvoice, overdueSummary, payKind } from './src/status';
@@ -339,6 +339,7 @@ function Main() {
   );
   const filtering = query.trim() !== '';
   const shownTotals = monthTotals(shownRows, data?.cards ?? []);
+  const portfolio = useMemo(() => portfolioTotals(data?.transactions ?? []), [data]);
   const byPayment = useMemo(() => spendByPayment(rows, cardNameOf, methodNameOf), [rows, data]);
 
   // overdue expenses of every month, so a late bill is never hidden in a month that is not on screen
@@ -455,8 +456,15 @@ function Main() {
             <View style={s.stats}>
               <Stat s={s} label="Receitas" value={brl(totals.income)} color={t.green} />
               <Stat s={s} label="Gastos" value={brl(totals.expense)} color={t.red} sub={totals.pending > 0 ? `${brl(totals.pending)} pendentes` : undefined} />
-              <Stat s={s} label="Saldo" value={brl(totals.balance)} color={totals.balance >= 0 ? t.green : t.red} />
+              <Stat s={s} label="Saldo" value={brl(totals.balance)} color={totals.balance >= 0 ? t.green : t.red} sub={totals.invested > 0 ? 'já desconta o investido' : undefined} />
             </View>
+            {/* only for people who invest: what went in this month and what the whole portfolio is worth */}
+            {(totals.invested > 0 || portfolio.applied > 0) && (
+              <View style={[s.stats, { marginTop: 8 }]}>
+                <Stat s={s} label="Investido no mês" value={brl(totals.invested)} color={t.primary} />
+                <Stat s={s} label="Carteira" value={brl(portfolio.current)} color={t.primary} sub={`rendimento ${gainText(portfolio.gain, portfolio.gainPct)}`} />
+              </View>
+            )}
           </View>
         )}
 
