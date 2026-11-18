@@ -1,6 +1,6 @@
 import { PayKind, payKind } from './status';
-import { Method, Transaction, TxType } from './types';
-import { addMonths } from './utils';
+import { Limits, Method, Transaction, TxType } from './types';
+import { addMonths, parseMoneyToCents } from './utils';
 
 export interface EntryInput {
   type: TxType;
@@ -137,4 +137,33 @@ export function applyEdit(list: Transaction[], original: Transaction, e: EditInp
 export function updateCurrentValue(list: Transaction[], id: string, cents: number): Transaction[] {
   if (!(Number.isInteger(cents) && cents >= 0)) throw new Error('Valor atual inválido');
   return list.map((x) => (x.id === id && x.type === 'investment' ? { ...x, currentValueCents: cents } : x));
+}
+
+/** Highest spending goal accepted when typing: R$ 1 billion, in cents. */
+export const MAX_GOAL_CENTS = 100_000_000_000;
+
+/**
+ * Reads what was typed for a limit. Empty (or 0 for the spending goal) means "no limit" and gives undefined.
+ * The goal is typed in reais (up to R$ 1 bilhão) and returned in cents; the installment limit is a whole percent from 1 to 100.
+ * Anything else throws an Error whose message is meant for the user.
+ */
+export function parseLimitText(key: keyof Limits, text: string): number | undefined {
+  const raw = text.trim();
+  if (!raw) return undefined;
+  if (key === 'spendingGoalCents') {
+    const cents = parseMoneyToCents(raw);
+    if (!Number.isFinite(cents)) throw new Error('Informe um valor como 1.234,56.');
+    if (cents > MAX_GOAL_CENTS) throw new Error('Informe um valor de até R$ 1 bilhão.');
+    return cents > 0 ? cents : undefined;
+  }
+  const pct = /^\d+$/.test(raw) ? Number(raw) : NaN;
+  if (!(pct >= 1 && pct <= 100)) throw new Error('Informe um número inteiro de 1 a 100.');
+  return pct;
+}
+
+/** Sets or clears one limit and keeps the other; with both cleared the result is undefined. */
+export function setLimit(limits: Limits | undefined, key: keyof Limits, value: number | undefined): Limits | undefined {
+  const next = { ...limits, [key]: value };
+  if (value === undefined) delete next[key];
+  return Object.keys(next).length ? next : undefined;
 }

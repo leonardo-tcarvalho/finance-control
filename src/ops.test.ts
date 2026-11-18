@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyEdit, buildEntries, updateCurrentValue } from './ops';
+import { MAX_GOAL_CENTS, applyEdit, buildEntries, parseLimitText, setLimit, updateCurrentValue } from './ops';
 
 const base = { type: 'expense' as const, amountCents: 1000, description: 'x', category: 'Outros', date: '2026-01-15', times: 3, mode: 'installment' as const };
 
@@ -92,5 +92,39 @@ describe('updateCurrentValue', () => {
   });
   it('refuses a negative, decimal or NaN value', () => {
     for (const v of [-1, 1.5, NaN]) expect(() => updateCurrentValue([inv], inv.id, v)).toThrow('Valor atual inválido');
+  });
+});
+
+describe('parseLimitText', () => {
+  it('empty clears either limit', () => {
+    expect(parseLimitText('spendingGoalCents', '  ')).toBeUndefined();
+    expect(parseLimitText('installmentPct', '')).toBeUndefined();
+  });
+  it('the goal is typed in reais and kept in cents; 0 clears it', () => {
+    expect(parseLimitText('spendingGoalCents', '3.500,50')).toBe(350050);
+    expect(parseLimitText('spendingGoalCents', '0')).toBeUndefined();
+  });
+  it('the goal accepts exactly R$ 1 bilhão and rejects more, negative or text', () => {
+    expect(parseLimitText('spendingGoalCents', '1.000.000.000,00')).toBe(MAX_GOAL_CENTS);
+    expect(() => parseLimitText('spendingGoalCents', '1.000.000.000,01')).toThrow();
+    expect(() => parseLimitText('spendingGoalCents', '-5')).toThrow();
+    expect(() => parseLimitText('spendingGoalCents', 'abc')).toThrow();
+  });
+  it('the percent is a whole number from 1 to 100', () => {
+    expect(parseLimitText('installmentPct', '1')).toBe(1);
+    expect(parseLimitText('installmentPct', '100')).toBe(100);
+    for (const bad of ['0', '101', '-1', '30,5', '30.5', 'abc']) expect(() => parseLimitText('installmentPct', bad)).toThrow();
+  });
+});
+
+describe('setLimit', () => {
+  it('keeps the other limit when one changes', () => {
+    expect(setLimit({ installmentPct: 30 }, 'spendingGoalCents', 5000)).toEqual({ installmentPct: 30, spendingGoalCents: 5000 });
+    expect(setLimit(undefined, 'installmentPct', 20)).toEqual({ installmentPct: 20 });
+  });
+  it('clearing one keeps the other; clearing both leaves limits undefined', () => {
+    expect(setLimit({ installmentPct: 30, spendingGoalCents: 5000 }, 'spendingGoalCents', undefined)).toEqual({ installmentPct: 30 });
+    expect(setLimit({ installmentPct: 30 }, 'installmentPct', undefined)).toBeUndefined();
+    expect(setLimit(undefined, 'installmentPct', undefined)).toBeUndefined();
   });
 });
