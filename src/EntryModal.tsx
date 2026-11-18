@@ -240,7 +240,7 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
       )}
       {isInvestment && gain !== null && (
         <Text style={s.preview}>
-          Rendimento: {gain >= 0 ? '+' : '−'} {brl(Math.abs(gain))} ({Math.round((gain / cents) * 100)}%)
+          {`Rendimento: ${gain === 0 ? '' : gain > 0 ? '+ ' : '− '}${brl(Math.abs(gain))} (${gain === 0 ? '' : gain > 0 ? '+' : '−'}${Math.round((Math.abs(gain) / cents) * 100)}%)`}
         </Text>
       )}
 
