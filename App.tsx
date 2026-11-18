@@ -120,7 +120,7 @@ function Main() {
           ...invest,
         });
       } catch (e) {
-        Alert.alert('Investimento inválido', e instanceof Error ? e.message : String(e));
+        Alert.alert(isInvestment ? 'Investimento inválido' : 'Não foi possível salvar', e instanceof Error ? e.message : String(e));
         return false;
       }
       if (refusePaidInvoice(next)) return false;
@@ -168,7 +168,7 @@ function Main() {
         new Date().toISOString(),
       );
     } catch (e) {
-      Alert.alert('Investimento inválido', e instanceof Error ? e.message : String(e));
+      Alert.alert(isInvestment ? 'Investimento inválido' : 'Não foi possível salvar', e instanceof Error ? e.message : String(e));
       return false;
     }
     const next = [...created, ...data.transactions];
