@@ -70,6 +70,8 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
   const [method, setMethod] = useState<Method | null>(null);
   const [bankChoice, setBankChoice] = useState(''); // a name from BANKS, OTHER_BANK or '' (none chosen yet)
   const [bankOther, setBankOther] = useState(''); // typed name when OTHER_BANK is chosen
+  const [currentText, setCurrentText] = useState('');
+  const [rateText, setRateText] = useState('');
 
   // every time the popup opens it starts clean (and pinned to the card tab, if any)
   useEffect(() => {
@@ -89,6 +91,8 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
       setMethod(editing.method ?? null);
       setBankChoice('');
       setBankOther('');
+      setCurrentText('');
+      setRateText('');
       return;
     }
     setType('expense');
@@ -105,6 +109,8 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
     setMethod(null);
     setBankChoice('');
     setBankOther('');
+    setCurrentText('');
+    setRateText('');
   }, [visible, lockedCard?.id, editing?.id]);
 
   const startDate = parseDateBR(dateText) ?? today();
@@ -127,6 +133,8 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
   // the vencimento is asked for every expense that is not on a card (a card purchase follows its invoice)
   const showDue = type === 'expense' && !lockedCard && !selectedCard;
 
+  const currentCents = currentText.trim() === '' ? NaN : parseMoneyToCents(currentText);
+  const gain = Number.isFinite(cents) && cents > 0 && Number.isFinite(currentCents) ? currentCents - cents : null;
   const bank = bankChoice === OTHER_BANK ? bankOther.trim() : bankChoice;
 
   const createCategory = () => {
@@ -156,7 +164,7 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
       if (!parsed) return Alert.alert('Vencimento inválido', 'Use o formato DD/MM/AAAA, ou deixe em branco para usar a data do lançamento.');
       due = parsed;
     }
-    if (onSubmit({ type, amount, desc, date, category: isExpense ? selectedCategory : isInvestment ? INVESTMENT_CATEGORY : INCOME_CATEGORY, repeat: effRepeat, times, paidInstallments: effRepeat === 'installment' ? paidText : '', cardId: lockedCard ? lockedCard.id : selectedCard, method: lockedCard ? null : selectedMethod, due, bank: isInvestment ? bank : '', currentValue: '', rate: '' })) onClose();
+    if (onSubmit({ type, amount, desc, date, category: isExpense ? selectedCategory : isInvestment ? INVESTMENT_CATEGORY : INCOME_CATEGORY, repeat: effRepeat, times, paidInstallments: effRepeat === 'installment' ? paidText : '', cardId: lockedCard ? lockedCard.id : selectedCard, method: lockedCard ? null : selectedMethod, due, bank: isInvestment ? bank : '', currentValue: isInvestment ? currentText : '', rate: isInvestment ? rateText : '' })) onClose();
   };
 
   return (
@@ -216,6 +224,19 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
           </ScrollView>
           {bankChoice === OTHER_BANK && <Field label="Nome do banco" placeholder="Ex.: Banco Pan" value={bankOther} onChangeText={setBankOther} autoFocus />}
         </View>
+      )}
+
+      {isInvestment && (
+        <View>
+          <Field label="Valor atual (se estiver rendendo)" prefix="R$" placeholder="0,00" keyboardType="decimal-pad" value={currentText} onChangeText={setCurrentText} />
+          <Text style={s.help}>Informe quanto vale hoje para o app mostrar o rendimento; a taxa é só uma anotação (ex.: 100% do CDI).</Text>
+          <Field label="Taxa (opcional)" placeholder="Ex.: 100% do CDI" value={rateText} onChangeText={setRateText} />
+        </View>
+      )}
+      {isInvestment && gain !== null && (
+        <Text style={s.preview}>
+          Rendimento: {gain >= 0 ? '+' : '−'} {brl(Math.abs(gain))} ({Math.round((gain / cents) * 100)}%)
+        </Text>
       )}
 
       {!editing && isExpense && (
