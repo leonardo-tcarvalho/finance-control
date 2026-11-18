@@ -55,6 +55,11 @@ describe('topExpenses', () => {
   it('ignores income, biggest first, ties by most recent date', () => {
     expect(topExpenses(rows).map((t) => t.id)).toEqual(['b', 'c', 'a']);
   });
+  it('does not reorder the input list', () => {
+    const before = [...rows];
+    topExpenses(rows);
+    expect(rows).toEqual(before);
+  });
   it('respects n', () => {
     expect(topExpenses(rows, 2).map((t) => t.id)).toEqual(['b', 'c']);
   });
