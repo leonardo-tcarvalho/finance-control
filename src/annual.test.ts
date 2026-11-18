@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MonthPoint, annualTotals, splitPercents, totalsOf, availableYears, spendByOrigin, spendOf, topExpenses, yearRows } from './calc';
+import { MonthPoint, annualTotals, portfolioByBank, portfolioTotals, splitPercents, totalsOf, availableYears, spendByOrigin, spendOf, topExpenses, yearRows } from './calc';
 import { Card, Transaction } from './types';
 
 let n = 0;
@@ -99,5 +99,24 @@ describe('totalsOf with investments', () => {
   it('keeps investments out of income and expense, sums them in invested and takes them from the balance', () => {
     const r = totalsOf([tx({ type: 'income', amountCents: 1000 }), tx({ amountCents: 300 }), tx({ type: 'investment', amountCents: 200, bank: 'Nubank' })]);
     expect(r).toEqual({ income: 1000, expense: 300, invested: 200, balance: 500 });
+  });
+});
+
+describe('portfolio', () => {
+  const inv = (bank: string, amountCents: number, currentValueCents?: number) => tx({ type: 'investment', bank, amountCents, currentValueCents });
+  const list = [inv('Nubank', 1000, 1100), inv('Nubank', 500), inv('Inter', 4000, 3600), tx({ amountCents: 9999 })];
+  it('groups by bank, counting the applied amount when no current value was informed, biggest first', () => {
+    expect(portfolioByBank(list)).toEqual([
+      { bank: 'Inter', applied: 4000, current: 3600, gain: -400, gainPct: -10 },
+      { bank: 'Nubank', applied: 1500, current: 1600, gain: 100, gainPct: 7 },
+    ]);
+  });
+  it('totals every investment and ignores other types', () => {
+    expect(portfolioTotals(list)).toMatchObject({ applied: 5500, current: 5200, gain: -300, gainPct: -5 });
+  });
+  it('a current value of zero is respected, and an empty portfolio is all zeros', () => {
+    expect(portfolioTotals([inv('Nubank', 1000, 0)])).toMatchObject({ current: 0, gain: -1000, gainPct: -100 });
+    expect(portfolioByBank([])).toEqual([]);
+    expect(portfolioTotals([])).toMatchObject({ applied: 0, current: 0, gain: 0, gainPct: 0 });
   });
 });
