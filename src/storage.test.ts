@@ -19,3 +19,28 @@ describe('parseData', () => {
     expect(() => parseData(raw({ amountCents: -1 }))).toThrow('Formato inválido');
   });
 });
+
+describe('parseData with investments', () => {
+  const inv = (over: object) => raw({ type: 'investment', bank: 'Nubank', ...over });
+  it('accepts a valid investment, with or without current value and rate', () => {
+    expect(parseData(inv({})).transactions[0].type).toBe('investment');
+    const full = parseData(inv({ currentValueCents: 120, ratePct: '100% do CDI' })).transactions[0];
+    expect(full).toMatchObject({ currentValueCents: 120, ratePct: '100% do CDI' });
+  });
+  it('rejects a missing or blank bank', () => {
+    expect(() => parseData(raw({ type: 'investment' }))).toThrow('Formato inválido');
+    expect(() => parseData(inv({ bank: '  ' }))).toThrow('Formato inválido');
+  });
+  it('rejects a negative or non-integer current value and a non-string rate', () => {
+    for (const over of [{ currentValueCents: -1 }, { currentValueCents: 1.5 }, { currentValueCents: '10' }, { ratePct: 11 }]) {
+      expect(() => parseData(inv(over))).toThrow('Formato inválido');
+    }
+  });
+  it('drops card, method, status, vencimento and series fields', () => {
+    const t = parseData(inv({ cardId: 'c', method: 'pix', paid: false, due: '2026-02-01', installment: { n: 1, of: 2, groupId: 'g' } })).transactions[0];
+    for (const k of ['cardId', 'method', 'paid', 'due', 'installment']) expect(t).not.toHaveProperty(k);
+  });
+  it('an old file without investments stays valid', () => {
+    expect(parseData(raw({ type: 'income' })).transactions).toHaveLength(1);
+  });
+});
