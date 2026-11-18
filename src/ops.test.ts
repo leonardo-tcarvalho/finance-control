@@ -31,6 +31,15 @@ describe('investments', () => {
     expect(rows[0]).toMatchObject({ type: 'investment', amountCents: 1000, bank: 'Nubank', currentValueCents: 1100, ratePct: '100% do CDI' });
     for (const k of ['cardId', 'method', 'due', 'paid', 'installment', 'recurring']) expect(rows[0][k as keyof typeof rows[0]]).toBeUndefined();
   });
+  it('refuses an invalid current value, accepts absent and explicit zero', () => {
+    for (const v of [NaN, -1, 1.5]) {
+      expect(() => buildEntries({ ...invBase, currentValueCents: v }, 'g', 'now')).toThrow('Valor atual inválido');
+    }
+    expect(buildEntries({ ...invBase, currentValueCents: undefined }, 'g', 'now')[0].currentValueCents).toBeUndefined();
+    expect(buildEntries({ ...invBase, currentValueCents: 0 }, 'g', 'now')[0].currentValueCents).toBe(0);
+    const [row] = buildEntries(invBase, 'g', 'now');
+    expect(() => applyEdit([row], row, { type: 'investment', amountCents: 1, description: '', category: 'x', date: '2026-03-01', bank: 'Inter', currentValueCents: -5 })).toThrow('Valor atual inválido');
+  });
   it('requires a bank', () => {
     expect(() => buildEntries({ ...invBase, bank: ' ' }, 'g', 'now')).toThrow();
     expect(() => buildEntries({ ...invBase, bank: undefined }, 'g', 'now')).toThrow();
