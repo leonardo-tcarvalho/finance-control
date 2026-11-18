@@ -83,3 +83,7 @@ export const METHODS: { id: Method; label: string }[] = [
   { id: 'other', label: 'Outro' },
 ];
 export const methodLabel = (m: Method) => METHODS.find((x) => x.id === m)?.label ?? m;
+
+/** Institutions offered when registering an investment; OTHER_BANK lets the person type any other name. */
+export const BANKS: string[] = ['Nubank', 'Inter', 'Itaú', 'Bradesco', 'Banco do Brasil', 'Caixa', 'Santander', 'C6 Bank', 'BTG Pactual', 'XP Investimentos', 'Rico', 'Mercado Pago', 'PicPay', 'Sicredi', 'Sicoob'];
+export const OTHER_BANK = 'Outro';
