@@ -256,3 +256,27 @@ export const titleOf = (t: Transaction) => t.description || (t.type === 'investm
 
 /** Whole percent of the income that was invested, or null when there was no income to compare with. */
 export const investedShare = (invested: number, income: number): number | null => (income > 0 ? Math.round((invested / income) * 100) : null);
+
+/** Whole percent of the income left after spending ((income - expense) / income); negative when spending passed the income, null without income. */
+export const savingsRate = (income: number, expense: number): number | null => (income > 0 ? Math.round(((income - expense) / income) * 100) : null);
+
+/**
+ * How many months of spending the investments cover: what the whole portfolio is worth now divided by the average monthly
+ * spending of the 6 months ending at `endMonth` (only months with spending), to one decimal. null when nothing was spent
+ * in those months; 0 when there is spending but no investments.
+ */
+export function emergencyReserveMonths(list: Transaction[], cards: Card[], endMonth: string): number | null {
+  const spent = monthlySeries(list, cards, endMonth, 6).filter((m) => m.expense > 0);
+  if (spent.length === 0) return null;
+  const average = spent.reduce((sum, m) => sum + m.expense, 0) / spent.length;
+  return Math.round((portfolioTotals(list).current / average) * 10) / 10;
+}
+
+export type ReserveLevel = 'baixa' | 'boa' | 'ótima';
+
+/** Level of the emergency reserve: under 3 months is low, 3 up to 6 is good, 6 or more is great. */
+export function reserveLevel(months: number): { level: ReserveLevel; text: string } {
+  if (months < 3) return { level: 'baixa', text: 'Menos de 3 meses de gastos cobertos.' };
+  if (months < 6) return { level: 'boa', text: 'Entre 3 e 6 meses de gastos cobertos.' };
+  return { level: 'ótima', text: '6 meses ou mais de gastos cobertos.' };
+}

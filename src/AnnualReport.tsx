@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { annualTotals, availableYears, monthlySeries, spendByCategory, spendByOrigin, spendByPayment, splitPercents, topExpenses, yearRows } from './calc';
+import { annualTotals, availableYears, gainText, monthlySeries, portfolioByBank, portfolioTotals, spendByCategory, spendByOrigin, spendByPayment, splitPercents, topExpenses, yearRows } from './calc';
 import { Bars, Card, Evolution, Kpi, makeStyles } from './Summary';
 import { useTheme } from './theme';
 import { Card as CardData, Method, Transaction } from './types';
@@ -31,6 +31,9 @@ export default function AnnualReport({ list, cards, cardName, methodName }: Prop
   const byPayment = useMemo(() => spendByPayment(rows, cardName, methodName), [rows, cardName, methodName]);
   const top = useMemo(() => topExpenses(rows, 5), [rows]);
   const origin = useMemo(() => spendByOrigin(rows), [rows]);
+  const portfolio = useMemo(() => portfolioTotals(list), [list]);
+  const showPortfolio = totals.invested > 0 || portfolio.applied > 0;
+  const holdings = useMemo(() => portfolioByBank(list), [list]);
 
   if (!year) {
     return (
@@ -70,7 +73,16 @@ export default function AnnualReport({ list, cards, cardName, methodName }: Prop
           <Kpi s={s} label="Saldo" value={brl(totals.balance)} color={totals.balance >= 0 ? t.green : t.red} />
           <Kpi s={s} label="Média mensal de gastos" value={brl(totals.monthlyAverage)} color={t.text} />
         </View>
-        <Text style={s.note}>A média considera só os meses com gasto.</Text>
+        {showPortfolio && (
+          <View style={s.kpis}>
+            <Kpi s={s} label="Investido no ano" value={brl(totals.invested)} color={t.primary} />
+            <Kpi s={s} label="Rendimento da carteira" value={gainText(portfolio.gain, portfolio.gainPct)} color={portfolio.gain < 0 ? t.red : portfolio.gain > 0 ? t.green : t.text} />
+          </View>
+        )}
+        <Text style={s.note}>
+          A média considera só os meses com gasto.{totals.invested > 0 ? ' O saldo já desconta o que foi investido no ano.' : ''}
+          {showPortfolio ? ' O rendimento é o da carteira inteira, de todos os anos.' : ''}
+        </Text>
       </Card>
 
       <Card title="Meses de maior e menor gasto" s={s}>
@@ -112,6 +124,22 @@ export default function AnnualReport({ list, cards, cardName, methodName }: Prop
               </View>
             ))}
       </Card>
+
+      {holdings.length > 0 && (
+        <Card title="Onde está investido" s={s}>
+          {holdings.map((h) => (
+            <View key={h.bank} style={s.barHead}>
+              <Text style={s.barLabel} numberOfLines={1}>
+                {h.bank}
+              </Text>
+              <Text style={s.barValue}>
+                {brl(h.current)} · {gainText(h.gain, h.gainPct)}
+              </Text>
+            </View>
+          ))}
+          <Text style={s.empty}>A carteira é a de todos os meses, não só deste ano. O valor é o atual informado por você (ou o aplicado, se não informou).</Text>
+        </Card>
+      )}
 
       <Card title="Parcelado, recorrente e avulso" s={s}>
         {totals.expense === 0 ? (

@@ -9,7 +9,7 @@ import Drawer, { DrawerDivider, DrawerItem, DrawerSection } from './src/Drawer';
 import { PlusIcon, TrayArrow } from './src/Icons';
 import RowActions from './src/RowActions';
 import EntryModal, { EntryValues } from './src/EntryModal';
-import { committedOnCard, gainLabel, gainOf, gainText, portfolioTotals, titleOf, sortCardsByLimit, dueDate, filterRows, invoiceRows, isPaid, monthOf, monthlySeries, spendByCategory, spendByPayment, spendOf } from './src/calc';
+import { committedOnCard, emergencyReserveMonths, gainLabel, gainOf, gainText, portfolioTotals, titleOf, sortCardsByLimit, dueDate, filterRows, invoiceRows, isPaid, monthOf, monthlySeries, spendByCategory, spendByPayment, spendOf } from './src/calc';
 import { applyEdit, buildEntries, groupOf, updateCurrentValue } from './src/ops';
 import { loadData, saveData, saveRestorePoint } from './src/storage';
 import { dueOf, isOverdue, isPending, monthTotals, movedIntoPaidInvoice, overdueSummary, payKind } from './src/status';
@@ -340,6 +340,7 @@ function Main() {
   const filtering = query.trim() !== '';
   const shownTotals = monthTotals(shownRows, data?.cards ?? []);
   const portfolio = useMemo(() => portfolioTotals(data?.transactions ?? []), [data]);
+  const reserveMonths = useMemo(() => emergencyReserveMonths(data?.transactions ?? [], data?.cards ?? [], month), [data, month]);
   const byPayment = useMemo(() => spendByPayment(rows, cardNameOf, methodNameOf), [rows, data]);
 
   // overdue expenses of every month, so a late bill is never hidden in a month that is not on screen
@@ -469,7 +470,7 @@ function Main() {
         )}
 
         {inSummary ? (
-          <Summary rows={rows} series={series} byCategory={byCategory} byPayment={byPayment} />
+          <Summary rows={rows} series={series} byCategory={byCategory} byPayment={byPayment} reserveMonths={reserveMonths} />
         ) : inAnnual ? (
           <AnnualReport list={data.transactions} cards={data.cards} cardName={cardNameOf} methodName={methodNameOf} />
         ) : (

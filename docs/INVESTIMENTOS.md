@@ -1,3 +1,5 @@
+Status: implementado
+
 # Levantamento: investimentos e saúde financeira
 
 Resultado da leitura de `src/types.ts`, `src/storage.ts`, `src/ops.ts`, `src/status.ts`, `src/calc.ts`, `src/EntryModal.tsx`, `src/Summary.tsx`, `src/AnnualReport.tsx` e `App.tsx`. Onde o pedido deixava algo aberto, a decisão está escrita aqui e pode ser mudada antes da implementação.
@@ -51,3 +53,5 @@ Todas as PRs entram na branch `release`; no fim uma PR `release` → `main`. Com
 3. **Cadastro:** botão Investimento no popup, banco, valor atual, taxa, campos de gasto escondidos, validação.
 4. **Lista e resumo geral:** linha do investimento, ações, cartão "Investido", saldo ajustado, atualizar valor atual.
 5. **Saúde financeira e relatórios:** indicadores, cartão de saúde, investido no relatório anual, glossário, README.
+
+**Entregue:** tipo `investment` com banco, valor atual e taxa (modelo, importação e regras de saldo); cadastro no popup; linha na lista com rendimento, busca por banco e ação "Atualizar valor atual"; resumo da Principal com investido no mês, carteira e rendimento; card de saúde financeira (taxa de poupança, parte da renda aplicada, reserva de emergência) nos Relatórios; investido no ano e carteira por banco no relatório anual. Continuam fora: rendimento calculado sozinho, metas e cotações, resgate parcial.
