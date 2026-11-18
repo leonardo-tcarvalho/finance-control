@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MonthPoint, annualTotals, splitPercents, availableYears, spendByOrigin, spendOf, topExpenses, yearRows } from './calc';
+import { MonthPoint, annualTotals, splitPercents, totalsOf, availableYears, spendByOrigin, spendOf, topExpenses, yearRows } from './calc';
 import { Card, Transaction } from './types';
 
 let n = 0;
@@ -92,5 +92,12 @@ describe('splitPercents', () => {
   });
   it('is all zeros when nothing was spent', () => {
     expect(splitPercents([0, 0, 0])).toEqual([0, 0, 0]);
+  });
+});
+
+describe('totalsOf with investments', () => {
+  it('keeps investments out of income and expense, sums them in invested and takes them from the balance', () => {
+    const r = totalsOf([tx({ type: 'income', amountCents: 1000 }), tx({ amountCents: 300 }), tx({ type: 'investment', amountCents: 200, bank: 'Nubank' })]);
+    expect(r).toEqual({ income: 1000, expense: 300, invested: 200, balance: 500 });
   });
 });
