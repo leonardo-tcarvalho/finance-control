@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { annualTotals, availableYears, gainText, monthlySeries, portfolioTotals, spendByCategory, spendByOrigin, spendByPayment, splitPercents, topExpenses, yearRows } from './calc';
+import { annualTotals, availableYears, gainText, monthlySeries, portfolioByBank, portfolioTotals, spendByCategory, spendByOrigin, spendByPayment, splitPercents, topExpenses, yearRows } from './calc';
 import { Bars, Card, Evolution, Kpi, makeStyles } from './Summary';
 import { useTheme } from './theme';
 import { Card as CardData, Method, Transaction } from './types';
@@ -32,6 +32,7 @@ export default function AnnualReport({ list, cards, cardName, methodName }: Prop
   const top = useMemo(() => topExpenses(rows, 5), [rows]);
   const origin = useMemo(() => spendByOrigin(rows), [rows]);
   const portfolio = useMemo(() => portfolioTotals(list), [list]);
+  const holdings = useMemo(() => portfolioByBank(list), [list]);
 
   if (!year) {
     return (
@@ -119,6 +120,22 @@ export default function AnnualReport({ list, cards, cardName, methodName }: Prop
               </View>
             ))}
       </Card>
+
+      {holdings.length > 0 && (
+        <Card title="Onde está investido" s={s}>
+          {holdings.map((h) => (
+            <View key={h.bank} style={s.barHead}>
+              <Text style={s.barLabel} numberOfLines={1}>
+                {h.bank}
+              </Text>
+              <Text style={s.barValue}>
+                {brl(h.current)} · {gainText(h.gain, h.gainPct)}
+              </Text>
+            </View>
+          ))}
+          <Text style={s.empty}>A carteira é a de todos os meses, não só deste ano. O valor é o atual informado por você (ou o aplicado, se não informou).</Text>
+        </Card>
+      )}
 
       <Card title="Parcelado, recorrente e avulso" s={s}>
         {totals.expense === 0 ? (
