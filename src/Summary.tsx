@@ -14,7 +14,7 @@ interface Props {
   byPayment: Slice[];
 }
 
-const monthShort = (key: string) => MONTHS[Number(key.slice(5, 7)) - 1].slice(0, 3);
+export const monthShort = (key: string) => MONTHS[Number(key.slice(5, 7)) - 1].slice(0, 3);
 
 export default function Summary({ rows, series, byCategory, byPayment }: Props) {
   const t = useTheme();
@@ -57,9 +57,9 @@ export default function Summary({ rows, series, byCategory, byPayment }: Props) 
   );
 }
 
-type Styles = ReturnType<typeof makeStyles>;
+export type Styles = ReturnType<typeof makeStyles>;
 
-function Card({ title, s, children }: { title: string; s: Styles; children: ReactNode }) {
+export function Card({ title, s, children }: { title: string; s: Styles; children: ReactNode }) {
   return (
     <View style={s.card}>
       <Text style={s.cardTitle}>{title}</Text>
@@ -68,7 +68,7 @@ function Card({ title, s, children }: { title: string; s: Styles; children: Reac
   );
 }
 
-function Kpi({ s, label, value, color }: { s: Styles; label: string; value: string; color: string }) {
+export function Kpi({ s, label, value, color }: { s: Styles; label: string; value: string; color: string }) {
   return (
     <View style={s.kpi}>
       <Text style={s.kpiLabel}>{label}</Text>
@@ -80,7 +80,7 @@ function Kpi({ s, label, value, color }: { s: Styles; label: string; value: stri
 }
 
 /** Horizontal bars with the value and the share of the total. */
-function Bars({ s, slices, color }: { s: Styles; slices: Slice[]; color: string }) {
+export function Bars({ s, slices, color }: { s: Styles; slices: Slice[]; color: string }) {
   const total = slices.reduce((sum, x) => sum + x.cents, 0);
   const max = slices[0].cents;
   return (
@@ -107,21 +107,24 @@ function Bars({ s, slices, color }: { s: Styles; slices: Slice[]; color: string 
 const CHART_H = 110;
 
 /** One column per month with the spending, all drawn to the same scale. */
-function Evolution({ s, series }: { s: Styles; series: MonthPoint[] }) {
+export function Evolution({ s, series, highlightLast = true }: { s: Styles; series: MonthPoint[]; highlightLast?: boolean }) {
   const t = useTheme();
   const max = Math.max(1, ...series.map((p) => p.expense));
+  const many = series.length > 6; // 12 columns: no room for the value above each bar
   const h = (v: number) => (v <= 0 ? 0 : Math.max(4, Math.round((v / max) * CHART_H)));
   return (
     <View style={s.evo}>
       {series.map((p, i) => {
-        const now = i === series.length - 1;
+        const now = highlightLast && i === series.length - 1;
         return (
           <View key={p.month} style={s.evoCol}>
-            <Text style={s.evoValue} numberOfLines={1}>
-              {p.expense > 0 ? brl(p.expense).replace(/,00$/, '') : '—'}
-            </Text>
+            {!many && (
+              <Text style={s.evoValue} numberOfLines={1}>
+                {p.expense > 0 ? brl(p.expense).replace(/,00$/, '') : '—'}
+              </Text>
+            )}
             <View style={[s.evoBars, { height: CHART_H }]}>
-              <View style={[s.evoBar, { height: h(p.expense), backgroundColor: now ? t.red : t.borderStrong }]} />
+              <View style={[s.evoBar, many && s.evoBarThin, { height: h(p.expense), backgroundColor: now ? t.red : t.borderStrong }]} />
             </View>
             <Text style={[s.evoMonth, now && s.evoMonthNow]}>{monthShort(p.month)}</Text>
           </View>
@@ -131,7 +134,7 @@ function Evolution({ s, series }: { s: Styles; series: MonthPoint[] }) {
   );
 }
 
-const makeStyles = (t: Theme) =>
+export const makeStyles = (t: Theme) =>
   StyleSheet.create({
     flex1: { flex: 1 },
     body: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 24, gap: 12 },
@@ -153,6 +156,7 @@ const makeStyles = (t: Theme) =>
     evoCol: { flex: 1, alignItems: 'center' },
     evoBars: { flexDirection: 'row', alignItems: 'flex-end', gap: 3 },
     evoBar: { width: 22, borderTopLeftRadius: 5, borderTopRightRadius: 5 },
+    evoBarThin: { width: 14 },
     evoMonth: { marginTop: 6, fontSize: 12, fontWeight: '600', color: t.textMuted },
     evoMonthNow: { color: t.link, fontWeight: '800' },
     evoValue: { fontSize: 10, color: t.textMuted, marginBottom: 4, fontWeight: '600' },
