@@ -1,4 +1,4 @@
-export type TxType = 'expense' | 'income';
+export type TxType = 'expense' | 'income' | 'investment';
 
 /** How a non-card entry was paid. Card entries use cardId instead. */
 export type Method = 'pix' | 'debit' | 'cash' | 'boleto' | 'other';
@@ -33,6 +33,12 @@ export interface Transaction {
   installment?: { n: number; of: number; groupId: string };
   /** Set on every row of a monthly series that repeats the same amount (boleto, rent, subscription). */
   recurring?: { n: number; of: number; groupId: string };
+  /** Investments only: the institution holding the money. */
+  bank?: string;
+  /** Investments only: what it is worth today, as informed by the person. Missing = not known, counts as the applied amount. */
+  currentValueCents?: number;
+  /** Investments only: free-text note about the yield (e.g. "100% do CDI"); used in no calculation. */
+  ratePct?: string;
   createdAt: string;
 }
 
