@@ -8,7 +8,7 @@ import { today } from './utils';
  *  - atomic write: write `data.json.tmp`, validate, then replace `data.json`
  *  - before each overwrite the previous good file is kept as `data.prev.json`
  *  - one dated snapshot per day in `backups/`, last MAX_BACKUPS are kept
- *  - before a manual restore, data.json is copied to `backups/antes-de-restaurar-<time>.json` (never cleaned up)
+ *  - before a manual restore, the in-memory state is written to `backups/antes-de-restaurar-<time>.json` (never cleaned up)
  *  - on load, if main file is missing/corrupt we fall back to prev, then newest backup
  *  - export/import lets the user keep a copy outside the app (see backup.ts)
  */
@@ -109,12 +109,12 @@ const listIn = (re: RegExp): File[] =>
 const listBackups = () => listIn(/^\d{4}-\d{2}-\d{2}\.json$/);
 const listRestorePoints = () => listIn(/^antes-de-restaurar-.*\.json$/);
 
-/** Copies the current data.json to a file that is never reused or cleaned up, before a restore replaces it. */
-export async function saveRestorePoint(): Promise<void> {
-  const main = mainFile();
-  if (!main.exists) return; // nothing saved yet, nothing to lose
+/** Writes the in-memory state to a file that is never reused or cleaned up, before a restore replaces it. */
+export async function saveRestorePoint(data: AppData): Promise<void> {
   ensureDirs();
-  await main.copy(new File(backupsDir(), `antes-de-restaurar-${new Date().toISOString().replace(/[:.]/g, '-')}.json`));
+  const f = new File(backupsDir(), `antes-de-restaurar-${new Date().toISOString().replace(/[:.]/g, '-')}.json`);
+  f.create();
+  await f.write(JSON.stringify(data, null, 2));
 }
 
 export async function saveData(data: AppData): Promise<AppData> {

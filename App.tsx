@@ -244,7 +244,7 @@ function Main() {
             onPress: async () => {
               try {
                 await queue.current; // let pending saves land so the copy is the latest state
-                await saveRestorePoint();
+                await saveRestorePoint(data);
               } catch (e) {
                 Alert.alert('Não foi possível guardar o estado atual', `A restauração foi cancelada. ${e instanceof Error ? e.message : String(e)}`);
                 return;
