@@ -40,6 +40,14 @@ function dropRefund(t: any) {
   return { ...rest, type: 'income' };
 }
 
+/** yyyy-mm-dd that exists on the calendar (rejects 2026-02-31 and 2026-13-01). */
+const isRealDate = (d: string) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
+  if (!m) return false;
+  const dt = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+  return dt.getUTCFullYear() === +m[1] && dt.getUTCMonth() === +m[2] - 1 && dt.getUTCDate() === +m[3];
+};
+
 export function parseData(raw: string): AppData {
   const obj = JSON.parse(raw);
   if (!obj || !Array.isArray(obj.transactions)) throw new Error('Formato inválido');
@@ -52,7 +60,7 @@ export function parseData(raw: string): AppData {
   const transactions = obj.transactions.map(dropRefund);
   // a transaction without these fields passes the loader but crashes the sort and the totals on every launch
   const valid = (t: any) =>
-    typeof t?.id === 'string' && typeof t.date === 'string' && typeof t.createdAt === 'string' && (t.type === 'expense' || t.type === 'income') && Number.isInteger(t.amountCents);
+    typeof t?.id === 'string' && typeof t.date === 'string' && typeof t.createdAt === 'string' && (t.type === 'expense' || t.type === 'income') && Number.isInteger(t.amountCents) && t.amountCents >= 0 && isRealDate(t.date);
   if (!transactions.every(valid)) throw new Error('Formato inválido');
   return {
     schemaVersion: SCHEMA_VERSION,
