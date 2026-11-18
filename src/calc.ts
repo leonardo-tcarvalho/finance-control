@@ -1,5 +1,5 @@
 import { Card, Transaction, Method } from './types';
-import { shiftMonth } from './utils';
+import { brl, shiftMonth } from './utils';
 
 /** How much a row adds to spending: only an expense does. */
 export const spendOf = (t: Transaction) => (t.type === 'expense' ? t.amountCents : 0);
@@ -235,3 +235,19 @@ export function portfolioTotals(list: Transaction[]): Holding {
   const banks = portfolioByBank(list);
   return holding('Total', banks.reduce((n, h) => n + h.applied, 0), banks.reduce((n, h) => n + h.current, 0));
 }
+
+/** Yield of one investment row: the informed current value minus what was applied; 0 when no current value was informed. */
+export const gainOf = (t: Transaction) => (t.type === 'investment' && t.currentValueCents !== undefined ? t.currentValueCents - t.amountCents : 0);
+
+/** The yield as a whole percent of what was applied (0 when nothing was applied). */
+export const gainPctOf = (t: Transaction) => (t.amountCents > 0 ? Math.round((gainOf(t) / t.amountCents) * 100) : 0);
+
+/** "+ R$ 10,00 (+10%)", "− R$ 5,00 (−5%)"; no sign when the yield is zero. */
+export function gainLabel(t: Transaction): string {
+  const g = gainOf(t);
+  const sign = g > 0 ? '+' : g < 0 ? '−' : '';
+  return `${sign ? sign + ' ' : ''}${brl(Math.abs(g))} (${sign}${Math.abs(gainPctOf(t))}%)`;
+}
+
+/** What to call a row in lists and sheets: its description, else the bank for an investment, else the category. */
+export const titleOf = (t: Transaction) => t.description || (t.type === 'investment' ? `Investimento · ${t.bank ?? ''}` : t.category);

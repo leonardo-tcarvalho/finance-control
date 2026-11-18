@@ -9,7 +9,7 @@ import Drawer, { DrawerDivider, DrawerItem, DrawerSection } from './src/Drawer';
 import { PlusIcon, TrayArrow } from './src/Icons';
 import RowActions from './src/RowActions';
 import EntryModal, { EntryValues } from './src/EntryModal';
-import { committedOnCard, sortCardsByLimit, dueDate, filterRows, invoiceRows, isPaid, monthOf, monthlySeries, spendByCategory, spendByPayment, spendOf } from './src/calc';
+import { committedOnCard, gainLabel, gainOf, titleOf, sortCardsByLimit, dueDate, filterRows, invoiceRows, isPaid, monthOf, monthlySeries, spendByCategory, spendByPayment, spendOf } from './src/calc';
 import { applyEdit, buildEntries, groupOf } from './src/ops';
 import { loadData, saveData, saveRestorePoint } from './src/storage';
 import { dueOf, isOverdue, isPending, monthTotals, movedIntoPaidInvoice, overdueSummary, payKind } from './src/status';
@@ -527,8 +527,11 @@ function Main() {
                   const due = dueOf(item, data.cards);
                   // income carries no status; every expense is paid, pending or overdue
                   const status = kind === 'none' ? null : overdue ? 'overdue' : pending ? 'pending' : 'paid';
+                  const isInv = item.type === 'investment';
                   const parts = [
                     item.description && item.type === 'expense' ? { k: 'cat', text: item.category, color: t.textMuted } : null,
+                    isInv ? { k: 'bank', text: `🏦 ${item.bank ?? ''}`, color: t.link } : null,
+                    isInv && item.currentValueCents !== undefined ? { k: 'gain', text: gainLabel(item), color: gainOf(item) < 0 ? t.red : gainOf(item) > 0 ? t.green : t.textMuted } : null,
                     card ? { k: 'card', text: `💳 ${card.name}`, color: t.link } : null,
                     !card && item.method ? { k: 'method', text: methodLabel(item.method), color: t.textMuted } : null,
                     item.installment ? { k: 'inst', text: `Parcela ${item.installment.n}/${item.installment.of}`, color: t.amber } : null,
@@ -541,13 +544,13 @@ function Main() {
                       onPress={() => setActionsFor(item)}
                       style={({ pressed }) => [s.row, status === 'paid' && s.rowPaid, status === 'pending' && s.rowPending, status === 'overdue' && s.rowOverdue, pressed && { opacity: 0.7 }]}
                       accessibilityRole="button"
-                      accessibilityLabel={`${item.description || item.category}, ver opções`}
+                      accessibilityLabel={`${titleOf(item)}, ver opções`}
                     >
                       {status === 'overdue' && <View style={s.rowBar} />}
                       <Text style={s.rowDate}>{shortDate(item.date)}</Text>
                       <View style={s.flex1}>
                         <Text style={s.rowTitle} numberOfLines={1}>
-                          {item.description || item.category}
+                          {titleOf(item)}
                         </Text>
                         {parts.length > 0 && (
                           <Text style={s.rowSub} numberOfLines={2}>
@@ -560,8 +563,8 @@ function Main() {
                           </Text>
                         )}
                       </View>
-                      <Text style={[s.rowValue, { color: item.type === 'expense' ? t.red : t.green }]} numberOfLines={1}>
-                        {item.type === 'expense' ? '−' : '+'} {brl(item.amountCents)}
+                      <Text style={[s.rowValue, { color: isInv ? t.primary : item.type === 'expense' ? t.red : t.green }]} numberOfLines={1}>
+                        {isInv ? '→' : item.type === 'expense' ? '−' : '+'} {brl(item.amountCents)}
                       </Text>
                     </Pressable>
                   );
