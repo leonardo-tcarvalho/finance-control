@@ -114,6 +114,15 @@ describe('portfolio', () => {
   it('totals every investment and ignores other types', () => {
     expect(portfolioTotals(list)).toMatchObject({ applied: 5500, current: 5200, gain: -300, gainPct: -5 });
   });
+  it('groups a bank ignoring case and surrounding spaces, showing the first spelling', () => {
+    const r = portfolioByBank([inv('Nubank', 100), inv('nubank', 200), inv(' NUBANK ', 300)]);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject({ bank: 'Nubank', applied: 600, current: 600 });
+    expect(portfolioByBank([inv(' nubank', 100), inv('Nubank', 100)])[0].bank).toBe('nubank');
+  });
+  it('banks with the same current value are ordered by name', () => {
+    expect(portfolioByBank([inv('Rico', 500), inv('Inter', 500), inv('C6 Bank', 500)]).map((h) => h.bank)).toEqual(['C6 Bank', 'Inter', 'Rico']);
+  });
   it('a current value of zero is respected, and an empty portfolio is all zeros', () => {
     expect(portfolioTotals([inv('Nubank', 1000, 0)])).toMatchObject({ current: 0, gain: -1000, gainPct: -100 });
     expect(portfolioByBank([])).toEqual([]);
