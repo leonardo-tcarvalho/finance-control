@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dueDate, filterRows, gainLabel, investedShare, gainOf, gainPctOf, invoiceKey, titleOf } from './calc';
+import { dueDate, filterRows, goalProgress, installmentCommitment, gainLabel, investedShare, gainOf, gainPctOf, invoiceKey, titleOf } from './calc';
 import { Transaction } from './types';
 
 describe('invoiceKey', () => {
@@ -87,5 +87,53 @@ describe('investedShare', () => {
   });
   it('is null without income', () => {
     expect(investedShare(500, 0)).toBeNull();
+  });
+});
+
+describe('goalProgress', () => {
+  const lvl = (spent: number) => goalProgress(spent, 10000);
+  it('is null without a goal', () => {
+    expect(goalProgress(5000)).toBeNull();
+    expect(goalProgress(5000, 0)).toBeNull();
+    expect(goalProgress(5000, -1)).toBeNull();
+  });
+  it('levels change exactly at 80% and above 100%', () => {
+    expect(lvl(7900)).toEqual({ pct: 79, level: 'abaixo' });
+    expect(lvl(8000)).toEqual({ pct: 80, level: 'perto' });
+    expect(lvl(10000)).toEqual({ pct: 100, level: 'perto' });
+    expect(lvl(10100)).toEqual({ pct: 101, level: 'passou' });
+  });
+  it('rounds to the nearest percent, not down', () => {
+    expect(goalProgress(2, 3)?.pct).toBe(67);
+    expect(goalProgress(7950, 10000)).toEqual({ pct: 80, level: 'perto' });
+  });
+  it('zero spending is 0% below', () => {
+    expect(lvl(0)).toEqual({ pct: 0, level: 'abaixo' });
+  });
+});
+
+describe('installmentCommitment', () => {
+  const mk = (type: 'income' | 'expense', amountCents: number, extra: Partial<Transaction> = {}): Transaction => ({ id: Math.random().toString(), type, amountCents, category: 'x', description: '', date: '2026-11-10', createdAt: 'c', ...extra });
+  const parc = (cents: number) => mk('expense', cents, { installment: { n: 1, of: 3, groupId: 'g' } });
+  it('is null without income, including zero income', () => {
+    expect(installmentCommitment([parc(1000)])).toBeNull();
+    expect(installmentCommitment([mk('income', 0), parc(1000)])).toBeNull();
+  });
+  it('counts only installment expenses, paid or pending', () => {
+    const rows = [mk('income', 10000), parc(1000), { ...parc(500), paid: false }, mk('expense', 3000), mk('expense', 700, { recurring: { n: 1, of: 2, groupId: 'r' } })];
+    expect(installmentCommitment(rows)).toMatchObject({ installments: 1500, income: 10000, pct: 15 });
+  });
+  it('zero installments is 0%, not over', () => {
+    expect(installmentCommitment([mk('income', 10000), mk('expense', 500)], 10)).toMatchObject({ pct: 0, over: false });
+  });
+  it('is over only when strictly above the limit', () => {
+    const at = (cents: number) => installmentCommitment([mk('income', 10000), parc(cents)], 30);
+    expect(at(2900)?.over).toBe(false);
+    expect(at(3000)?.over).toBe(false);
+    expect(at(3100)?.over).toBe(true);
+    expect(installmentCommitment([mk('income', 10000), parc(9000)])?.over).toBe(false); // no limit
+  });
+  it('rounds to the nearest percent, not down', () => {
+    expect(installmentCommitment([mk('income', 3), parc(2)])?.pct).toBe(67);
   });
 });
