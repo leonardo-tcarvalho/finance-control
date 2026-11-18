@@ -1,6 +1,6 @@
 # Controle de Gastos
 
-App pessoal de controle financeiro, 100% local, que registra o que entra e o que sai, acompanha cartões de crédito e mostra relatórios do mês.
+App pessoal de controle financeiro, 100% local, que registra o que entra e o que sai, acompanha cartões de crédito e mostra relatórios do mês e do ano.
 
 ## Linguagem
 
@@ -64,3 +64,6 @@ _Evitar_: Barra inferior, tabbar, sidebar, abas
 **Relatórios**:
 A tela dos gráficos e das informações resumidas do mês.
 _Evitar_: Resumo, resumos, dashboard
+
+**Relatório anual**:
+A tela com os totais, médias e gráficos do ano inteiro, contando cada lançamento no ano do seu mês de referência; só leitura.

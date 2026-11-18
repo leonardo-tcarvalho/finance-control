@@ -24,7 +24,8 @@ O APK da versão atual fica nas [Releases](https://github.com/leonardo-tcarvalho
 - **Pendente e pago:** todo gasto nasce pendente. Gastos sem cartão podem ser marcados como pagos e ter vencimento; passado o vencimento sem pagar, a linha fica vermelha.
 - **Cartões:** limite, dia de fechamento e dia de vencimento obrigatórios. Cada cartão mostra a fatura do mês, o limite disponível e um botão para marcar a fatura como paga; uma compra no cartão só deixa de ser pendente quando a fatura é paga.
 - **Relatórios:** gastos por categoria, por forma de pagamento e dos últimos meses.
-- **Menu lateral:** Principal, Relatórios, cartões (do maior limite ao menor), tema claro/escuro, exportar e restaurar backup.
+- **Relatório anual:** totais e média mensal do ano, meses de maior e menor gasto, gráfico dos 12 meses, categorias, forma de pagamento, maiores gastos e quanto veio de parcelas, recorrências e compras avulsas (só leitura).
+- **Menu lateral:** Principal, Relatórios, Relatório anual, cartões (do maior limite ao menor), tema claro/escuro, exportar e restaurar backup.
 
 As regras de negócio e o vocabulário estão em [`GLOSSARY.md`](./GLOSSARY.md). Ideias adiadas ficam em [`docs/PENDENCIAS.md`](./docs/PENDENCIAS.md).
 

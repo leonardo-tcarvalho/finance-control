@@ -176,3 +176,14 @@ export function spendByOrigin(rows: Transaction[]) {
   }
   return out;
 }
+
+/** Whole percentages of each value in their sum, adding up to exactly 100 (largest remainder; ties go to the earlier item). All zeros when the sum is 0. */
+export function splitPercents(values: number[]): number[] {
+  const total = values.reduce((a, b) => a + b, 0);
+  if (total <= 0) return values.map(() => 0);
+  const pct = values.map((v) => Math.floor((v * 100) / total));
+  const order = values.map((v, i) => ({ i, rest: (v * 100) % total })).sort((a, b) => b.rest - a.rest || a.i - b.i);
+  const left = 100 - pct.reduce((a, b) => a + b, 0);
+  for (let k = 0; k < left; k++) pct[order[k].i]++;
+  return pct;
+}

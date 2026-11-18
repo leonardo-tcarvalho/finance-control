@@ -13,6 +13,7 @@ import { committedOnCard, sortCardsByLimit, dueDate, filterRows, invoiceRows, is
 import { applyEdit, buildEntries, groupOf } from './src/ops';
 import { loadData, saveData, saveRestorePoint } from './src/storage';
 import { dueOf, isOverdue, isPending, monthTotals, movedIntoPaidInvoice, overdueSummary, payKind } from './src/status';
+import AnnualReport from './src/AnnualReport';
 import Summary from './src/Summary';
 import { Theme, ThemeContext, darkTheme, lightTheme } from './src/theme';
 import { AppData, Card, DEFAULT_CATEGORIES, Transaction, Method, methodLabel } from './src/types';
@@ -33,7 +34,7 @@ function Main() {
   const [data, setData] = useState<AppData | null>(null);
   const [loadFailed, setLoadFailed] = useState(false); // data stays null then, so every edit and persist is blocked
   const [month, setMonth] = useState(today().slice(0, 7));
-  const [tab, setTab] = useState('all'); // 'all', 'summary' or a card id
+  const [tab, setTab] = useState('all'); // 'all', 'summary', 'annual' or a card id
   const [menuOpen, setMenuOpen] = useState(false);
   const [actionsFor, setActionsFor] = useState<Transaction | null>(null); // row whose options are open
   const [query, setQuery] = useState('');
@@ -284,6 +285,7 @@ function Main() {
 
   // the search narrows only the list; the summary cards keep showing the whole month
   const inSummary = tab === 'summary';
+  const inAnnual = tab === 'annual'; // whole-year report: no month picker, search, list or new-entry button
   const sortedCards = useMemo(() => sortCardsByLimit(data?.cards ?? []), [data]);
   /** navigate and close the menu */
   const go = (id: string) => {
@@ -347,9 +349,10 @@ function Main() {
               <Text style={s.menuIcon}>☰</Text>
             </Pressable>
             <Text style={s.title} numberOfLines={1}>
-              {inSummary ? 'Relatórios' : activeCard ? activeCard.name : 'Principal'}
+              {inSummary ? 'Relatórios' : inAnnual ? 'Relatório anual' : activeCard ? activeCard.name : 'Principal'}
             </Text>
           </View>
+          {!inAnnual && (
           <View style={s.monthNav}>
             <Pressable hitSlop={8} onPress={() => setMonth(shiftMonth(month, -1))} style={s.navBtn} accessibilityRole="button" accessibilityLabel="Mês anterior">
               <Text style={s.navArrow}>‹</Text>
@@ -359,10 +362,11 @@ function Main() {
               <Text style={s.navArrow}>›</Text>
             </Pressable>
           </View>
+          )}
         </View>
 
         {/* Aviso de vencidos (qualquer mês) */}
-        {!onCard && !inSummary && overdue.count > 0 && (
+        {!onCard && !inSummary && !inAnnual && overdue.count > 0 && (
           <Pressable onPress={() => overdue.oldestMonth && setMonth(overdue.oldestMonth)} style={s.alert} accessibilityRole="button" accessibilityLabel="Ver o mais antigo vencido">
             <Text style={s.alertText} numberOfLines={1}>
               ⚠ {overdue.count} {overdue.count === 1 ? 'vencido' : 'vencidos'} · {brl(overdue.cents)}
@@ -372,7 +376,7 @@ function Main() {
         )}
 
         {/* Resumo em cartões */}
-        {onCard ? (
+        {inAnnual ? null : onCard ? (
           <View key="card-summary">
             <View style={s.stats}>
               <Stat s={s} label={invoicePaid ? 'Fatura paga' : 'Fatura do mês'} value={brl(cardSpend)} color={invoicePaid ? t.textMuted : t.red} />
@@ -426,6 +430,8 @@ function Main() {
 
         {inSummary ? (
           <Summary rows={rows} series={series} byCategory={byCategory} byPayment={byPayment} />
+        ) : inAnnual ? (
+          <AnnualReport list={data.transactions} cards={data.cards} cardName={cardNameOf} methodName={methodNameOf} />
         ) : (
           <>
           {activeCard && (
@@ -546,14 +552,15 @@ function Main() {
           </View>
           </>
         )}
-        {!inSummary && <Text style={s.hint}>{onCard ? 'Toque numa linha para editar ou excluir' : 'Toque numa linha para marcar como pago, editar ou excluir'}</Text>}
+        {!inSummary && !inAnnual && <Text style={s.hint}>{onCard ? 'Toque numa linha para editar ou excluir' : 'Toque numa linha para marcar como pago, editar ou excluir'}</Text>}
 
         <Drawer visible={menuOpen} onClose={() => setMenuOpen(false)}>
           <Text style={s.drawerTitle}>Controle de Gastos</Text>
 
           <DrawerSection title="Navegar" />
-          <DrawerItem icon="🏠" label="Principal" active={!inSummary && !onCard} onPress={() => go('all')} />
+          <DrawerItem icon="🏠" label="Principal" active={!inSummary && !inAnnual && !onCard} onPress={() => go('all')} />
           <DrawerItem icon="📊" label="Relatórios" active={inSummary} onPress={() => go('summary')} />
+          <DrawerItem icon="📅" label="Relatório anual" active={inAnnual} onPress={() => go('annual')} />
 
           <DrawerSection title="Cartões" />
           {sortedCards.map((c) => (

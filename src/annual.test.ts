@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MonthPoint, annualTotals, availableYears, spendByOrigin, spendOf, topExpenses, yearRows } from './calc';
+import { MonthPoint, annualTotals, splitPercents, availableYears, spendByOrigin, spendOf, topExpenses, yearRows } from './calc';
 import { Card, Transaction } from './types';
 
 let n = 0;
@@ -77,5 +77,20 @@ describe('spendByOrigin', () => {
     const r = spendByOrigin(rows);
     expect(r).toEqual({ installment: 100, recurring: 200, single: 400 });
     expect(r.installment + r.recurring + r.single).toBe(rows.reduce((s, t) => s + spendOf(t), 0));
+  });
+});
+
+describe('splitPercents', () => {
+  it('splits 1/1/1 as 34/33/33', () => {
+    expect(splitPercents([1, 1, 1])).toEqual([34, 33, 33]);
+  });
+  it('always adds up to 100', () => {
+    const p = splitPercents([100, 100, 400]);
+    expect(p).toEqual([17, 17, 66]);
+    expect(p.reduce((a, b) => a + b, 0)).toBe(100);
+    expect(splitPercents([1, 6, 1, 6, 4].map((x) => x * 7)).reduce((a, b) => a + b, 0)).toBe(100);
+  });
+  it('is all zeros when nothing was spent', () => {
+    expect(splitPercents([0, 0, 0])).toEqual([0, 0, 0]);
   });
 });
