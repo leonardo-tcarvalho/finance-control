@@ -88,7 +88,7 @@ export function filterRows(rows: Transaction[], f: RowFilter, cardName: (id?: st
   const words = fold(f.query).split(/\s+/).filter(Boolean);
   if (!words.length) return rows;
   return rows.filter((t) => {
-    const hay = fold([t.description, t.category, cardName(t.cardId), methodName(t.method)].join(' '));
+    const hay = fold([t.description, t.category, t.bank ?? '', cardName(t.cardId), methodName(t.method)].join(' '));
     return words.every((w) => hay.includes(w));
   });
 }
