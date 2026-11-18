@@ -1,7 +1,7 @@
-import { dueDate, invoiceKey, isPaid, incomeOf, monthOf, spendOf } from './calc';
+import { dueDate, invoiceKey, isPaid, incomeOf, investedOf, monthOf, spendOf } from './calc';
 import { Card, Transaction } from './types';
 
-/** What decides whether an entry is paid: nothing (income), its card's invoice, or its own flag. */
+/** What decides whether an entry is paid: nothing (income and investment), its card's invoice, or its own flag. */
 export type PayKind = 'none' | 'card' | 'other';
 
 export const payKind = (t: Pick<Transaction, 'type' | 'cardId' | 'method'>): PayKind =>
@@ -11,7 +11,7 @@ const cardOf = (cards: Card[], id?: string) => cards.find((c) => c.id === id);
 
 /**
  * An expense that is still to be paid. A card purchase is pending until its whole invoice is marked paid; any
- * other expense (Pix included) carries its own flag. Income is never pending.
+ * other expense (Pix included) carries its own flag. Income and investments are never pending.
  */
 export function isPending(t: Transaction, cards: Card[]): boolean {
   const kind = payKind(t);
@@ -31,7 +31,7 @@ export function dueOf(t: Transaction, cards: Card[]): string | null {
     const card = cardOf(cards, t.cardId);
     return card ? dueDate(card, invoiceKey(card, t.date)) : null;
   }
-  return null; // income
+  return null; // income or investment
 }
 
 /** Pending and past its due date. A card without a due day never becomes overdue. */
@@ -50,19 +50,22 @@ export function overdueSummary(list: Transaction[], cards: Card[], todayIso: str
 }
 
 /**
- * Receitas, Gastos, the part of Gastos still pending, and Saldo (receitas minus the gastos that are not pending).
+ * Receitas, Gastos, the part of Gastos still pending, Investido, and Saldo (receitas minus the gastos that are not
+ * pending minus what was invested: that money left the account).
  */
 export function monthTotals(rows: Transaction[], cards: Card[]) {
   let income = 0;
   let expense = 0;
   let pending = 0;
+  let invested = 0;
   for (const t of rows) {
     income += incomeOf(t);
+    invested += investedOf(t);
     const v = spendOf(t);
     expense += v;
     if (v > 0 && isPending(t, cards)) pending += v;
   }
-  return { income, expense, pending, balance: income - (expense - pending) };
+  return { income, expense, pending, invested, balance: income - (expense - pending) - invested };
 }
 
 /**
