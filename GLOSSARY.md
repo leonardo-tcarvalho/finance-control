@@ -7,7 +7,7 @@ App pessoal de controle financeiro, 100% local, que registra o que entra e o que
 ### Lançamentos
 
 **Lançamento**:
-Um registro de dinheiro que saiu, entrou ou foi aplicado, com data, valor, categoria e forma de pagamento.
+Um registro de dinheiro que saiu, entrou ou foi aplicado, com data e valor. Gasto e receita têm categoria e, no gasto, forma de pagamento; o investimento tem banco e, opcionalmente, valor atual e taxa.
 _Evitar_: Transação, movimentação
 
 **Gasto**:
