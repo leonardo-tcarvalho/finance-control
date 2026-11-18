@@ -15,7 +15,7 @@ export interface EntryValues {
   /** ISO yyyy-mm-dd of the purchase (first installment) */
   date: string;
   category: string;
-  /** once = a single row; installment = total split over N months; recurring = same amount for N months */
+  /** once = a single row; installment = value of each of N installments; recurring = same amount for N months */
   repeat: Repeat;
   times: string;
   /** installments already paid before registering the purchase ('' = none) */
@@ -180,7 +180,7 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
       )}
 
       <Field
-        label={inst ? (editing?.recurring ? 'Valor deste mês' : 'Valor desta parcela') : effRepeat === 'installment' ? 'Valor total' : effRepeat === 'recurring' ? 'Valor por mês' : 'Valor'}
+        label={inst ? (editing?.recurring ? 'Valor deste mês' : 'Valor desta parcela') : effRepeat === 'installment' ? 'Valor da parcela' : effRepeat === 'recurring' ? 'Valor por mês' : 'Valor'}
         prefix="R$"
         placeholder="0,00"
         keyboardType="decimal-pad"
@@ -208,7 +208,7 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
               </Pressable>
             )}
           </View>
-          {effRepeat === 'installment' && <Text style={s.help}>O valor informado é o total e é dividido entre os meses.</Text>}
+          {effRepeat === 'installment' && <Text style={s.help}>O valor informado é o de cada parcela; o app calcula o total.</Text>}
           {effRepeat === 'recurring' && <Text style={s.help}>O mesmo valor se repete todo mês: boleto parcelado, aluguel, assinatura.</Text>}
         </View>
       )}
@@ -240,9 +240,9 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
           <Text style={s.help}>Se a compra já estava em andamento, diga quantas já foram pagas. O app cria só as que faltam, e a data abaixo passa a ser a da próxima parcela.</Text>
         </View>
       )}
-      {nTimes > 1 && nTimes <= MAX_INSTALLMENTS && Number.isFinite(cents) && cents >= nTimes && effRepeat === 'installment' && (
+      {nTimes > 1 && nTimes <= MAX_INSTALLMENTS && Number.isFinite(cents) && cents > 0 && effRepeat === 'installment' && (
         <Text style={s.preview}>
-          {paidN > 0 ? `Faltam ${remaining} de ${nTimes}` : `${nTimes}x`} de {brl(Math.floor(cents / nTimes))} · {monthYear(startDate)} a {monthYear(addMonths(startDate, remaining - 1))}
+          {paidN > 0 ? `Faltam ${remaining} de ${nTimes}` : `${nTimes}x`} de {brl(cents)} · Total: {brl(cents * nTimes)} · {monthYear(startDate)} a {monthYear(addMonths(startDate, remaining - 1))}
         </Text>
       )}
       {nTimes > 1 && nTimes <= MAX_RECURRING && Number.isFinite(cents) && cents > 0 && effRepeat === 'recurring' && (
