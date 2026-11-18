@@ -3,7 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import Field, { Label } from './Field';
 import Sheet from './Sheet';
 import { Theme, useTheme } from './theme';
-import { Card, Categories, DEFAULT_CATEGORIES, INCOME_CATEGORY, INVESTMENT_CATEGORY, METHODS, Method, Transaction, TxType, categoriesFor } from './types';
+import { BANKS, Card, Categories, DEFAULT_CATEGORIES, INCOME_CATEGORY, INVESTMENT_CATEGORY, METHODS, OTHER_BANK, Method, Transaction, TxType, categoriesFor } from './types';
 import { MAX_INSTALLMENTS, MAX_RECURRING, addDays, addMonths, brl, centsToField, formatDateBR, maskDate, monthYear, parseDateBR, parseMoneyToCents, today } from './utils';
 
 export type Repeat = 'once' | 'installment' | 'recurring';
@@ -68,6 +68,8 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
   const [paidText, setPaidText] = useState('');
   const [cardId, setCardId] = useState<string | null>(null);
   const [method, setMethod] = useState<Method | null>(null);
+  const [bankChoice, setBankChoice] = useState(''); // a name from BANKS, OTHER_BANK or '' (none chosen yet)
+  const [bankOther, setBankOther] = useState(''); // typed name when OTHER_BANK is chosen
 
   // every time the popup opens it starts clean (and pinned to the card tab, if any)
   useEffect(() => {
@@ -85,6 +87,8 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
       setPaidText('');
       setCardId(editing.cardId ?? null);
       setMethod(editing.method ?? null);
+      setBankChoice('');
+      setBankOther('');
       return;
     }
     setType('expense');
@@ -99,6 +103,8 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
     setPaidText('');
     setCardId(lockedCard?.id ?? null);
     setMethod(null);
+    setBankChoice('');
+    setBankOther('');
   }, [visible, lockedCard?.id, editing?.id]);
 
   const startDate = parseDateBR(dateText) ?? today();
@@ -120,6 +126,8 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
   const selectedMethod = selectedCard ? null : method;
   // the vencimento is asked for every expense that is not on a card (a card purchase follows its invoice)
   const showDue = type === 'expense' && !lockedCard && !selectedCard;
+
+  const bank = bankChoice === OTHER_BANK ? bankOther.trim() : bankChoice;
 
   const createCategory = () => {
     const name = (newCategory ?? '').trim();
@@ -148,7 +156,7 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
       if (!parsed) return Alert.alert('Vencimento inválido', 'Use o formato DD/MM/AAAA, ou deixe em branco para usar a data do lançamento.');
       due = parsed;
     }
-    if (onSubmit({ type, amount, desc, date, category: isExpense ? selectedCategory : isInvestment ? INVESTMENT_CATEGORY : INCOME_CATEGORY, repeat: effRepeat, times, paidInstallments: effRepeat === 'installment' ? paidText : '', cardId: lockedCard ? lockedCard.id : selectedCard, method: lockedCard ? null : selectedMethod, due, bank: '', currentValue: '', rate: '' })) onClose();
+    if (onSubmit({ type, amount, desc, date, category: isExpense ? selectedCategory : isInvestment ? INVESTMENT_CATEGORY : INCOME_CATEGORY, repeat: effRepeat, times, paidInstallments: effRepeat === 'installment' ? paidText : '', cardId: lockedCard ? lockedCard.id : selectedCard, method: lockedCard ? null : selectedMethod, due, bank: isInvestment ? bank : '', currentValue: '', rate: '' })) onClose();
   };
 
   return (
@@ -195,6 +203,20 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
         autoFocus
         big
       />
+
+      {isInvestment && (
+        <View>
+          <Label>Banco ou corretora</Label>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ alignItems: 'center' }}>
+            {[...BANKS, OTHER_BANK].map((b) => (
+              <Pressable key={b} onPress={() => setBankChoice(b)} style={[s.chip, bankChoice === b && s.chipOn]} accessibilityRole="radio" accessibilityState={{ checked: bankChoice === b }}>
+                <Text style={[s.chipText, bankChoice === b && s.chipTextOn]}>{b}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+          {bankChoice === OTHER_BANK && <Field label="Nome do banco" placeholder="Ex.: Banco Pan" value={bankOther} onChangeText={setBankOther} autoFocus />}
+        </View>
+      )}
 
       {!editing && isExpense && (
         <View>
