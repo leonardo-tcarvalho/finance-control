@@ -276,7 +276,7 @@ export type ReserveLevel = 'baixa' | 'boa' | 'ótima';
 
 /** Level of the emergency reserve: under 3 months is low, 3 up to 6 is good, 6 or more is great. */
 export function reserveLevel(months: number): { level: ReserveLevel; text: string } {
-  if (months < 3) return { level: 'baixa', text: 'Menos de 3 meses de gastos: vale reforçar a reserva.' };
+  if (months < 3) return { level: 'baixa', text: 'Menos de 3 meses de gastos cobertos.' };
   if (months < 6) return { level: 'boa', text: 'Entre 3 e 6 meses de gastos cobertos.' };
   return { level: 'ótima', text: '6 meses ou mais de gastos cobertos.' };
 }
