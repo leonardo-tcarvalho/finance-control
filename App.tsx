@@ -8,16 +8,18 @@ import CardModal, { CardValues } from './src/CardModal';
 import Drawer, { DrawerDivider, DrawerItem, DrawerSection } from './src/Drawer';
 import { PlusIcon, TrayArrow } from './src/Icons';
 import RowActions from './src/RowActions';
+import Sheet from './src/Sheet';
+import Field from './src/Field';
 import EntryModal, { EntryValues } from './src/EntryModal';
 import { committedOnCard, emergencyReserveMonths, gainLabel, gainOf, gainText, portfolioTotals, titleOf, sortCardsByLimit, dueDate, filterRows, invoiceRows, isPaid, monthOf, monthlySeries, spendByCategory, spendByPayment, spendOf } from './src/calc';
-import { applyEdit, buildEntries, groupOf, updateCurrentValue } from './src/ops';
+import { applyEdit, buildEntries, groupOf, parseLimitText, setLimit, updateCurrentValue } from './src/ops';
 import { loadData, saveData, saveRestorePoint } from './src/storage';
 import { dueOf, isOverdue, isPending, monthTotals, movedIntoPaidInvoice, overdueSummary, payKind } from './src/status';
 import AnnualReport from './src/AnnualReport';
 import Summary from './src/Summary';
 import { Theme, ThemeContext, darkTheme, lightTheme } from './src/theme';
-import { AppData, Card, DEFAULT_CATEGORIES, INVESTMENT_CATEGORY, Transaction, Method, methodLabel } from './src/types';
-import { MAX_INSTALLMENTS, MAX_RECURRING, brl, formatDateBR, monthLabel, parseMoneyToCents, shiftMonth, shortDate, today } from './src/utils';
+import { AppData, Card, DEFAULT_CATEGORIES, Limits, INVESTMENT_CATEGORY, Transaction, Method, methodLabel } from './src/types';
+import { MAX_INSTALLMENTS, MAX_RECURRING, brl, centsToField, formatDateBR, monthLabel, parseMoneyToCents, shiftMonth, shortDate, today } from './src/utils';
 
 const newId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 const byNewest = (a: Transaction, b: Transaction) => (a.date === b.date ? b.createdAt.localeCompare(a.createdAt) : b.date.localeCompare(a.date));
@@ -36,6 +38,8 @@ function Main() {
   const [month, setMonth] = useState(today().slice(0, 7));
   const [tab, setTab] = useState('all'); // 'all', 'summary', 'annual' or a card id
   const [menuOpen, setMenuOpen] = useState(false);
+  const [limitForm, setLimitForm] = useState<keyof Limits | null>(null); // which limit is being typed; null = closed
+  const [limitText, setLimitText] = useState('');
   const [actionsFor, setActionsFor] = useState<Transaction | null>(null); // row whose options are open
   const [query, setQuery] = useState('');
   const [entryForm, setEntryForm] = useState<{ tx: Transaction | null } | null>(null); // null = closed; tx null = new entry
@@ -323,6 +327,24 @@ function Main() {
   const go = (id: string) => {
     setTab(id);
     setMenuOpen(false);
+  };
+  /** open the popup to set or clear one limit, from the menu */
+  const openLimitForm = (key: keyof Limits) => {
+    const cur = data?.limits?.[key];
+    setLimitText(cur === undefined ? '' : key === 'spendingGoalCents' ? centsToField(cur) : String(cur));
+    setMenuOpen(false);
+    setLimitForm(key);
+  };
+  /** save what was typed (empty clears) or clear the limit outright */
+  const saveLimit = (clear: boolean) => {
+    if (!data || !limitForm) return;
+    try {
+      const value = clear ? undefined : parseLimitText(limitForm, limitText);
+      persist({ ...data, limits: setLimit(data.limits, limitForm, value) });
+      setLimitForm(null);
+    } catch (e) {
+      Alert.alert(limitForm === 'spendingGoalCents' ? 'Meta inválida' : 'Limite inválido', e instanceof Error ? e.message : String(e));
+    }
   };
   /** open the card form from the menu (null = a new card) */
   const openCardForm = (card: Card | null) => {
@@ -624,9 +646,45 @@ function Main() {
           <DrawerDivider />
           <DrawerSection title="Opções" />
           <DrawerItem icon={t.dark ? '☀️' : '🌙'} label={t.dark ? 'Tema claro' : 'Tema escuro'} onPress={toggleTheme} />
+          <DrawerItem icon="🎯" label="Meta de gastos do mês" sub={data.limits?.spendingGoalCents ? brl(data.limits.spendingGoalCents) : 'Não definida'} onPress={() => openLimitForm('spendingGoalCents')} />
+          <DrawerItem icon="🧾" label="Limite de parcelas na renda" sub={data.limits?.installmentPct ? `${data.limits.installmentPct}%` : 'Não definido'} onPress={() => openLimitForm('installmentPct')} />
           <DrawerItem icon={<TrayArrow dir="up" color={t.text} />} label="Exportar backup" onPress={() => { setMenuOpen(false); exportBackup(data).catch((e) => Alert.alert('Erro', String(e?.message ?? e))); }} />
           <DrawerItem icon={<TrayArrow dir="down" color={t.text} />} label="Restaurar backup" onPress={() => { setMenuOpen(false); restore(); }} />
         </Drawer>
+
+        <Sheet
+          visible={limitForm !== null}
+          title={limitForm === 'spendingGoalCents' ? 'Meta de gastos do mês' : 'Limite de parcelas na renda'}
+          onClose={() => setLimitForm(null)}
+          dirty={limitForm !== null && limitText !== (data.limits?.[limitForm] === undefined ? '' : limitForm === 'spendingGoalCents' ? centsToField(data.limits[limitForm]!) : String(data.limits[limitForm]))}
+          footer={
+            <>
+              <Pressable onPress={() => setLimitForm(null)} style={s.sheetBtn} accessibilityRole="button">
+                <Text style={s.sheetBtnText}>Cancelar</Text>
+              </Pressable>
+              {limitForm && data.limits?.[limitForm] !== undefined && (
+                <Pressable onPress={() => saveLimit(true)} style={s.sheetBtn} accessibilityRole="button">
+                  <Text style={[s.sheetBtnText, { color: t.red }]}>Limpar</Text>
+                </Pressable>
+              )}
+              <Pressable onPress={() => saveLimit(false)} style={[s.sheetBtn, { backgroundColor: t.primary, borderColor: t.primary, flex: 2 }]} accessibilityRole="button">
+                <Text style={[s.sheetBtnText, { color: t.onPrimary }]}>Salvar</Text>
+              </Pressable>
+            </>
+          }
+        >
+          {limitForm === 'spendingGoalCents' ? (
+            <>
+              <Text style={s.drawerEmpty}>Conta todos os gastos do mês, pagos ou pendentes. Deixe vazio para ficar sem meta.</Text>
+              <Field label="Meta do mês" prefix="R$" placeholder="0,00" keyboardType="decimal-pad" value={limitText} onChangeText={setLimitText} autoFocus big />
+            </>
+          ) : (
+            <>
+              <Text style={s.drawerEmpty}>Parte da renda do mês comprometida com parcelas, para comparar. Deixe vazio para ficar sem limite.</Text>
+              <Field label="Limite de parcelas (%)" suffix="%" placeholder="30" keyboardType="number-pad" maxLength={3} value={limitText} onChangeText={setLimitText} autoFocus big />
+            </>
+          )}
+        </Sheet>
 
         <RowActions
           tx={actionsFor}
@@ -710,6 +768,8 @@ const makeStyles = (t: Theme) =>
     menuBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: t.surface, borderWidth: 1, borderColor: t.border, alignItems: 'center', justifyContent: 'center' },
     menuIcon: { fontSize: 20, color: t.text, marginTop: -1 },
     drawerTitle: { fontSize: 20, fontWeight: '800', color: t.text, letterSpacing: -0.3, paddingHorizontal: 12, paddingTop: 8, paddingBottom: 4 },
+    sheetBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 12, paddingVertical: 14, borderWidth: 1.5, borderColor: t.border, backgroundColor: t.surface },
+    sheetBtnText: { fontSize: 15, fontWeight: '700', color: t.text },
     drawerEmpty: { fontSize: 12, color: t.textFaint, paddingHorizontal: 12, paddingVertical: 6 },
 
     alert: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 16, marginTop: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: t.red, backgroundColor: t.redSoft },
