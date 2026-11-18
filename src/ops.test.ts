@@ -44,7 +44,7 @@ describe('investments', () => {
     expect(() => buildEntries({ ...invBase, bank: ' ' }, 'g', 'now')).toThrow();
     expect(() => buildEntries({ ...invBase, bank: undefined }, 'g', 'now')).toThrow();
   });
-  const edit = { type: 'investment' as const, amountCents: 2000, description: 'y', category: 'x', date: '2026-03-01', bank: 'Inter', currentValueCents: 2500 };
+  const edit = { type: 'investment' as const, amountCents: 2000, description: 'y', category: 'x', date: '2026-03-01', bank: 'Inter', currentValueCents: 2500, ratePct: '10% ao ano' };
   it('edits an investment in place', () => {
     const [row] = buildEntries(invBase, 'g', 'now');
     const [out] = applyEdit([row], row, edit);
@@ -61,6 +61,7 @@ describe('investments', () => {
     expect(back.type).toBe('expense');
     expect(back.bank).toBeUndefined();
     expect(back.currentValueCents).toBeUndefined();
+    expect(back.ratePct).toBeUndefined();
   });
   it('an investment edit without a bank is refused', () => {
     const [row] = buildEntries(invBase, 'g', 'now');
