@@ -47,6 +47,9 @@ describe('investment yield per row', () => {
   it('labels with the same sign on value and percent, none for zero', () => {
     expect(gainLabel(inv({ currentValueCents: 1100 }))).toMatch(/^\+ .*1,00 \(\+10%\)$/);
     expect(gainLabel(inv({ currentValueCents: 900 }))).toMatch(/^− .*1,00 \(−10%\)$/);
+    expect(gainLabel(inv({ currentValueCents: 1001 }))).not.toContain('%'); // +0,1% rounds to 0
+    expect(gainLabel(inv({ currentValueCents: 999 }))).toMatch(/^− /);
+    expect(gainLabel(inv({ currentValueCents: 999 }))).not.toContain('%');
     expect(gainLabel(inv({}))).toMatch(/^[^+−]*0,00 \(0%\)$/);
   });
 });
