@@ -1,6 +1,6 @@
 import { ReactNode, useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { MonthPoint, Slice, totalsOf } from './calc';
+import { MonthPoint, Slice, investedShare, totalsOf } from './calc';
 import { Theme, useTheme } from './theme';
 import { Transaction } from './types';
 import { MONTHS, brl } from './utils';
@@ -23,6 +23,7 @@ export default function Summary({ rows, series, byCategory, byPayment }: Props) 
   const current = series[series.length - 1];
   const previous = series.length > 1 ? series[series.length - 2] : undefined;
   const delta = previous && previous.expense > 0 ? Math.round(((current.expense - previous.expense) / previous.expense) * 100) : null;
+  const share = investedShare(totals.invested, totals.income);
   const saved = current.income > 0 ? Math.round(((current.income - current.expense) / current.income) * 100) : null;
 
   return (
@@ -41,6 +42,13 @@ export default function Summary({ rows, series, byCategory, byPayment }: Props) 
           <Text style={s.note}>{saved >= 0 ? `Sobrou ${saved}% da renda do mês.` : `Os gastos passaram ${Math.abs(saved)}% da renda do mês.`}</Text>
         )}
       </Card>
+
+      {totals.invested > 0 && (
+        <Card title="Investido neste mês" s={s}>
+          <Kpi s={s} label="Aplicado" value={brl(totals.invested)} color={t.primary} />
+          {share !== null && <Text style={s.note}>{share}% da renda do mês foi aplicada.</Text>}
+        </Card>
+      )}
 
       <Card title="Gastos por categoria" s={s}>
         {byCategory.length === 0 ? <Text style={s.empty}>Nenhum gasto neste mês.</Text> : <Bars s={s} slices={byCategory} color={t.primary} />}

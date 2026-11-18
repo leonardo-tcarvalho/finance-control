@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dueDate, filterRows, gainLabel, gainOf, gainPctOf, invoiceKey, titleOf } from './calc';
+import { dueDate, filterRows, gainLabel, investedShare, gainOf, gainPctOf, invoiceKey, titleOf } from './calc';
 import { Transaction } from './types';
 
 describe('invoiceKey', () => {
@@ -68,5 +68,16 @@ describe('filterRows with investments', () => {
   });
   it('does not match a bank on rows that have none', () => {
     expect(find('mercado')).toEqual(['c']);
+  });
+});
+
+describe('investedShare', () => {
+  it('is the rounded percent of the income that was invested', () => {
+    expect(investedShare(250, 1000)).toBe(25);
+    expect(investedShare(1, 3)).toBe(33);
+    expect(investedShare(2000, 1000)).toBe(200);
+  });
+  it('is null without income', () => {
+    expect(investedShare(500, 0)).toBeNull();
   });
 });

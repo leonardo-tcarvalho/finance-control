@@ -252,3 +252,6 @@ export const gainLabel = (t: Transaction) => gainText(gainOf(t), gainPctOf(t));
 
 /** What to call a row in lists and sheets: its description, else the bank for an investment, else the category. */
 export const titleOf = (t: Transaction) => t.description || (t.type === 'investment' ? `Investimento · ${t.bank ?? ''}` : t.category);
+
+/** Whole percent of the income that was invested, or null when there was no income to compare with. */
+export const investedShare = (invested: number, income: number): number | null => (income > 0 ? Math.round((invested / income) * 100) : null);
