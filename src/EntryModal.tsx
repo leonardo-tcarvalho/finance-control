@@ -89,10 +89,11 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
       setPaidText('');
       setCardId(editing.cardId ?? null);
       setMethod(editing.method ?? null);
-      setBankChoice('');
-      setBankOther('');
-      setCurrentText('');
-      setRateText('');
+      const known = !!editing.bank && BANKS.includes(editing.bank);
+      setBankChoice(known ? editing.bank! : editing.bank ? OTHER_BANK : '');
+      setBankOther(known ? '' : (editing.bank ?? ''));
+      setCurrentText(editing.currentValueCents !== undefined ? centsToField(editing.currentValueCents) : '');
+      setRateText(editing.ratePct ?? '');
       return;
     }
     setType('expense');
@@ -158,6 +159,10 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
     const date = parseDateBR(dateText);
     if (!date) return Alert.alert('Data inválida', 'Use o formato DD/MM/AAAA, por exemplo 15/11/2026.');
     if (type === 'income' && desc.trim() === '') return Alert.alert('Descrição obrigatória', 'Escreva o que é esta receita, por exemplo: salário, venda do notebook.');
+    if (isInvestment) {
+      if (!bank) return Alert.alert('Banco obrigatório', 'Escolha o banco ou corretora onde o dinheiro foi aplicado.');
+      if (currentText.trim() !== '' && !Number.isFinite(currentCents)) return Alert.alert('Valor atual inválido', 'Informe um valor como 1.234,56, ou deixe em branco.');
+    }
     let due = '';
     if (showDue && dueText.trim() !== '') {
       const parsed = parseDateBR(dueText);
@@ -301,8 +306,8 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
       )}
 
       <Field
-        label={isExpense ? 'Descrição (opcional)' : 'O que é esta receita?'}
-        placeholder={isExpense ? 'Ex.: mercado, uber, farmácia…' : 'Ex.: salário, venda do notebook, freelance…'}
+        label={isExpense ? 'Descrição (opcional)' : isInvestment ? 'O que é? (opcional)' : 'O que é esta receita?'}
+        placeholder={isExpense ? 'Ex.: mercado, uber, farmácia…' : isInvestment ? 'Ex.: CDB, Tesouro Selic, reserva…' : 'Ex.: salário, venda do notebook, freelance…'}
         value={desc}
         onChangeText={setDesc}
       />
