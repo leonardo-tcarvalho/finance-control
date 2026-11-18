@@ -3,7 +3,7 @@ import * as SystemUI from 'expo-system-ui';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View, useColorScheme } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { exportBackup, pickBackup } from './src/backup';
+import { exportBackup, pickBackup, shareRawData } from './src/backup';
 import CardModal, { CardValues } from './src/CardModal';
 import Drawer, { DrawerDivider, DrawerItem, DrawerSection } from './src/Drawer';
 import { PlusIcon, TrayArrow } from './src/Icons';
@@ -329,8 +329,13 @@ function Main() {
     return (
       <SafeAreaView style={s.center}>
         <Text style={{ color: t.text, textAlign: 'center', padding: 24 }}>
-          {loadFailed ? 'Não foi possível ler seus dados, reinicie o app. Seus arquivos não foram alterados.' : 'Carregando…'}
+          {loadFailed ? 'Não foi possível ler seus dados. Seus arquivos não foram alterados e nada será gravado enquanto este aviso aparecer. Você pode fechar e abrir o app para tentar de novo ou compartilhar o arquivo de dados para guardá-lo.' : 'Carregando…'}
         </Text>
+        {loadFailed && (
+          <Pressable onPress={() => shareRawData().catch((e) => Alert.alert('Erro', String(e?.message ?? e)))} accessibilityRole="button" style={{ padding: 12 }}>
+            <Text style={{ color: t.text, textDecorationLine: 'underline' }}>Compartilhar arquivo de dados</Text>
+          </Pressable>
+        )}
       </SafeAreaView>
     );
 

@@ -96,9 +96,14 @@ export async function loadData(): Promise<AppData> {
     if (data) return data;
   }
   // data files exist but none is readable: starting empty would let the next save overwrite what may still be recoverable
-  if ([mainFile(), tmpFile(), prevFile()].some((f) => f.exists) || files.length > 0) throw new Error('Dados ilegíveis');
+  // (an empty tmp is a first install that died between create and write: nothing to protect)
+  if (mainFile().exists || prevFile().exists || (tmpFile().exists && (tmpFile().size ?? 0) > 0) || files.length > 0) throw new Error('Dados ilegíveis');
   return emptyData(); // first launch: nothing was ever saved
 }
+
+/** The file most likely to still hold the user's data, as-is (even if unreadable), so it can be shared for rescue. */
+export const rescueFile = (): File | undefined =>
+  [mainFile(), prevFile(), ...listBackups(), ...listRestorePoints()].find((f) => f.exists && (f.size ?? 0) > 0);
 
 const listIn = (re: RegExp): File[] =>
   backupsDir().exists
