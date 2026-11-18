@@ -298,14 +298,15 @@ export function goalProgress(spent: number, goalCents?: number): { pct: number; 
  * Share of the month's income committed to installments, over `rows` already limited to the month (by monthOf, so a card
  * purchase counts in the month of its invoice). An installment is any expense carrying `installment`, the same mark the
  * app uses for installment purchases, paid or pending; recurring series and single purchases do not count.
- * pct is whole and rounded; `over` is true only when that pct is strictly above `limitPct`. null when the month has no income.
+ * pct is whole and rounded, for display; `over` is decided on the exact amounts (installments * 100 > limitPct * income, integers,
+ * no float), so 30,4% against a 30% limit is over even though pct reads 30. null when the month has no income.
  */
 export function installmentCommitment(rows: Transaction[], limitPct?: number): { installments: number; income: number; pct: number; over: boolean } | null {
   const { income } = totalsOf(rows);
   if (income <= 0) return null;
   const { installment: installments } = spendByOrigin(rows);
   const pct = Math.round((installments / income) * 100);
-  return { installments, income, pct, over: limitPct !== undefined && pct > limitPct };
+  return { installments, income, pct, over: limitPct !== undefined && installments * 100 > limitPct * income };
 }
 
 /** One descriptive sentence for the goal card: what is left, how close it is, or by how much it was passed. */
@@ -313,4 +314,11 @@ export function goalMessage(spent: number, goalCents: number, p: { pct: number; 
   if (p.level === 'passou') return `Passou da meta em ${brl(spent - goalCents)}.`;
   if (p.level === 'perto') return `Chegando perto da meta: ${p.pct}% usado.`;
   return `Faltam ${brl(goalCents - spent)} para a meta.`;
+}
+
+/** The "Parcelas na renda" sentence: share of the income, the amounts, and the limit comparison when a limit is set. */
+export function installmentText(c: { installments: number; income: number; pct: number; over: boolean }, limitPct?: number): string {
+  const base = `${c.pct}% da renda em parcelas (${brl(c.installments)} de ${brl(c.income)})`;
+  if (limitPct === undefined) return `${base}.`;
+  return `${base}. Limite: ${limitPct}%.${c.over ? ` Acima do limite em ${brl(Math.ceil(c.installments - (limitPct * c.income) / 100))}.` : ''}`;
 }
