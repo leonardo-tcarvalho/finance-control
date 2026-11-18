@@ -134,3 +134,45 @@ export function monthlySeries(list: Transaction[], cards: Card[], endMonth: stri
 export function sortCardsByLimit(cards: Card[]): Card[] {
   return [...cards].sort((a, b) => (b.limitCents ?? 0) - (a.limitCents ?? 0) || a.name.localeCompare(b.name, 'pt-BR'));
 }
+
+/** Rows whose reference month (monthOf) falls in `year` ('yyyy'). */
+export const yearRows = (list: Transaction[], cards: Card[], year: string) => list.filter((t) => monthOf(t, cards).slice(0, 4) === year);
+
+/** Distinct years that have entries (by monthOf), newest first. */
+export const availableYears = (list: Transaction[], cards: Card[]): string[] =>
+  Array.from(new Set(list.map((t) => monthOf(t, cards).slice(0, 4)))).sort().reverse();
+
+/**
+ * Year totals plus the average and extremes of monthly spending. Only months with spending count for the average
+ * and for topMonth/lowMonth; a tie keeps the earliest month. Average is rounded to whole cents, 0 when nothing was spent.
+ */
+export function annualTotals(rows: Transaction[], months: MonthPoint[]) {
+  const spent = months.filter((m) => m.expense > 0);
+  const total = spent.reduce((sum, m) => sum + m.expense, 0);
+  let topMonth: MonthPoint | null = null;
+  let lowMonth: MonthPoint | null = null;
+  for (const m of spent) {
+    if (!topMonth || m.expense > topMonth.expense) topMonth = m;
+    if (!lowMonth || m.expense < lowMonth.expense) lowMonth = m;
+  }
+  return { ...totalsOf(rows), monthlyAverage: spent.length ? Math.round(total / spent.length) : 0, topMonth, lowMonth };
+}
+
+/** The `n` biggest expenses, biggest first; equal amounts show the most recent date first. */
+export const topExpenses = (rows: Transaction[], n = 5) =>
+  rows
+    .filter((t) => t.type === 'expense')
+    .sort((a, b) => b.amountCents - a.amountCents || b.date.localeCompare(a.date))
+    .slice(0, n);
+
+/** Spending split by where it came from: installment purchases, monthly recurring series, or single purchases. */
+export function spendByOrigin(rows: Transaction[]) {
+  const out = { installment: 0, recurring: 0, single: 0 };
+  for (const t of rows) {
+    const v = spendOf(t);
+    if (t.installment) out.installment += v;
+    else if (t.recurring) out.recurring += v;
+    else out.single += v;
+  }
+  return out;
+}
