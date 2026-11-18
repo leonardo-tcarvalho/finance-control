@@ -27,6 +27,8 @@ export interface EntryInput {
 
 const investmentFields = (i: { bank?: string; currentValueCents?: number; ratePct?: string }) => {
   if (!i.bank?.trim()) throw new Error('Informe o banco do investimento');
+  const v = i.currentValueCents;
+  if (v !== undefined && !(Number.isInteger(v) && v >= 0)) throw new Error('Valor atual inválido');
   return { bank: i.bank.trim(), currentValueCents: i.currentValueCents, ratePct: i.ratePct?.trim() || undefined };
 };
 
