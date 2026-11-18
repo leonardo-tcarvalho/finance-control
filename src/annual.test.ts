@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MonthPoint, annualTotals, emergencyReserveMonths, savingsRate, portfolioByBank, portfolioTotals, splitPercents, totalsOf, availableYears, spendByOrigin, spendOf, topExpenses, yearRows } from './calc';
+import { MonthPoint, annualTotals, emergencyReserveMonths, reserveLevel, savingsRate, portfolioByBank, portfolioTotals, splitPercents, totalsOf, availableYears, spendByOrigin, spendOf, topExpenses, yearRows } from './calc';
 import { Card, Transaction } from './types';
 
 let n = 0;
@@ -163,5 +163,19 @@ describe('emergencyReserveMonths', () => {
   it('rounds to one decimal', () => {
     expect(emergencyReserveMonths([spend('2026-06', 3000), invest(1000)], [], '2026-06')).toBe(0.3); // 0.333
     expect(emergencyReserveMonths([spend('2026-06', 3000), invest(2000)], [], '2026-06')).toBe(0.7); // 0.667
+  });
+});
+
+describe('reserveLevel', () => {
+  it('changes level exactly at 3 and 6 months', () => {
+    expect(reserveLevel(0).level).toBe('baixa');
+    expect(reserveLevel(2.9).level).toBe('baixa');
+    expect(reserveLevel(3).level).toBe('boa');
+    expect(reserveLevel(5.9).level).toBe('boa');
+    expect(reserveLevel(6).level).toBe('ótima');
+    expect(reserveLevel(24).level).toBe('ótima');
+  });
+  it('has a short text for each level', () => {
+    expect(new Set(['baixa', 'boa', 'ótima'].map((_, i) => reserveLevel([1, 4, 8][i]).text)).size).toBe(3);
   });
 });
