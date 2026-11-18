@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dueDate, gainLabel, gainOf, gainPctOf, invoiceKey, titleOf } from './calc';
+import { dueDate, filterRows, gainLabel, gainOf, gainPctOf, invoiceKey, titleOf } from './calc';
 import { Transaction } from './types';
 
 describe('invoiceKey', () => {
@@ -56,5 +56,17 @@ describe('titleOf', () => {
     expect(titleOf(inv({ description: 'CDB' }))).toBe('CDB');
     expect(titleOf(inv({}))).toBe('Investimento · Nubank');
     expect(titleOf(inv({ type: 'expense', category: 'Lazer' }))).toBe('Lazer');
+  });
+});
+
+describe('filterRows with investments', () => {
+  const rows = [inv({ id: 'a', bank: 'Itaú' }), inv({ id: 'b', bank: 'Nubank' }), inv({ id: 'c', type: 'expense', bank: undefined, description: 'mercado' })];
+  const find = (query: string) => filterRows(rows, { query }, () => '', () => '').map((r) => r.id);
+  it('finds an investment by its bank, ignoring case and accents', () => {
+    expect(find('itau')).toEqual(['a']);
+    expect(find('NUBANK')).toEqual(['b']);
+  });
+  it('does not match a bank on rows that have none', () => {
+    expect(find('mercado')).toEqual(['c']);
   });
 });
