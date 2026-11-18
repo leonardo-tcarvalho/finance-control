@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MonthPoint, annualTotals, splitPercents, availableYears, spendByOrigin, spendOf, topExpenses, yearRows } from './calc';
+import { MonthPoint, annualTotals, emergencyReserveMonths, reserveLevel, savingsRate, portfolioByBank, portfolioTotals, splitPercents, totalsOf, availableYears, spendByOrigin, spendOf, topExpenses, yearRows } from './calc';
 import { Card, Transaction } from './types';
 
 let n = 0;
@@ -92,5 +92,90 @@ describe('splitPercents', () => {
   });
   it('is all zeros when nothing was spent', () => {
     expect(splitPercents([0, 0, 0])).toEqual([0, 0, 0]);
+  });
+});
+
+describe('totalsOf with investments', () => {
+  it('keeps investments out of income and expense, sums them in invested and takes them from the balance', () => {
+    const r = totalsOf([tx({ type: 'income', amountCents: 1000 }), tx({ amountCents: 300 }), tx({ type: 'investment', amountCents: 200, bank: 'Nubank' })]);
+    expect(r).toEqual({ income: 1000, expense: 300, invested: 200, balance: 500 });
+  });
+});
+
+describe('portfolio', () => {
+  const inv = (bank: string, amountCents: number, currentValueCents?: number) => tx({ type: 'investment', bank, amountCents, currentValueCents });
+  const list = [inv('Nubank', 1000, 1100), inv('Nubank', 500), inv('Inter', 4000, 3600), tx({ amountCents: 9999 })];
+  it('groups by bank, counting the applied amount when no current value was informed, biggest first', () => {
+    expect(portfolioByBank(list)).toEqual([
+      { bank: 'Inter', applied: 4000, current: 3600, gain: -400, gainPct: -10 },
+      { bank: 'Nubank', applied: 1500, current: 1600, gain: 100, gainPct: 7 },
+    ]);
+  });
+  it('totals every investment and ignores other types', () => {
+    expect(portfolioTotals(list)).toMatchObject({ applied: 5500, current: 5200, gain: -300, gainPct: -5 });
+  });
+  it('groups a bank ignoring case and surrounding spaces, showing the first spelling', () => {
+    const r = portfolioByBank([inv('Nubank', 100), inv('nubank', 200), inv(' NUBANK ', 300)]);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject({ bank: 'Nubank', applied: 600, current: 600 });
+    expect(portfolioByBank([inv(' nubank', 100), inv('Nubank', 100)])[0].bank).toBe('nubank');
+  });
+  it('banks with the same current value are ordered by name', () => {
+    expect(portfolioByBank([inv('Rico', 500), inv('Inter', 500), inv('C6 Bank', 500)]).map((h) => h.bank)).toEqual(['C6 Bank', 'Inter', 'Rico']);
+  });
+  it('a current value of zero is respected, and an empty portfolio is all zeros', () => {
+    expect(portfolioTotals([inv('Nubank', 1000, 0)])).toMatchObject({ current: 0, gain: -1000, gainPct: -100 });
+    expect(portfolioByBank([])).toEqual([]);
+    expect(portfolioTotals([])).toMatchObject({ applied: 0, current: 0, gain: 0, gainPct: 0 });
+  });
+});
+
+describe('savingsRate', () => {
+  it('is the rounded percent of the income left over', () => {
+    expect(savingsRate(1000, 750)).toBe(25);
+    expect(savingsRate(3, 1)).toBe(67);
+  });
+  it('is negative when spending passed the income, and null without income', () => {
+    expect(savingsRate(1000, 1500)).toBe(-50);
+    expect(savingsRate(0, 500)).toBeNull();
+  });
+});
+
+describe('emergencyReserveMonths', () => {
+  const spend = (month: string, amountCents: number) => tx({ amountCents, date: `${month}-10` });
+  const invest = (amountCents: number, currentValueCents?: number) => tx({ type: 'investment', bank: 'Nubank', amountCents, currentValueCents, date: '2026-01-05' });
+  it('divides the portfolio value by the average spending of the last 6 months', () => {
+    const list = [spend('2026-05', 1000), spend('2026-06', 3000), invest(5000, 9000)];
+    expect(emergencyReserveMonths(list, [], '2026-06')).toBe(4.5); // 9000 / 2000
+  });
+  it('counts the applied amount when no current value was informed', () => {
+    expect(emergencyReserveMonths([spend('2026-06', 1000), invest(2500)], [], '2026-06')).toBe(2.5);
+  });
+  it('ignores months with no spending and months outside the window', () => {
+    const list = [spend('2025-12', 99999), spend('2026-03', 1000), invest(1000)];
+    expect(emergencyReserveMonths(list, [], '2026-06')).toBe(1);
+  });
+  it('is 0 with spending but no investments, and null without spending', () => {
+    expect(emergencyReserveMonths([spend('2026-06', 1000)], [], '2026-06')).toBe(0);
+    expect(emergencyReserveMonths([invest(1000)], [], '2026-06')).toBeNull();
+    expect(emergencyReserveMonths([], [], '2026-06')).toBeNull();
+  });
+  it('rounds to one decimal', () => {
+    expect(emergencyReserveMonths([spend('2026-06', 3000), invest(1000)], [], '2026-06')).toBe(0.3); // 0.333
+    expect(emergencyReserveMonths([spend('2026-06', 3000), invest(2000)], [], '2026-06')).toBe(0.7); // 0.667
+  });
+});
+
+describe('reserveLevel', () => {
+  it('changes level exactly at 3 and 6 months', () => {
+    expect(reserveLevel(0).level).toBe('baixa');
+    expect(reserveLevel(2.9).level).toBe('baixa');
+    expect(reserveLevel(3).level).toBe('boa');
+    expect(reserveLevel(5.9).level).toBe('boa');
+    expect(reserveLevel(6).level).toBe('ótima');
+    expect(reserveLevel(24).level).toBe('ótima');
+  });
+  it('has a short text for each level', () => {
+    expect(new Set(['baixa', 'boa', 'ótima'].map((_, i) => reserveLevel([1, 4, 8][i]).text)).size).toBe(3);
   });
 });

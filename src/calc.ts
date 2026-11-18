@@ -1,20 +1,25 @@
 import { Card, Transaction, Method } from './types';
-import { shiftMonth } from './utils';
+import { brl, shiftMonth } from './utils';
 
 /** How much a row adds to spending: only an expense does. */
 export const spendOf = (t: Transaction) => (t.type === 'expense' ? t.amountCents : 0);
 
 export const incomeOf = (t: Transaction) => (t.type === 'income' ? t.amountCents : 0);
 
-/** Receitas, Gastos and Saldo for a set of rows. */
+/** How much a row puts into investments: only an investment does. It is neither spending nor income. */
+export const investedOf = (t: Transaction) => (t.type === 'investment' ? t.amountCents : 0);
+
+/** Receitas, Gastos, Investido and Saldo (receitas minus gastos minus investido) for a set of rows. */
 export function totalsOf(rows: Transaction[]) {
   let income = 0;
   let expense = 0;
+  let invested = 0;
   for (const t of rows) {
     income += incomeOf(t);
     expense += spendOf(t);
+    invested += investedOf(t);
   }
-  return { income, expense, balance: income - expense };
+  return { income, expense, invested, balance: income - expense - invested };
 }
 
 const daysIn = (month: string) => new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).getDate();
@@ -83,7 +88,7 @@ export function filterRows(rows: Transaction[], f: RowFilter, cardName: (id?: st
   const words = fold(f.query).split(/\s+/).filter(Boolean);
   if (!words.length) return rows;
   return rows.filter((t) => {
-    const hay = fold([t.description, t.category, cardName(t.cardId), methodName(t.method)].join(' '));
+    const hay = fold([t.description, t.category, t.bank ?? '', cardName(t.cardId), methodName(t.method)].join(' '));
     return words.every((w) => hay.includes(w));
   });
 }
@@ -186,4 +191,92 @@ export function splitPercents(values: number[]): number[] {
   const left = 100 - pct.reduce((a, b) => a + b, 0);
   for (let k = 0; k < left; k++) pct[order[k].i]++;
   return pct;
+}
+
+export interface Holding {
+  /** the bank, or "Total" in portfolioTotals */
+  bank: string;
+  applied: number;
+  current: number;
+  gain: number;
+  /** gain over applied, whole percent (0 when nothing was applied) */
+  gainPct: number;
+}
+
+const holding = (bank: string, applied: number, current: number): Holding => ({
+  bank,
+  applied,
+  current,
+  gain: current - applied,
+  gainPct: applied > 0 ? Math.round(((current - applied) / applied) * 100) : 0,
+});
+
+/** What an investment is worth: the informed current value, or what was applied when none was informed. */
+const worthOf = (t: Transaction) => t.currentValueCents ?? t.amountCents;
+
+/** Investments grouped by bank, the one worth the most first (equal values in name order). */
+export function portfolioByBank(list: Transaction[]): Holding[] {
+  // "nubank", "Nubank " and " NUBANK" are one bank: group by the trimmed lowercase name and show the first spelling found
+  const m = new Map<string, { bank: string; applied: number; current: number }>();
+  for (const t of list) {
+    if (t.type !== 'investment') continue;
+    const bank = (t.bank ?? '').trim();
+    const key = bank.toLowerCase();
+    const h = m.get(key) ?? { bank, applied: 0, current: 0 };
+    h.applied += t.amountCents;
+    h.current += worthOf(t);
+    m.set(key, h);
+  }
+  return Array.from(m.values(), (h) => holding(h.bank, h.applied, h.current)).sort((a, b) => b.current - a.current || a.bank.localeCompare(b.bank, 'pt-BR'));
+}
+
+/** Applied, current value and gain over every investment. */
+export function portfolioTotals(list: Transaction[]): Holding {
+  const banks = portfolioByBank(list);
+  return holding('Total', banks.reduce((n, h) => n + h.applied, 0), banks.reduce((n, h) => n + h.current, 0));
+}
+
+/** Yield of one investment row: the informed current value minus what was applied; 0 when no current value was informed. */
+export const gainOf = (t: Transaction) => (t.type === 'investment' && t.currentValueCents !== undefined ? t.currentValueCents - t.amountCents : 0);
+
+/** The yield as a whole percent of what was applied (0 when nothing was applied). */
+export const gainPctOf = (t: Transaction) => (t.amountCents > 0 ? Math.round((gainOf(t) / t.amountCents) * 100) : 0);
+
+/** "+ R$ 10,00 (+10%)", "− R$ 5,00 (−5%)"; no sign when the yield is zero, and no percent when it rounds to 0 but the yield is not. */
+export function gainText(gain: number, pct: number): string {
+  const sign = gain > 0 ? '+' : gain < 0 ? '−' : '';
+  const value = `${sign ? sign + ' ' : ''}${brl(Math.abs(gain))}`;
+  return gain !== 0 && pct === 0 ? value : `${value} (${sign}${Math.abs(pct)}%)`; // a tiny yield would read as "(+0%)"
+}
+
+export const gainLabel = (t: Transaction) => gainText(gainOf(t), gainPctOf(t));
+
+/** What to call a row in lists and sheets: its description, else the bank for an investment, else the category. */
+export const titleOf = (t: Transaction) => t.description || (t.type === 'investment' ? `Investimento · ${t.bank ?? ''}` : t.category);
+
+/** Whole percent of the income that was invested, or null when there was no income to compare with. */
+export const investedShare = (invested: number, income: number): number | null => (income > 0 ? Math.round((invested / income) * 100) : null);
+
+/** Whole percent of the income left after spending ((income - expense) / income); negative when spending passed the income, null without income. */
+export const savingsRate = (income: number, expense: number): number | null => (income > 0 ? Math.round(((income - expense) / income) * 100) : null);
+
+/**
+ * How many months of spending the investments cover: what the whole portfolio is worth now divided by the average monthly
+ * spending of the 6 months ending at `endMonth` (only months with spending), to one decimal. null when nothing was spent
+ * in those months; 0 when there is spending but no investments.
+ */
+export function emergencyReserveMonths(list: Transaction[], cards: Card[], endMonth: string): number | null {
+  const spent = monthlySeries(list, cards, endMonth, 6).filter((m) => m.expense > 0);
+  if (spent.length === 0) return null;
+  const average = spent.reduce((sum, m) => sum + m.expense, 0) / spent.length;
+  return Math.round((portfolioTotals(list).current / average) * 10) / 10;
+}
+
+export type ReserveLevel = 'baixa' | 'boa' | 'ótima';
+
+/** Level of the emergency reserve: under 3 months is low, 3 up to 6 is good, 6 or more is great. */
+export function reserveLevel(months: number): { level: ReserveLevel; text: string } {
+  if (months < 3) return { level: 'baixa', text: 'Menos de 3 meses de gastos cobertos.' };
+  if (months < 6) return { level: 'boa', text: 'Entre 3 e 6 meses de gastos cobertos.' };
+  return { level: 'ótima', text: '6 meses ou mais de gastos cobertos.' };
 }

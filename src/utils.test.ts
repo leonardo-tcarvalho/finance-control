@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addMonths, parseMoneyToCents } from './utils';
+import { addMonths, parseMoneyToCents, signedPct } from './utils';
 
 describe('parseMoneyToCents', () => {
   it('reads Brazilian and thousands formats', () => {
@@ -17,5 +17,13 @@ describe('addMonths', () => {
   it('clamps to the last day of the month', () => {
     expect(addMonths('2026-01-31', 1)).toBe('2026-02-28');
     expect(addMonths('2026-01-31', 2)).toBe('2026-03-31');
+  });
+});
+
+describe('signedPct', () => {
+  it('uses the typographic minus for negatives', () => {
+    expect(signedPct(25)).toBe('25%');
+    expect(signedPct(0)).toBe('0%');
+    expect(signedPct(-50)).toBe('−50%');
   });
 });

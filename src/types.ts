@@ -1,4 +1,4 @@
-export type TxType = 'expense' | 'income';
+export type TxType = 'expense' | 'income' | 'investment';
 
 /** How a non-card entry was paid. Card entries use cardId instead. */
 export type Method = 'pix' | 'debit' | 'cash' | 'boleto' | 'other';
@@ -33,6 +33,12 @@ export interface Transaction {
   installment?: { n: number; of: number; groupId: string };
   /** Set on every row of a monthly series that repeats the same amount (boleto, rent, subscription). */
   recurring?: { n: number; of: number; groupId: string };
+  /** Investments only: the institution holding the money. */
+  bank?: string;
+  /** Investments only: what it is worth today, as informed by the person. Missing = not known, counts as the applied amount. */
+  currentValueCents?: number;
+  /** Investments only: free-text note about the yield (e.g. "100% do CDI"); used in no calculation. */
+  ratePct?: string;
   createdAt: string;
 }
 
@@ -50,6 +56,8 @@ export interface AppData {
 export const SCHEMA_VERSION = 2;
 /** Income has no category of its own to pick: every income carries this one, and its description says what it is. */
 export const INCOME_CATEGORY = 'Receita';
+/** Every investment carries this category: what it is goes in the description and the bank. */
+export const INVESTMENT_CATEGORY = 'Investimento';
 
 export interface Categories {
   /** used by expenses */
@@ -64,6 +72,7 @@ export const DEFAULT_CATEGORIES: Categories = {
 
 /** The list to offer for an entry type, plus the entry's current category when it is no longer in the list. */
 export function categoriesFor(cats: Categories | undefined, type: TxType, current?: string): string[] {
+  if (type === 'investment') return []; // investments have no category to choose from
   const list = (cats ?? DEFAULT_CATEGORIES)[type === 'income' ? 'income' : 'expense'];
   return current && !list.includes(current) ? [...list, current] : list;
 }
@@ -77,3 +86,7 @@ export const METHODS: { id: Method; label: string }[] = [
   { id: 'other', label: 'Outro' },
 ];
 export const methodLabel = (m: Method) => METHODS.find((x) => x.id === m)?.label ?? m;
+
+/** Institutions offered when registering an investment; OTHER_BANK lets the person type any other name. */
+export const BANKS: string[] = ['Nubank', 'Inter', 'Itaú', 'Bradesco', 'Banco do Brasil', 'Caixa', 'Santander', 'C6 Bank', 'BTG Pactual', 'XP Investimentos', 'Rico', 'Mercado Pago', 'PicPay', 'Sicredi', 'Sicoob'];
+export const OTHER_BANK = 'Outro';

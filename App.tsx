@@ -9,14 +9,14 @@ import Drawer, { DrawerDivider, DrawerItem, DrawerSection } from './src/Drawer';
 import { PlusIcon, TrayArrow } from './src/Icons';
 import RowActions from './src/RowActions';
 import EntryModal, { EntryValues } from './src/EntryModal';
-import { committedOnCard, sortCardsByLimit, dueDate, filterRows, invoiceRows, isPaid, monthOf, monthlySeries, spendByCategory, spendByPayment, spendOf } from './src/calc';
-import { applyEdit, buildEntries, groupOf } from './src/ops';
+import { committedOnCard, emergencyReserveMonths, gainLabel, gainOf, gainText, portfolioTotals, titleOf, sortCardsByLimit, dueDate, filterRows, invoiceRows, isPaid, monthOf, monthlySeries, spendByCategory, spendByPayment, spendOf } from './src/calc';
+import { applyEdit, buildEntries, groupOf, updateCurrentValue } from './src/ops';
 import { loadData, saveData, saveRestorePoint } from './src/storage';
 import { dueOf, isOverdue, isPending, monthTotals, movedIntoPaidInvoice, overdueSummary, payKind } from './src/status';
 import AnnualReport from './src/AnnualReport';
 import Summary from './src/Summary';
 import { Theme, ThemeContext, darkTheme, lightTheme } from './src/theme';
-import { AppData, Card, DEFAULT_CATEGORIES, Transaction, Method, methodLabel } from './src/types';
+import { AppData, Card, DEFAULT_CATEGORIES, INVESTMENT_CATEGORY, Transaction, Method, methodLabel } from './src/types';
 import { MAX_INSTALLMENTS, MAX_RECURRING, brl, formatDateBR, monthLabel, parseMoneyToCents, shiftMonth, shortDate, today } from './src/utils';
 
 const newId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -88,11 +88,17 @@ function Main() {
       Alert.alert('Valor inválido', 'Informe um valor maior que zero.');
       return false;
     }
+    // an investment has no card, method, vencimento or repetition, whatever the form still holds
+    const isInvestment = v.type === 'investment';
+    const invest = isInvestment
+      ? { bank: v.bank, currentValueCents: v.currentValue.trim() ? parseMoneyToCents(v.currentValue) : undefined, ratePct: v.rate }
+      : {};
     // never point at a card that no longer exists (e.g. after restoring a backup)
-    const cardId = v.cardId && data.cards.some((c) => c.id === v.cardId) ? v.cardId : undefined;
+    const cardId = !isInvestment && v.cardId && data.cards.some((c) => c.id === v.cardId) ? v.cardId : undefined;
 
     // a purchase cannot be created or moved into an invoice that is already paid
     const refusePaidInvoice = (next: Transaction[]) => {
+      if (isInvestment) return false;
       const hit = movedIntoPaidInvoice(data.transactions, next, data.cards);
       if (!hit) return false;
       Alert.alert('Fatura já paga', `A fatura de ${monthLabel(hit.month)} do cartão ${hit.card.name} já está paga. Reabra a fatura para lançar nela.`);
@@ -100,16 +106,23 @@ function Main() {
     };
 
     if (editing) {
-      const next = applyEdit(data.transactions, editing, {
-        type: v.type,
-        amountCents: cents,
-        description: v.desc.trim(),
-        category: v.category,
-        date: v.date,
-        cardId,
-        method: v.method ?? undefined,
-        due: v.due || undefined,
-      });
+      let next: Transaction[];
+      try {
+        next = applyEdit(data.transactions, editing, {
+          type: v.type,
+          amountCents: cents,
+          description: v.desc.trim(),
+          category: isInvestment ? INVESTMENT_CATEGORY : v.category,
+          date: v.date,
+          cardId,
+          method: isInvestment ? undefined : (v.method ?? undefined),
+          due: isInvestment ? undefined : v.due || undefined,
+          ...invest,
+        });
+      } catch (e) {
+        Alert.alert(isInvestment ? 'Investimento inválido' : 'Não foi possível salvar', e instanceof Error ? e.message : String(e));
+        return false;
+      }
       if (refusePaidInvoice(next)) return false;
       persist({ ...data, transactions: next });
       const saved = next.find((x) => x.id === editing.id);
@@ -119,7 +132,7 @@ function Main() {
 
     // "once" is a single row; otherwise the series needs at least two months
     let times = 1;
-    if (v.repeat !== 'once') {
+    if (v.repeat !== 'once' && !isInvestment) {
       const max = v.repeat === 'recurring' ? MAX_RECURRING : MAX_INSTALLMENTS;
       times = Math.floor(Number(v.times) || 0);
       if (times < 2 || times > max) {
@@ -128,17 +141,36 @@ function Main() {
       }
     }
     const mode = v.repeat === 'recurring' ? 'recurring' : 'installment';
-    const paidCount = mode === 'installment' ? Math.floor(Number(v.paidInstallments) || 0) : 0;
+    const paidCount = mode === 'installment' && !isInvestment ? Math.floor(Number(v.paidInstallments) || 0) : 0;
     if (paidCount < 0 || paidCount >= times) {
       Alert.alert('Parcelas pagas inválidas', `Informe de 0 a ${times - 1}: precisa sobrar pelo menos uma parcela a pagar.`);
       return false;
     }
     const groupId = newId();
-    const created = buildEntries(
-      { type: v.type, amountCents: cents, description: v.desc.trim(), category: v.category, date: v.date, cardId, method: v.method ?? undefined, due: v.due || undefined, times, mode, paidCount },
-      groupId,
-      new Date().toISOString(),
-    );
+    let created: Transaction[];
+    try {
+      created = buildEntries(
+        {
+          type: v.type,
+          amountCents: cents,
+          description: v.desc.trim(),
+          category: isInvestment ? INVESTMENT_CATEGORY : v.category,
+          date: v.date,
+          cardId,
+          method: isInvestment ? undefined : (v.method ?? undefined),
+          due: isInvestment ? undefined : v.due || undefined,
+          times,
+          mode,
+          paidCount,
+          ...invest,
+        },
+        groupId,
+        new Date().toISOString(),
+      );
+    } catch (e) {
+      Alert.alert(isInvestment ? 'Investimento inválido' : 'Não foi possível salvar', e instanceof Error ? e.message : String(e));
+      return false;
+    }
     const next = [...created, ...data.transactions];
     if (refusePaidInvoice(next)) return false;
     persist({ ...data, transactions: next });
@@ -307,6 +339,8 @@ function Main() {
   );
   const filtering = query.trim() !== '';
   const shownTotals = monthTotals(shownRows, data?.cards ?? []);
+  const portfolio = useMemo(() => portfolioTotals(data?.transactions ?? []), [data]);
+  const reserveMonths = useMemo(() => emergencyReserveMonths(data?.transactions ?? [], data?.cards ?? [], month), [data, month]);
   const byPayment = useMemo(() => spendByPayment(rows, cardNameOf, methodNameOf), [rows, data]);
 
   // overdue expenses of every month, so a late bill is never hidden in a month that is not on screen
@@ -423,13 +457,20 @@ function Main() {
             <View style={s.stats}>
               <Stat s={s} label="Receitas" value={brl(totals.income)} color={t.green} />
               <Stat s={s} label="Gastos" value={brl(totals.expense)} color={t.red} sub={totals.pending > 0 ? `${brl(totals.pending)} pendentes` : undefined} />
-              <Stat s={s} label="Saldo" value={brl(totals.balance)} color={totals.balance >= 0 ? t.green : t.red} />
+              <Stat s={s} label="Saldo" value={brl(totals.balance)} color={totals.balance >= 0 ? t.green : t.red} sub={totals.invested > 0 ? 'já desconta o investido' : undefined} />
             </View>
+            {/* only for people who invest: what went in this month and what the whole portfolio is worth */}
+            {(totals.invested > 0 || portfolio.applied > 0) && (
+              <View style={[s.stats, { marginTop: 8 }]}>
+                <Stat s={s} label="Investido no mês" value={brl(totals.invested)} color={t.primary} />
+                <Stat s={s} label="Carteira" value={brl(portfolio.current)} color={t.primary} sub={`rendimento ${gainText(portfolio.gain, portfolio.gainPct)}`} />
+              </View>
+            )}
           </View>
         )}
 
         {inSummary ? (
-          <Summary rows={rows} series={series} byCategory={byCategory} byPayment={byPayment} />
+          <Summary rows={rows} series={series} byCategory={byCategory} byPayment={byPayment} reserveMonths={reserveMonths} />
         ) : inAnnual ? (
           <AnnualReport list={data.transactions} cards={data.cards} cardName={cardNameOf} methodName={methodNameOf} />
         ) : (
@@ -495,8 +536,11 @@ function Main() {
                   const due = dueOf(item, data.cards);
                   // income carries no status; every expense is paid, pending or overdue
                   const status = kind === 'none' ? null : overdue ? 'overdue' : pending ? 'pending' : 'paid';
+                  const isInv = item.type === 'investment';
                   const parts = [
                     item.description && item.type === 'expense' ? { k: 'cat', text: item.category, color: t.textMuted } : null,
+                    isInv ? { k: 'bank', text: `🏦 ${item.bank ?? ''}`, color: t.link } : null,
+                    isInv && item.currentValueCents !== undefined ? { k: 'gain', text: gainLabel(item), color: gainOf(item) < 0 ? t.red : gainOf(item) > 0 ? t.green : t.textMuted } : null,
                     card ? { k: 'card', text: `💳 ${card.name}`, color: t.link } : null,
                     !card && item.method ? { k: 'method', text: methodLabel(item.method), color: t.textMuted } : null,
                     item.installment ? { k: 'inst', text: `Parcela ${item.installment.n}/${item.installment.of}`, color: t.amber } : null,
@@ -509,13 +553,13 @@ function Main() {
                       onPress={() => setActionsFor(item)}
                       style={({ pressed }) => [s.row, status === 'paid' && s.rowPaid, status === 'pending' && s.rowPending, status === 'overdue' && s.rowOverdue, pressed && { opacity: 0.7 }]}
                       accessibilityRole="button"
-                      accessibilityLabel={`${item.description || item.category}, ver opções`}
+                      accessibilityLabel={`${titleOf(item)}, ver opções`}
                     >
                       {status === 'overdue' && <View style={s.rowBar} />}
                       <Text style={s.rowDate}>{shortDate(item.date)}</Text>
                       <View style={s.flex1}>
                         <Text style={s.rowTitle} numberOfLines={1}>
-                          {item.description || item.category}
+                          {titleOf(item)}
                         </Text>
                         {parts.length > 0 && (
                           <Text style={s.rowSub} numberOfLines={2}>
@@ -528,8 +572,8 @@ function Main() {
                           </Text>
                         )}
                       </View>
-                      <Text style={[s.rowValue, { color: item.type === 'expense' ? t.red : t.green }]} numberOfLines={1}>
-                        {item.type === 'expense' ? '−' : '+'} {brl(item.amountCents)}
+                      <Text style={[s.rowValue, { color: isInv ? t.primary : item.type === 'expense' ? t.red : t.green }]} numberOfLines={1}>
+                        {isInv ? '→' : item.type === 'expense' ? '−' : '+'} {brl(item.amountCents)}
                       </Text>
                     </Pressable>
                   );
@@ -539,6 +583,7 @@ function Main() {
               <View style={s.listFoot}>
                 <Text style={s.footLabel}>
                   {filtering ? 'Filtrado' : 'Total'} · {shownRows.length} {shownRows.length === 1 ? 'linha' : 'linhas'}
+                  {!onCard && shownTotals.invested > 0 ? ' · já desconta o investido' : ''}
                 </Text>
                 <Text style={[s.footValue, { color: onCard ? t.red : shownTotals.balance >= 0 ? t.green : t.red }]}>{brl(onCard ? shownTotals.expense : shownTotals.balance)}</Text>
               </View>
@@ -590,6 +635,11 @@ function Main() {
           onTogglePaid={(tx) => {
             togglePaid(tx);
             setActionsFor(null);
+          }}
+          onUpdateValue={(tx, cents) => {
+            if (!data) return;
+            setActionsFor(null);
+            persist({ ...data, transactions: updateCurrentValue(data.transactions, tx.id, cents) });
           }}
           onEdit={(tx) => {
             setActionsFor(null);

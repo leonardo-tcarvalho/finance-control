@@ -87,3 +87,6 @@ export const addDays = (iso: string, k: number) => {
 
 /** 2590 -> "25,90", for filling a money input with an existing value. */
 export const centsToField = (cents: number) => (cents / 100).toFixed(2).replace('.', ',');
+
+/** 25 -> "25%", -50 -> "−50%" (typographic minus, as in the rest of the app). */
+export const signedPct = (n: number) => `${n < 0 ? '−' : ''}${Math.abs(n)}%`;

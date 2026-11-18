@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { gainText } from './calc';
 import Field, { Label } from './Field';
 import Sheet from './Sheet';
 import { Theme, useTheme } from './theme';
-import { Card, Categories, DEFAULT_CATEGORIES, INCOME_CATEGORY, METHODS, Method, Transaction, TxType, categoriesFor } from './types';
+import { BANKS, Card, Categories, DEFAULT_CATEGORIES, INCOME_CATEGORY, INVESTMENT_CATEGORY, METHODS, OTHER_BANK, Method, Transaction, TxType, categoriesFor } from './types';
 import { MAX_INSTALLMENTS, MAX_RECURRING, addDays, addMonths, brl, centsToField, formatDateBR, maskDate, monthYear, parseDateBR, parseMoneyToCents, today } from './utils';
 
 export type Repeat = 'once' | 'installment' | 'recurring';
@@ -24,6 +25,10 @@ export interface EntryValues {
   method: Method | null;
   /** ISO vencimento, or '' when not informed (the entry date then applies) */
   due: string;
+  /** investments only: institution, current value as typed ('' = not informed) and a free-text rate note */
+  bank: string;
+  currentValue: string;
+  rate: string;
 }
 
 interface Props {
@@ -64,6 +69,10 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
   const [paidText, setPaidText] = useState('');
   const [cardId, setCardId] = useState<string | null>(null);
   const [method, setMethod] = useState<Method | null>(null);
+  const [bankChoice, setBankChoice] = useState(''); // a name from BANKS, OTHER_BANK or '' (none chosen yet)
+  const [bankOther, setBankOther] = useState(''); // typed name when OTHER_BANK is chosen
+  const [currentText, setCurrentText] = useState('');
+  const [rateText, setRateText] = useState('');
 
   // every time the popup opens it starts clean (and pinned to the card tab, if any)
   useEffect(() => {
@@ -81,6 +90,11 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
       setPaidText('');
       setCardId(editing.cardId ?? null);
       setMethod(editing.method ?? null);
+      const known = !!editing.bank && BANKS.includes(editing.bank);
+      setBankChoice(known ? editing.bank! : editing.bank ? OTHER_BANK : '');
+      setBankOther(known ? '' : (editing.bank ?? ''));
+      setCurrentText(editing.currentValueCents !== undefined ? centsToField(editing.currentValueCents) : '');
+      setRateText(editing.ratePct ?? '');
       return;
     }
     setType('expense');
@@ -95,6 +109,10 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
     setPaidText('');
     setCardId(lockedCard?.id ?? null);
     setMethod(null);
+    setBankChoice('');
+    setBankOther('');
+    setCurrentText('');
+    setRateText('');
   }, [visible, lockedCard?.id, editing?.id]);
 
   const startDate = parseDateBR(dateText) ?? today();
@@ -103,8 +121,9 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
   // the chosen category must belong to the list shown for this type
   const selectedCategory = catList.includes(category) ? category : (catList[0] ?? '');
   const isExpense = type === 'expense';
-  const accent = isExpense ? t.redStrong : t.greenStrong;
-  // installments and monthly repetition exist only for expenses; income is always a single entry
+  const isInvestment = type === 'investment';
+  const accent = isExpense ? t.redStrong : isInvestment ? t.primary : t.greenStrong;
+  // installments and monthly repetition exist only for expenses; income and investments are always a single entry
   const effRepeat: Repeat = repeat !== 'once' && !isExpense ? 'once' : repeat;
   const nTimes = effRepeat === 'once' ? 1 : Math.max(1, Math.floor(Number(times) || 1));
   // installments already paid: only meaningful for an installment purchase, and at least one must remain
@@ -115,6 +134,10 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
   const selectedMethod = selectedCard ? null : method;
   // the vencimento is asked for every expense that is not on a card (a card purchase follows its invoice)
   const showDue = type === 'expense' && !lockedCard && !selectedCard;
+
+  const currentCents = currentText.trim() === '' ? NaN : parseMoneyToCents(currentText);
+  const gain = Number.isFinite(cents) && cents > 0 && Number.isFinite(currentCents) ? currentCents - cents : null;
+  const bank = bankChoice === OTHER_BANK ? bankOther.trim() : bankChoice;
 
   const createCategory = () => {
     const name = (newCategory ?? '').trim();
@@ -136,14 +159,18 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
   const submit = () => {
     const date = parseDateBR(dateText);
     if (!date) return Alert.alert('Data inválida', 'Use o formato DD/MM/AAAA, por exemplo 15/11/2026.');
-    if (!isExpense && desc.trim() === '') return Alert.alert('Descrição obrigatória', 'Escreva o que é esta receita, por exemplo: salário, venda do notebook.');
+    if (type === 'income' && desc.trim() === '') return Alert.alert('Descrição obrigatória', 'Escreva o que é esta receita, por exemplo: salário, venda do notebook.');
+    if (isInvestment) {
+      if (!bank) return Alert.alert('Banco obrigatório', 'Escolha o banco ou corretora onde o dinheiro foi aplicado.');
+      if (currentText.trim() !== '' && !Number.isFinite(currentCents)) return Alert.alert('Valor atual inválido', 'Informe um valor como 1.234,56, ou deixe em branco.');
+    }
     let due = '';
     if (showDue && dueText.trim() !== '') {
       const parsed = parseDateBR(dueText);
       if (!parsed) return Alert.alert('Vencimento inválido', 'Use o formato DD/MM/AAAA, ou deixe em branco para usar a data do lançamento.');
       due = parsed;
     }
-    if (onSubmit({ type, amount, desc, date, category: isExpense ? selectedCategory : INCOME_CATEGORY, repeat: effRepeat, times, paidInstallments: effRepeat === 'installment' ? paidText : '', cardId: lockedCard ? lockedCard.id : selectedCard, method: lockedCard ? null : selectedMethod, due })) onClose();
+    if (onSubmit({ type, amount, desc, date, category: isExpense ? selectedCategory : isInvestment ? INVESTMENT_CATEGORY : INCOME_CATEGORY, repeat: effRepeat, times, paidInstallments: effRepeat === 'installment' ? paidText : '', cardId: lockedCard ? lockedCard.id : selectedCard, method: lockedCard ? null : selectedMethod, due, bank: isInvestment ? bank : '', currentValue: isInvestment ? currentText : '', rate: isInvestment ? rateText : '' })) onClose();
   };
 
   return (
@@ -151,14 +178,14 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
       visible={visible}
       title={editing ? 'Editar lançamento' : lockedCard ? `Novo gasto · ${lockedCard.name}` : 'Novo lançamento'}
       onClose={onClose}
-      dirty={!!editing || amount !== '' || desc !== ''}
+      dirty={!!editing || amount !== '' || desc !== '' || bankChoice !== '' || currentText !== '' || rateText !== ''}
       footer={
         <>
           <Pressable onPress={onClose} style={[s.btn, s.btnGhost]} accessibilityRole="button">
             <Text style={s.btnGhostText}>Cancelar</Text>
           </Pressable>
           <Pressable onPress={submit} style={[s.btn, { backgroundColor: accent, flex: 2 }]} accessibilityRole="button">
-            <Text style={s.btnText}>{editing ? 'Salvar alterações' : isExpense ? 'Adicionar gasto' : 'Adicionar receita'}</Text>
+            <Text style={s.btnText}>{editing ? 'Salvar alterações' : isExpense ? 'Adicionar gasto' : isInvestment ? 'Adicionar investimento' : 'Adicionar receita'}</Text>
           </Pressable>
         </>
       }
@@ -175,6 +202,7 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
           <View style={s.typeRow}>
             <TypeButton title="Gasto" hint="Dinheiro que saiu" color={t.redStrong} selected={isExpense} onPress={() => setType('expense')} />
             <TypeButton title="Receita" hint="Dinheiro que entrou" color={t.greenStrong} selected={type === 'income'} onPress={() => setType('income')} />
+            <TypeButton title="Investimento" hint="Dinheiro aplicado" color={t.primary} selected={isInvestment} onPress={() => setType('investment')} />
           </View>
         </View>
       )}
@@ -189,6 +217,33 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
         autoFocus
         big
       />
+
+      {isInvestment && (
+        <View>
+          <Label>Banco ou corretora</Label>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ alignItems: 'center' }}>
+            {[...BANKS, OTHER_BANK].map((b) => (
+              <Pressable key={b} onPress={() => setBankChoice(b)} style={[s.chip, bankChoice === b && s.chipOn]} accessibilityRole="radio" accessibilityState={{ checked: bankChoice === b }}>
+                <Text style={[s.chipText, bankChoice === b && s.chipTextOn]}>{b}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+          {bankChoice === OTHER_BANK && <Field label="Nome do banco" placeholder="Ex.: Banco Pan" value={bankOther} onChangeText={setBankOther} autoFocus />}
+        </View>
+      )}
+
+      {isInvestment && (
+        <View>
+          <Field label="Valor atual (se estiver rendendo)" prefix="R$" placeholder="0,00" keyboardType="decimal-pad" value={currentText} onChangeText={setCurrentText} />
+          <Text style={s.help}>Informe quanto vale hoje para o app mostrar o rendimento; a taxa é só uma anotação (ex.: 100% do CDI).</Text>
+          <Field label="Taxa (opcional)" placeholder="Ex.: 100% do CDI" value={rateText} onChangeText={setRateText} />
+        </View>
+      )}
+      {isInvestment && gain !== null && (
+        <Text style={s.preview}>
+          Rendimento: {gainText(gain, Math.round((gain / cents) * 100))}
+        </Text>
+      )}
 
       {!editing && isExpense && (
         <View>
@@ -252,8 +307,8 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
       )}
 
       <Field
-        label={isExpense ? 'Descrição (opcional)' : 'O que é esta receita?'}
-        placeholder={isExpense ? 'Ex.: mercado, uber, farmácia…' : 'Ex.: salário, venda do notebook, freelance…'}
+        label={isExpense ? 'Descrição (opcional)' : isInvestment ? 'O que é? (opcional)' : 'O que é esta receita?'}
+        placeholder={isExpense ? 'Ex.: mercado, uber, farmácia…' : isInvestment ? 'Ex.: CDB, Tesouro Selic, reserva…' : 'Ex.: salário, venda do notebook, freelance…'}
         value={desc}
         onChangeText={setDesc}
       />

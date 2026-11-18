@@ -48,6 +48,17 @@ const isRealDate = (d: string) => {
   return dt.getUTCFullYear() === +m[1] && dt.getUTCMonth() === +m[2] - 1 && dt.getUTCDate() === +m[3];
 };
 
+/** An investment needs a bank; the current value, when informed, is a whole number of cents >= 0, and the rate is only a note. */
+const validInvestment = (t: any) =>
+  typeof t.bank === 'string' && !!t.bank.trim() && (t.currentValueCents === undefined || (Number.isInteger(t.currentValueCents) && t.currentValueCents >= 0)) && (t.ratePct === undefined || typeof t.ratePct === 'string');
+
+/** An investment has no card, method, status, vencimento or series: whatever a file carries for them is dropped. */
+function dropInvestmentExpenseFields(t: any) {
+  if (t?.type !== 'investment') return t;
+  const { cardId, method, paid, due, installment, recurring, ...rest } = t;
+  return rest;
+}
+
 export function parseData(raw: string): AppData {
   const obj = JSON.parse(raw);
   if (!obj || !Array.isArray(obj.transactions)) throw new Error('Formato inválido');
@@ -57,10 +68,10 @@ export function parseData(raw: string): AppData {
   if (!cards.every((c: any) => typeof c?.id === 'string' && typeof c?.name === 'string' && (c.paid === undefined || Array.isArray(c.paid)))) {
     throw new Error('Formato inválido');
   }
-  const transactions = obj.transactions.map(dropRefund);
+  const transactions = obj.transactions.map(dropRefund).map(dropInvestmentExpenseFields);
   // a transaction without these fields passes the loader but crashes the sort and the totals on every launch
   const valid = (t: any) =>
-    typeof t?.id === 'string' && typeof t.date === 'string' && typeof t.createdAt === 'string' && (t.type === 'expense' || t.type === 'income') && Number.isInteger(t.amountCents) && t.amountCents >= 0 && isRealDate(t.date);
+    typeof t?.id === 'string' && typeof t.date === 'string' && typeof t.createdAt === 'string' && (t.type === 'expense' || t.type === 'income' || t.type === 'investment') && Number.isInteger(t.amountCents) && t.amountCents >= 0 && isRealDate(t.date) && (t.type !== 'investment' || validInvestment(t));
   if (!transactions.every(valid)) throw new Error('Formato inválido');
   return {
     schemaVersion: SCHEMA_VERSION,

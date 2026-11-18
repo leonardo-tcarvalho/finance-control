@@ -1,9 +1,9 @@
 import { ReactNode, useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { MonthPoint, Slice, totalsOf } from './calc';
+import { MonthPoint, Slice, investedShare, reserveLevel, savingsRate, totalsOf } from './calc';
 import { Theme, useTheme } from './theme';
 import { Transaction } from './types';
-import { MONTHS, brl } from './utils';
+import { MONTHS, brl, signedPct } from './utils';
 
 interface Props {
   /** rows of the selected month */
@@ -12,18 +12,23 @@ interface Props {
   series: MonthPoint[];
   byCategory: Slice[];
   byPayment: Slice[];
+  /** months of spending the investments cover, or null when it cannot be computed */
+  reserveMonths: number | null;
 }
 
 export const monthShort = (key: string) => MONTHS[Number(key.slice(5, 7)) - 1].slice(0, 3);
 
-export default function Summary({ rows, series, byCategory, byPayment }: Props) {
+export default function Summary({ rows, series, byCategory, byPayment, reserveMonths }: Props) {
   const t = useTheme();
   const s = useMemo(() => makeStyles(t), [t]);
   const totals = totalsOf(rows);
   const current = series[series.length - 1];
   const previous = series.length > 1 ? series[series.length - 2] : undefined;
   const delta = previous && previous.expense > 0 ? Math.round(((current.expense - previous.expense) / previous.expense) * 100) : null;
-  const saved = current.income > 0 ? Math.round(((current.income - current.expense) / current.income) * 100) : null;
+  const share = investedShare(totals.invested, totals.income);
+  const reserve = reserveMonths !== null && reserveMonths > 0 ? { months: reserveMonths, ...reserveLevel(reserveMonths) } : null;
+  const showShare = share !== null && totals.invested > 0;
+  const saved = savingsRate(current.income, current.expense);
 
   return (
     <ScrollView style={s.flex1} contentContainerStyle={s.body} showsVerticalScrollIndicator={false}>
@@ -41,6 +46,28 @@ export default function Summary({ rows, series, byCategory, byPayment }: Props) 
           <Text style={s.note}>{saved >= 0 ? `Sobrou ${saved}% da renda do mês.` : `Os gastos passaram ${Math.abs(saved)}% da renda do mês.`}</Text>
         )}
       </Card>
+
+      {(saved !== null || showShare || reserve) && (
+        <Card title="Saúde financeira" s={s}>
+          {saved !== null && <Text style={s.note}>Taxa de poupança do mês: {signedPct(saved)} da renda.</Text>}
+          {showShare && <Text style={s.note}>Parte da renda aplicada no mês: {share}%.</Text>}
+          {reserve && (
+            <Text style={s.note}>
+              Reserva de emergência: {String(reserve.months).replace('.', ',')} {reserve.months === 1 ? 'mês' : 'meses'} de gastos ({reserve.level}). {reserve.text}
+            </Text>
+          )}
+          <Text style={s.empty}>
+            Indicadores para você se acompanhar; não são conselho financeiro.{reserve ? ' A reserva usa o valor atual de todos os investimentos e a média de gastos dos últimos 6 meses.' : ''}
+          </Text>
+        </Card>
+      )}
+
+      {totals.invested > 0 && (
+        <Card title="Investido neste mês" s={s}>
+          <Kpi s={s} label="Aplicado" value={brl(totals.invested)} color={t.primary} />
+          {share !== null && <Text style={s.note}>{share}% da renda do mês foi aplicada.</Text>}
+        </Card>
+      )}
 
       <Card title="Gastos por categoria" s={s}>
         {byCategory.length === 0 ? <Text style={s.empty}>Nenhum gasto neste mês.</Text> : <Bars s={s} slices={byCategory} color={t.primary} />}
