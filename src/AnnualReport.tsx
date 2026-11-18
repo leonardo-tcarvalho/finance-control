@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { annualTotals, availableYears, monthlySeries, spendByCategory, spendByOrigin, spendByPayment, topExpenses, yearRows } from './calc';
+import { annualTotals, availableYears, monthlySeries, spendByCategory, spendByOrigin, spendByPayment, splitPercents, topExpenses, yearRows } from './calc';
 import { Bars, Card, Evolution, Kpi, makeStyles } from './Summary';
 import { useTheme } from './theme';
 import { Card as CardData, Method, Transaction } from './types';
@@ -42,10 +42,11 @@ export default function AnnualReport({ list, cards, cardName, methodName }: Prop
 
   const i = years.indexOf(year); // years are newest first
   const none = <Text style={s.empty}>Nenhum gasto neste ano.</Text>;
+  const originPct = splitPercents([origin.installment, origin.recurring, origin.single]);
   const originRows = [
-    { label: 'Parcelado', cents: origin.installment },
-    { label: 'Recorrente', cents: origin.recurring },
-    { label: 'Avulso', cents: origin.single },
+    { label: 'Parcelado', cents: origin.installment, pct: originPct[0] },
+    { label: 'Recorrente', cents: origin.recurring, pct: originPct[1] },
+    { label: 'Avulso', cents: origin.single, pct: originPct[2] },
   ];
 
   return (
@@ -120,7 +121,7 @@ export default function AnnualReport({ list, cards, cardName, methodName }: Prop
             <View key={x.label} style={s.barHead}>
               <Text style={s.barLabel}>{x.label}</Text>
               <Text style={s.barValue}>
-                {brl(x.cents)} · {Math.round((x.cents / totals.expense) * 100)}%
+                {brl(x.cents)} · {x.pct}%
               </Text>
             </View>
           ))
