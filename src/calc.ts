@@ -192,3 +192,44 @@ export function splitPercents(values: number[]): number[] {
   for (let k = 0; k < left; k++) pct[order[k].i]++;
   return pct;
 }
+
+export interface Holding {
+  /** the bank, or "Total" in portfolioTotals */
+  bank: string;
+  applied: number;
+  current: number;
+  gain: number;
+  /** gain over applied, whole percent (0 when nothing was applied) */
+  gainPct: number;
+}
+
+const holding = (bank: string, applied: number, current: number): Holding => ({
+  bank,
+  applied,
+  current,
+  gain: current - applied,
+  gainPct: applied > 0 ? Math.round(((current - applied) / applied) * 100) : 0,
+});
+
+/** What an investment is worth: the informed current value, or what was applied when none was informed. */
+const worthOf = (t: Transaction) => t.currentValueCents ?? t.amountCents;
+
+/** Investments grouped by bank, the one worth the most first (equal values in name order). */
+export function portfolioByBank(list: Transaction[]): Holding[] {
+  const m = new Map<string, { applied: number; current: number }>();
+  for (const t of list) {
+    if (t.type !== 'investment') continue;
+    const bank = t.bank ?? '';
+    const h = m.get(bank) ?? { applied: 0, current: 0 };
+    h.applied += t.amountCents;
+    h.current += worthOf(t);
+    m.set(bank, h);
+  }
+  return Array.from(m, ([bank, h]) => holding(bank, h.applied, h.current)).sort((a, b) => b.current - a.current || a.bank.localeCompare(b.bank, 'pt-BR'));
+}
+
+/** Applied, current value and gain over every investment. */
+export function portfolioTotals(list: Transaction[]): Holding {
+  const banks = portfolioByBank(list);
+  return holding('Total', banks.reduce((n, h) => n + h.applied, 0), banks.reduce((n, h) => n + h.current, 0));
+}
