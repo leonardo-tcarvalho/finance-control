@@ -44,3 +44,25 @@ describe('parseData with investments', () => {
     expect(parseData(raw({ type: 'income' })).transactions).toHaveLength(1);
   });
 });
+
+describe('parseData with limits', () => {
+  const lim = (limits: unknown) => parseData(JSON.stringify({ transactions: [], limits })).limits;
+  it('an old file without limits stays valid, with no limits', () => {
+    expect(parseData(raw({})).limits).toBeUndefined();
+  });
+  it('keeps valid limits', () => {
+    expect(lim({ spendingGoalCents: 300000, installmentPct: 30 })).toEqual({ spendingGoalCents: 300000, installmentPct: 30 });
+    expect(lim({ installmentPct: 100 })).toEqual({ installmentPct: 100 });
+    expect(lim({ installmentPct: 1 })).toEqual({ installmentPct: 1 });
+  });
+  it('drops zero, negative, fractional, non-numeric and out-of-range values without failing', () => {
+    expect(lim({ spendingGoalCents: 0, installmentPct: 0 })).toBeUndefined();
+    expect(lim({ spendingGoalCents: -5, installmentPct: -1 })).toBeUndefined();
+    expect(lim({ spendingGoalCents: 10.5, installmentPct: 30.5 })).toBeUndefined();
+    expect(lim({ spendingGoalCents: '3000', installmentPct: 101 })).toBeUndefined();
+    expect(lim('x')).toBeUndefined();
+  });
+  it('drops only the invalid one', () => {
+    expect(lim({ spendingGoalCents: 'a', installmentPct: 20 })).toEqual({ installmentPct: 20 });
+  });
+});

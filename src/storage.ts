@@ -1,5 +1,5 @@
 import { Directory, File, Paths } from 'expo-file-system';
-import { AppData, SCHEMA_VERSION, emptyData } from './types';
+import { AppData, Limits, SCHEMA_VERSION, emptyData } from './types';
 import { today } from './utils';
 
 /**
@@ -31,6 +31,17 @@ function parseCategories(raw: unknown) {
   const expense = clean(r?.expense);
   const income = clean(r?.income);
   return expense && income ? { expense, income } : undefined;
+}
+
+/** Keeps only valid limits (positive whole cents, whole percent 1-100); anything else is dropped instead of failing the load. */
+function parseLimits(raw: unknown): Limits | undefined {
+  const r = raw as { spendingGoalCents?: unknown; installmentPct?: unknown } | null | undefined;
+  const goal = r?.spendingGoalCents;
+  const pct = r?.installmentPct;
+  const limits: Limits = {};
+  if (typeof goal === 'number' && Number.isInteger(goal) && goal > 0) limits.spendingGoalCents = goal;
+  if (typeof pct === 'number' && Number.isInteger(pct) && pct >= 1 && pct <= 100) limits.installmentPct = pct;
+  return Object.keys(limits).length ? limits : undefined;
 }
 
 /** The refund type was removed. An old refund is kept as income (money that came back), without card or method. */
@@ -78,6 +89,7 @@ export function parseData(raw: string): AppData {
     cards,
     settings: obj.settings && typeof obj.settings === 'object' ? obj.settings : undefined,
     categories: parseCategories(obj.categories),
+    limits: parseLimits(obj.limits),
     transactions,
     updatedAt: obj.updatedAt ?? new Date().toISOString(),
   };

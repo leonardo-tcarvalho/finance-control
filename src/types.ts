@@ -49,8 +49,17 @@ export interface AppData {
   categories?: Categories;
   /** UI preferences; absent in files saved before themes existed */
   settings?: { theme?: 'light' | 'dark' };
+  /** Optional limits set from the menu; absent in files saved before they existed (no limit). */
+  limits?: Limits;
   transactions: Transaction[];
   updatedAt: string;
+}
+
+export interface Limits {
+  /** monthly spending goal in cents (> 0); absent = no goal */
+  spendingGoalCents?: number;
+  /** max share of the month's income committed to installments, whole percent 1-100; absent = no limit */
+  installmentPct?: number;
 }
 
 export const SCHEMA_VERSION = 2;
