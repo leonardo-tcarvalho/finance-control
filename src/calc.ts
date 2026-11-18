@@ -259,3 +259,15 @@ export const investedShare = (invested: number, income: number): number | null =
 
 /** Whole percent of the income left after spending ((income - expense) / income); negative when spending passed the income, null without income. */
 export const savingsRate = (income: number, expense: number): number | null => (income > 0 ? Math.round(((income - expense) / income) * 100) : null);
+
+/**
+ * How many months of spending the investments cover: what the whole portfolio is worth now divided by the average monthly
+ * spending of the 6 months ending at `endMonth` (only months with spending), to one decimal. null when nothing was spent
+ * in those months; 0 when there is spending but no investments.
+ */
+export function emergencyReserveMonths(list: Transaction[], cards: Card[], endMonth: string): number | null {
+  const spent = monthlySeries(list, cards, endMonth, 6).filter((m) => m.expense > 0);
+  if (spent.length === 0) return null;
+  const average = spent.reduce((sum, m) => sum + m.expense, 0) / spent.length;
+  return Math.round((portfolioTotals(list).current / average) * 10) / 10;
+}
