@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { gainText } from './calc';
 import Field, { Label } from './Field';
 import Sheet from './Sheet';
 import { Theme, useTheme } from './theme';
@@ -240,7 +241,7 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
       )}
       {isInvestment && gain !== null && (
         <Text style={s.preview}>
-          {`Rendimento: ${gain === 0 ? '' : gain > 0 ? '+ ' : '− '}${brl(Math.abs(gain))} (${gain === 0 ? '' : gain > 0 ? '+' : '−'}${Math.round((Math.abs(gain) / cents) * 100)}%)`}
+          Rendimento: {gainText(gain, Math.round((gain / cents) * 100))}
         </Text>
       )}
 
