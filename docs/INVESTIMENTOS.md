@@ -17,7 +17,7 @@ Resultado da leitura de `src/types.ts`, `src/storage.ts`, `src/ops.ts`, `src/sta
 | Rendimento calculado sozinho (CDI, taxa, projeção) | **Fora** | Exige índices externos e o app é 100% local. O valor atual é informado pela pessoa. |
 | Metas de investimento, alertas, cotações | **Fora** | Fora do pedido; aumenta muito o escopo. |
 | Resgate parcial, vender uma aplicação | **Fora** | Primeira versão: o valor atual informado já reflete o que sobrou. |
-| Comprometimento da renda com parcelas | **Adiado** | Útil, mas fica para uma próxima rodada. |
+| Comprometimento da renda com parcelas | **Entregue** | Linha de parcelas na saúde financeira do relatório mensal, com limite opcional definido no menu. |
 
 ## 2. Modelo escolhido
 
