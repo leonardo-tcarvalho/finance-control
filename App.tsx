@@ -10,7 +10,7 @@ import { PlusIcon, TrayArrow } from './src/Icons';
 import RowActions from './src/RowActions';
 import EntryModal, { EntryValues } from './src/EntryModal';
 import { committedOnCard, gainLabel, gainOf, gainText, portfolioTotals, titleOf, sortCardsByLimit, dueDate, filterRows, invoiceRows, isPaid, monthOf, monthlySeries, spendByCategory, spendByPayment, spendOf } from './src/calc';
-import { applyEdit, buildEntries, groupOf } from './src/ops';
+import { applyEdit, buildEntries, groupOf, updateCurrentValue } from './src/ops';
 import { loadData, saveData, saveRestorePoint } from './src/storage';
 import { dueOf, isOverdue, isPending, monthTotals, movedIntoPaidInvoice, overdueSummary, payKind } from './src/status';
 import AnnualReport from './src/AnnualReport';
@@ -633,6 +633,11 @@ function Main() {
           onTogglePaid={(tx) => {
             togglePaid(tx);
             setActionsFor(null);
+          }}
+          onUpdateValue={(tx, cents) => {
+            if (!data) return;
+            setActionsFor(null);
+            persist({ ...data, transactions: updateCurrentValue(data.transactions, tx.id, cents) });
           }}
           onEdit={(tx) => {
             setActionsFor(null);
