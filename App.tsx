@@ -11,7 +11,7 @@ import RowActions from './src/RowActions';
 import EntryModal, { EntryValues } from './src/EntryModal';
 import { committedOnCard, sortCardsByLimit, dueDate, filterRows, invoiceRows, isPaid, monthOf, monthlySeries, spendByCategory, spendByPayment, spendOf } from './src/calc';
 import { applyEdit, buildEntries, groupOf } from './src/ops';
-import { loadData, saveData } from './src/storage';
+import { loadData, saveData, saveRestorePoint } from './src/storage';
 import { dueOf, isOverdue, isPending, monthTotals, movedIntoPaidInvoice, overdueSummary, payKind } from './src/status';
 import Summary from './src/Summary';
 import { Theme, ThemeContext, darkTheme, lightTheme } from './src/theme';
@@ -236,10 +236,22 @@ function Main() {
       if (!imported || !data) return;
       Alert.alert(
         'Restaurar backup?',
-        `Substitui os ${data.transactions.length} lançamentos atuais por ${imported.transactions.length} do arquivo. O estado atual continua nos backups automáticos.`,
+        `Substitui os ${data.transactions.length} lançamentos atuais por ${imported.transactions.length} do arquivo. Uma cópia do estado atual é guardada em backups/antes-de-restaurar-… antes de substituir.`,
         [
           { text: 'Cancelar', style: 'cancel' },
-          { text: 'Restaurar', onPress: () => persist(imported) },
+          {
+            text: 'Restaurar',
+            onPress: async () => {
+              try {
+                await queue.current; // let pending saves land so the copy is the latest state
+                await saveRestorePoint();
+              } catch (e) {
+                Alert.alert('Não foi possível guardar o estado atual', `A restauração foi cancelada. ${e instanceof Error ? e.message : String(e)}`);
+                return;
+              }
+              persist(imported);
+            },
+          },
         ],
       );
     } catch (e) {

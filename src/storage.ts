@@ -8,6 +8,7 @@ import { today } from './utils';
  *  - atomic write: write `data.json.tmp`, validate, then replace `data.json`
  *  - before each overwrite the previous good file is kept as `data.prev.json`
  *  - one dated snapshot per day in `backups/`, last MAX_BACKUPS are kept
+ *  - before a manual restore, data.json is copied to `backups/antes-de-restaurar-<time>.json` (never cleaned up)
  *  - on load, if main file is missing/corrupt we fall back to prev, then newest backup
  *  - export/import lets the user keep a copy outside the app (see backup.ts)
  */
@@ -80,19 +81,32 @@ export async function loadData(): Promise<AppData> {
     if (data) return data;
   }
   // listing backups can throw: only do it when the main files are no good
-  for (const f of listBackups()) {
+  // pre-restore copies come last: they are only a safety net, daily snapshots are the normal fallback
+  const files = [...listBackups(), ...listRestorePoints()];
+  for (const f of files) {
     const data = await tryRead(f);
     if (data) return data;
   }
   // data files exist but none is readable: starting empty would let the next save overwrite what may still be recoverable
-  if ([mainFile(), tmpFile(), prevFile()].some((f) => f.exists) || listBackups().length > 0) throw new Error('Dados ilegíveis');
+  if ([mainFile(), tmpFile(), prevFile()].some((f) => f.exists) || files.length > 0) throw new Error('Dados ilegíveis');
   return emptyData(); // first launch: nothing was ever saved
 }
 
-function listBackups(): File[] {
-  if (!backupsDir().exists) return [];
-  return (backupsDir().list().filter((e) => e instanceof File) as File[])
-    .sort((a, b) => b.name.localeCompare(a.name)); // newest first (name = ISO date)
+const listIn = (re: RegExp): File[] =>
+  backupsDir().exists
+    ? (backupsDir().list().filter((e) => e instanceof File && re.test(e.name)) as File[]).sort((a, b) => b.name.localeCompare(a.name)) // newest first (name = ISO date)
+    : [];
+
+/** Daily snapshots only (yyyy-mm-dd.json): the only files the MAX_BACKUPS cleanup may delete. */
+const listBackups = () => listIn(/^\d{4}-\d{2}-\d{2}\.json$/);
+const listRestorePoints = () => listIn(/^antes-de-restaurar-.*\.json$/);
+
+/** Copies the current data.json to a file that is never reused or cleaned up, before a restore replaces it. */
+export async function saveRestorePoint(): Promise<void> {
+  const main = mainFile();
+  if (!main.exists) return; // nothing saved yet, nothing to lose
+  ensureDirs();
+  await main.copy(new File(backupsDir(), `antes-de-restaurar-${new Date().toISOString().replace(/[:.]/g, '-')}.json`));
 }
 
 export async function saveData(data: AppData): Promise<AppData> {
