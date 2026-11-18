@@ -24,6 +24,10 @@ export interface EntryValues {
   method: Method | null;
   /** ISO vencimento, or '' when not informed (the entry date then applies) */
   due: string;
+  /** investments only: institution, current value as typed ('' = not informed) and a free-text rate note */
+  bank: string;
+  currentValue: string;
+  rate: string;
 }
 
 interface Props {
@@ -143,7 +147,7 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
       if (!parsed) return Alert.alert('Vencimento inválido', 'Use o formato DD/MM/AAAA, ou deixe em branco para usar a data do lançamento.');
       due = parsed;
     }
-    if (onSubmit({ type, amount, desc, date, category: isExpense ? selectedCategory : INCOME_CATEGORY, repeat: effRepeat, times, paidInstallments: effRepeat === 'installment' ? paidText : '', cardId: lockedCard ? lockedCard.id : selectedCard, method: lockedCard ? null : selectedMethod, due })) onClose();
+    if (onSubmit({ type, amount, desc, date, category: isExpense ? selectedCategory : INCOME_CATEGORY, repeat: effRepeat, times, paidInstallments: effRepeat === 'installment' ? paidText : '', cardId: lockedCard ? lockedCard.id : selectedCard, method: lockedCard ? null : selectedMethod, due, bank: '', currentValue: '', rate: '' })) onClose();
   };
 
   return (
