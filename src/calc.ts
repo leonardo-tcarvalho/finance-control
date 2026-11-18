@@ -280,3 +280,30 @@ export function reserveLevel(months: number): { level: ReserveLevel; text: strin
   if (months < 6) return { level: 'boa', text: 'Entre 3 e 6 meses de gastos cobertos.' };
   return { level: 'ótima', text: '6 meses ou mais de gastos cobertos.' };
 }
+
+export type GoalLevel = 'abaixo' | 'perto' | 'passou';
+
+/**
+ * Progress of the month's spending toward the goal: whole percent (spent / goal, rounded) and its level, judged on that
+ * rounded percent so it matches what is shown: under 80 'abaixo', 80 up to 100 'perto', above 100 'passou'.
+ * `spent` is every expense of the month, paid or pending. null when there is no goal.
+ */
+export function goalProgress(spent: number, goalCents?: number): { pct: number; level: GoalLevel } | null {
+  if (!goalCents || goalCents <= 0) return null;
+  const pct = Math.round((spent / goalCents) * 100);
+  return { pct, level: pct > 100 ? 'passou' : pct >= 80 ? 'perto' : 'abaixo' };
+}
+
+/**
+ * Share of the month's income committed to installments, over `rows` already limited to the month (by monthOf, so a card
+ * purchase counts in the month of its invoice). An installment is any expense carrying `installment`, the same mark the
+ * app uses for installment purchases, paid or pending; recurring series and single purchases do not count.
+ * pct is whole and rounded; `over` is true only when that pct is strictly above `limitPct`. null when the month has no income.
+ */
+export function installmentCommitment(rows: Transaction[], limitPct?: number): { installments: number; income: number; pct: number; over: boolean } | null {
+  const { income } = totalsOf(rows);
+  if (income <= 0) return null;
+  const { installment: installments } = spendByOrigin(rows);
+  const pct = Math.round((installments / income) * 100);
+  return { installments, income, pct, over: limitPct !== undefined && pct > limitPct };
+}
