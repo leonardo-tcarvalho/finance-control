@@ -56,9 +56,10 @@ describe('topExpenses', () => {
     expect(topExpenses(rows).map((t) => t.id)).toEqual(['b', 'c', 'a']);
   });
   it('does not reorder the input list', () => {
-    const before = [...rows];
-    topExpenses(rows);
-    expect(rows).toEqual(before);
+    const own = [tx({ amountCents: 100 }), tx({ amountCents: 900 }), tx({ type: 'income', amountCents: 5000 }), tx({ amountCents: 500 })]; // not in value order, and not shared with the other tests
+    const before = [...own];
+    topExpenses(own);
+    expect(own).toEqual(before);
   });
   it('respects n', () => {
     expect(topExpenses(rows, 2).map((t) => t.id)).toEqual(['b', 'c']);
