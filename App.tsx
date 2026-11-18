@@ -9,8 +9,8 @@ import Drawer, { DrawerDivider, DrawerItem, DrawerSection } from './src/Drawer';
 import { PlusIcon, TrayArrow } from './src/Icons';
 import RowActions from './src/RowActions';
 import EntryModal, { EntryValues } from './src/EntryModal';
-import { committedOnCard, sortCardsByLimit, dueDate, filterRows, invoiceRows, isPaid, monthOf, monthlySeries, spendByCategory, spendByPayment, spendOf } from './src/calc';
-import { applyEdit, buildEntries, groupOf } from './src/ops';
+import { committedOnCard, gainLabel, gainOf, gainText, portfolioTotals, titleOf, sortCardsByLimit, dueDate, filterRows, invoiceRows, isPaid, monthOf, monthlySeries, spendByCategory, spendByPayment, spendOf } from './src/calc';
+import { applyEdit, buildEntries, groupOf, updateCurrentValue } from './src/ops';
 import { loadData, saveData, saveRestorePoint } from './src/storage';
 import { dueOf, isOverdue, isPending, monthTotals, movedIntoPaidInvoice, overdueSummary, payKind } from './src/status';
 import AnnualReport from './src/AnnualReport';
@@ -339,6 +339,7 @@ function Main() {
   );
   const filtering = query.trim() !== '';
   const shownTotals = monthTotals(shownRows, data?.cards ?? []);
+  const portfolio = useMemo(() => portfolioTotals(data?.transactions ?? []), [data]);
   const byPayment = useMemo(() => spendByPayment(rows, cardNameOf, methodNameOf), [rows, data]);
 
   // overdue expenses of every month, so a late bill is never hidden in a month that is not on screen
@@ -455,8 +456,15 @@ function Main() {
             <View style={s.stats}>
               <Stat s={s} label="Receitas" value={brl(totals.income)} color={t.green} />
               <Stat s={s} label="Gastos" value={brl(totals.expense)} color={t.red} sub={totals.pending > 0 ? `${brl(totals.pending)} pendentes` : undefined} />
-              <Stat s={s} label="Saldo" value={brl(totals.balance)} color={totals.balance >= 0 ? t.green : t.red} />
+              <Stat s={s} label="Saldo" value={brl(totals.balance)} color={totals.balance >= 0 ? t.green : t.red} sub={totals.invested > 0 ? 'já desconta o investido' : undefined} />
             </View>
+            {/* only for people who invest: what went in this month and what the whole portfolio is worth */}
+            {(totals.invested > 0 || portfolio.applied > 0) && (
+              <View style={[s.stats, { marginTop: 8 }]}>
+                <Stat s={s} label="Investido no mês" value={brl(totals.invested)} color={t.primary} />
+                <Stat s={s} label="Carteira" value={brl(portfolio.current)} color={t.primary} sub={`rendimento ${gainText(portfolio.gain, portfolio.gainPct)}`} />
+              </View>
+            )}
           </View>
         )}
 
@@ -527,8 +535,11 @@ function Main() {
                   const due = dueOf(item, data.cards);
                   // income carries no status; every expense is paid, pending or overdue
                   const status = kind === 'none' ? null : overdue ? 'overdue' : pending ? 'pending' : 'paid';
+                  const isInv = item.type === 'investment';
                   const parts = [
                     item.description && item.type === 'expense' ? { k: 'cat', text: item.category, color: t.textMuted } : null,
+                    isInv ? { k: 'bank', text: `🏦 ${item.bank ?? ''}`, color: t.link } : null,
+                    isInv && item.currentValueCents !== undefined ? { k: 'gain', text: gainLabel(item), color: gainOf(item) < 0 ? t.red : gainOf(item) > 0 ? t.green : t.textMuted } : null,
                     card ? { k: 'card', text: `💳 ${card.name}`, color: t.link } : null,
                     !card && item.method ? { k: 'method', text: methodLabel(item.method), color: t.textMuted } : null,
                     item.installment ? { k: 'inst', text: `Parcela ${item.installment.n}/${item.installment.of}`, color: t.amber } : null,
@@ -541,13 +552,13 @@ function Main() {
                       onPress={() => setActionsFor(item)}
                       style={({ pressed }) => [s.row, status === 'paid' && s.rowPaid, status === 'pending' && s.rowPending, status === 'overdue' && s.rowOverdue, pressed && { opacity: 0.7 }]}
                       accessibilityRole="button"
-                      accessibilityLabel={`${item.description || item.category}, ver opções`}
+                      accessibilityLabel={`${titleOf(item)}, ver opções`}
                     >
                       {status === 'overdue' && <View style={s.rowBar} />}
                       <Text style={s.rowDate}>{shortDate(item.date)}</Text>
                       <View style={s.flex1}>
                         <Text style={s.rowTitle} numberOfLines={1}>
-                          {item.description || item.category}
+                          {titleOf(item)}
                         </Text>
                         {parts.length > 0 && (
                           <Text style={s.rowSub} numberOfLines={2}>
@@ -560,8 +571,8 @@ function Main() {
                           </Text>
                         )}
                       </View>
-                      <Text style={[s.rowValue, { color: item.type === 'expense' ? t.red : t.green }]} numberOfLines={1}>
-                        {item.type === 'expense' ? '−' : '+'} {brl(item.amountCents)}
+                      <Text style={[s.rowValue, { color: isInv ? t.primary : item.type === 'expense' ? t.red : t.green }]} numberOfLines={1}>
+                        {isInv ? '→' : item.type === 'expense' ? '−' : '+'} {brl(item.amountCents)}
                       </Text>
                     </Pressable>
                   );
@@ -571,6 +582,7 @@ function Main() {
               <View style={s.listFoot}>
                 <Text style={s.footLabel}>
                   {filtering ? 'Filtrado' : 'Total'} · {shownRows.length} {shownRows.length === 1 ? 'linha' : 'linhas'}
+                  {!onCard && shownTotals.invested > 0 ? ' · já desconta o investido' : ''}
                 </Text>
                 <Text style={[s.footValue, { color: onCard ? t.red : shownTotals.balance >= 0 ? t.green : t.red }]}>{brl(onCard ? shownTotals.expense : shownTotals.balance)}</Text>
               </View>
@@ -622,6 +634,11 @@ function Main() {
           onTogglePaid={(tx) => {
             togglePaid(tx);
             setActionsFor(null);
+          }}
+          onUpdateValue={(tx, cents) => {
+            if (!data) return;
+            setActionsFor(null);
+            persist({ ...data, transactions: updateCurrentValue(data.transactions, tx.id, cents) });
           }}
           onEdit={(tx) => {
             setActionsFor(null);

@@ -132,3 +132,9 @@ export function applyEdit(list: Transaction[], original: Transaction, e: EditInp
     return x;
   });
 }
+
+/** Sets only the current value of one investment; an unknown id or a row that is not an investment is left alone. */
+export function updateCurrentValue(list: Transaction[], id: string, cents: number): Transaction[] {
+  if (!(Number.isInteger(cents) && cents >= 0)) throw new Error('Valor atual inválido');
+  return list.map((x) => (x.id === id && x.type === 'investment' ? { ...x, currentValueCents: cents } : x));
+}

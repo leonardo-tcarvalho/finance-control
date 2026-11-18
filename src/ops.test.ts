@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyEdit, buildEntries } from './ops';
+import { applyEdit, buildEntries, updateCurrentValue } from './ops';
 
 const base = { type: 'expense' as const, amountCents: 1000, description: 'x', category: 'Outros', date: '2026-01-15', times: 3, mode: 'installment' as const };
 
@@ -72,5 +72,25 @@ describe('investments', () => {
     const out = applyEdit(rows, rows[0], edit);
     expect(out[0].type).toBe('expense');
     expect(out[0].bank).toBeUndefined();
+  });
+});
+
+describe('updateCurrentValue', () => {
+  const [inv] = buildEntries({ ...base, type: 'investment', bank: 'Nubank', currentValueCents: 1000, ratePct: '10%', times: 1 }, 'i', 'now');
+  const [exp] = buildEntries({ ...base, times: 1 }, 'e', 'now');
+  it('changes only the current value of that investment', () => {
+    const out = updateCurrentValue([exp, inv], inv.id, 1500);
+    expect(out[1]).toEqual({ ...inv, currentValueCents: 1500 });
+    expect(out[0]).toBe(exp);
+  });
+  it('accepts an explicit zero', () => {
+    expect(updateCurrentValue([inv], inv.id, 0)[0].currentValueCents).toBe(0);
+  });
+  it('leaves an unknown id and a row that is not an investment alone', () => {
+    expect(updateCurrentValue([exp, inv], 'nope', 5)).toEqual([exp, inv]);
+    expect(updateCurrentValue([exp, inv], exp.id, 5)[0]).toBe(exp);
+  });
+  it('refuses a negative, decimal or NaN value', () => {
+    for (const v of [-1, 1.5, NaN]) expect(() => updateCurrentValue([inv], inv.id, v)).toThrow('Valor atual inválido');
   });
 });
