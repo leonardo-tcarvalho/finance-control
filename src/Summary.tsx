@@ -56,7 +56,9 @@ export default function Summary({ rows, series, byCategory, byPayment, reserveMo
               Reserva de emergência: {String(reserve.months).replace('.', ',')} {reserve.months === 1 ? 'mês' : 'meses'} de gastos ({reserve.level}). {reserve.text}
             </Text>
           )}
-          <Text style={s.empty}>Indicadores para você se acompanhar; não são conselho financeiro. A reserva usa o valor atual de todos os investimentos e a média de gastos dos últimos 6 meses.</Text>
+          <Text style={s.empty}>
+            Indicadores para você se acompanhar; não são conselho financeiro.{reserve ? ' A reserva usa o valor atual de todos os investimentos e a média de gastos dos últimos 6 meses.' : ''}
+          </Text>
         </Card>
       )}
 
