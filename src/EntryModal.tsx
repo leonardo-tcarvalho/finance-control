@@ -177,7 +177,7 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
       visible={visible}
       title={editing ? 'Editar lançamento' : lockedCard ? `Novo gasto · ${lockedCard.name}` : 'Novo lançamento'}
       onClose={onClose}
-      dirty={!!editing || amount !== '' || desc !== ''}
+      dirty={!!editing || amount !== '' || desc !== '' || bankChoice !== '' || currentText !== '' || rateText !== ''}
       footer={
         <>
           <Pressable onPress={onClose} style={[s.btn, s.btnGhost]} accessibilityRole="button">
