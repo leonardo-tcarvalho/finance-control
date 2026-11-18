@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { gainLabel, gainOf, titleOf } from './calc';
 import Sheet from './Sheet';
 import { isPending, payKind } from './status';
 import { Theme, useTheme } from './theme';
@@ -16,18 +17,19 @@ interface Props {
   onDelete: (tx: Transaction) => void;
 }
 
-/** What can be done with a row: mark it paid or pending, edit it, delete it. */
+/** What can be done with a row: mark it paid or pending (expenses), edit it, delete it. */
 export default function RowActions({ tx, cards, onClose, onTogglePaid, onEdit, onDelete }: Props) {
   const t = useTheme();
   const s = useMemo(() => makeStyles(t), [t]);
   const kind = tx ? payKind(tx) : 'none';
   const pending = tx ? isPending(tx, cards) : false;
-  const sign = tx?.type === 'expense' ? '−' : '+';
+  const isInv = tx?.type === 'investment';
+  const sign = isInv ? '→' : tx?.type === 'expense' ? '−' : '+';
 
   return (
     <Sheet
       visible={tx !== null}
-      title={tx ? tx.description || tx.category : ''}
+      title={tx ? titleOf(tx) : ''}
       onClose={onClose}
       footer={
         <Pressable onPress={onClose} style={s.cancel} accessibilityRole="button">
@@ -40,6 +42,16 @@ export default function RowActions({ tx, cards, onClose, onTogglePaid, onEdit, o
           <Text style={s.info}>
             {shortDate(tx.date)} · {sign} {brl(tx.amountCents)}
           </Text>
+          {isInv && (
+            <Text style={s.info}>
+              🏦 {tx.bank ?? ''}
+              {tx.currentValueCents !== undefined && (
+                <Text style={{ color: gainOf(tx) < 0 ? t.red : gainOf(tx) > 0 ? t.green : t.textMuted }}>
+                  {'  ·  '}Hoje {brl(tx.currentValueCents)} · {gainLabel(tx)}
+                </Text>
+              )}
+            </Text>
+          )}
 
           {/* only expenses paid outside a card carry their own status; a card purchase follows its invoice */}
           {kind === 'other' && (
