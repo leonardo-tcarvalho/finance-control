@@ -6,15 +6,20 @@ export const spendOf = (t: Transaction) => (t.type === 'expense' ? t.amountCents
 
 export const incomeOf = (t: Transaction) => (t.type === 'income' ? t.amountCents : 0);
 
-/** Receitas, Gastos and Saldo for a set of rows. */
+/** How much a row puts into investments: only an investment does. It is neither spending nor income. */
+export const investedOf = (t: Transaction) => (t.type === 'investment' ? t.amountCents : 0);
+
+/** Receitas, Gastos, Investido and Saldo (receitas minus gastos minus investido) for a set of rows. */
 export function totalsOf(rows: Transaction[]) {
   let income = 0;
   let expense = 0;
+  let invested = 0;
   for (const t of rows) {
     income += incomeOf(t);
     expense += spendOf(t);
+    invested += investedOf(t);
   }
-  return { income, expense, balance: income - expense };
+  return { income, expense, invested, balance: income - expense - invested };
 }
 
 const daysIn = (month: string) => new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).getDate();
@@ -186,4 +191,47 @@ export function splitPercents(values: number[]): number[] {
   const left = 100 - pct.reduce((a, b) => a + b, 0);
   for (let k = 0; k < left; k++) pct[order[k].i]++;
   return pct;
+}
+
+export interface Holding {
+  /** the bank, or "Total" in portfolioTotals */
+  bank: string;
+  applied: number;
+  current: number;
+  gain: number;
+  /** gain over applied, whole percent (0 when nothing was applied) */
+  gainPct: number;
+}
+
+const holding = (bank: string, applied: number, current: number): Holding => ({
+  bank,
+  applied,
+  current,
+  gain: current - applied,
+  gainPct: applied > 0 ? Math.round(((current - applied) / applied) * 100) : 0,
+});
+
+/** What an investment is worth: the informed current value, or what was applied when none was informed. */
+const worthOf = (t: Transaction) => t.currentValueCents ?? t.amountCents;
+
+/** Investments grouped by bank, the one worth the most first (equal values in name order). */
+export function portfolioByBank(list: Transaction[]): Holding[] {
+  // "nubank", "Nubank " and " NUBANK" are one bank: group by the trimmed lowercase name and show the first spelling found
+  const m = new Map<string, { bank: string; applied: number; current: number }>();
+  for (const t of list) {
+    if (t.type !== 'investment') continue;
+    const bank = (t.bank ?? '').trim();
+    const key = bank.toLowerCase();
+    const h = m.get(key) ?? { bank, applied: 0, current: 0 };
+    h.applied += t.amountCents;
+    h.current += worthOf(t);
+    m.set(key, h);
+  }
+  return Array.from(m.values(), (h) => holding(h.bank, h.applied, h.current)).sort((a, b) => b.current - a.current || a.bank.localeCompare(b.bank, 'pt-BR'));
+}
+
+/** Applied, current value and gain over every investment. */
+export function portfolioTotals(list: Transaction[]): Holding {
+  const banks = portfolioByBank(list);
+  return holding('Total', banks.reduce((n, h) => n + h.applied, 0), banks.reduce((n, h) => n + h.current, 0));
 }

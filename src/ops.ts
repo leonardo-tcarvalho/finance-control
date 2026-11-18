@@ -19,7 +19,18 @@ export interface EntryInput {
   mode: 'installment' | 'recurring';
   /** installments of a purchase already paid before it was registered; only the remaining ones are created */
   paidCount?: number;
+  /** investments only (required for them): institution, current value and a free-text rate note */
+  bank?: string;
+  currentValueCents?: number;
+  ratePct?: string;
 }
+
+const investmentFields = (i: { bank?: string; currentValueCents?: number; ratePct?: string }) => {
+  if (!i.bank?.trim()) throw new Error('Informe o banco do investimento');
+  const v = i.currentValueCents;
+  if (v !== undefined && !(Number.isInteger(v) && v >= 0)) throw new Error('Valor atual inválido');
+  return { bank: i.bank.trim(), currentValueCents: i.currentValueCents, ratePct: i.ratePct?.trim() || undefined };
+};
 
 /** Id shared by every row of an installment purchase or a recurring series. */
 export const groupOf = (t: Transaction) => t.installment?.groupId ?? t.recurring?.groupId;
@@ -36,13 +47,15 @@ function settle(x: Transaction, prev: PayKind | null): Transaction {
 }
 
 /**
- * One row for a single entry, or one row per month for an installment purchase.
+ * One row for a single entry, or one row per month for an installment purchase. An investment is always a single row
+ * with no card, method, vencimento or series, and needs a bank.
  * The person gives the value of the installment, so every row has that value and the total is value x times.
  * When some installments were already paid, only the rest are created, numbered from the next one (4/12, 5/12...),
  * starting at `date`.
  */
 export function buildEntries(i: EntryInput, groupId: string, createdAt: string): Transaction[] {
-  const n = Math.max(1, i.times);
+  const isInvestment = i.type === 'investment';
+  const n = isInvestment ? 1 : Math.max(1, i.times);
   const paid = i.mode === 'installment' ? Math.min(Math.max(0, Math.floor(i.paidCount ?? 0)), n - 1) : 0;
   return Array.from({ length: n - paid }, (_, j) => {
     const k = paid + j; // position in the whole purchase
@@ -56,7 +69,8 @@ export function buildEntries(i: EntryInput, groupId: string, createdAt: string):
         date: addMonths(i.date, j),
         cardId: i.type === 'expense' ? i.cardId : undefined,
         method: i.type === 'expense' && !i.cardId ? i.method : undefined,
-        due: i.due ? addMonths(i.due, j) : undefined,
+        due: i.due && !isInvestment ? addMonths(i.due, j) : undefined,
+        ...(isInvestment ? investmentFields(i) : {}),
         installment: n > 1 && i.mode === 'installment' ? { n: k + 1, of: n, groupId } : undefined,
         recurring: n > 1 && i.mode === 'recurring' ? { n: k + 1, of: n, groupId } : undefined,
         createdAt,
@@ -76,6 +90,10 @@ export interface EditInput {
   method?: Method;
   /** vencimento of the edited row */
   due?: string;
+  /** investments only (required for them) */
+  bank?: string;
+  currentValueCents?: number;
+  ratePct?: string;
 }
 
 /**
@@ -100,6 +118,10 @@ export function applyEdit(list: Transaction[], original: Transaction, e: EditInp
           cardId: type === 'expense' ? e.cardId : undefined,
           method: type === 'expense' && !e.cardId ? e.method : undefined,
           due: e.due,
+          bank: undefined,
+          currentValueCents: undefined,
+          ratePct: undefined,
+          ...(type === 'investment' ? investmentFields(e) : {}),
         },
         payKind(x),
       );
