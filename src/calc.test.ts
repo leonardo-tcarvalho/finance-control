@@ -35,6 +35,10 @@ describe('investment yield per row', () => {
     expect(gainOf(inv({ currentValueCents: 900 }))).toBe(-100);
     expect(gainPctOf(inv({ currentValueCents: 900 }))).toBe(-10);
   });
+  it('rounds the percent to the nearest whole number', () => {
+    expect(gainPctOf(inv({ currentValueCents: 1067 }))).toBe(7);
+    expect(gainPctOf(inv({ currentValueCents: 933 }))).toBe(-7);
+  });
   it('is zero without a current value, and an explicit 0 is a total loss', () => {
     expect(gainOf(inv({}))).toBe(0);
     expect(gainOf(inv({ currentValueCents: 0 }))).toBe(-1000);
@@ -78,6 +82,7 @@ describe('investedShare', () => {
   it('is the rounded percent of the income that was invested', () => {
     expect(investedShare(250, 1000)).toBe(25);
     expect(investedShare(1, 3)).toBe(33);
+    expect(investedShare(2, 3)).toBe(67);
     expect(investedShare(2000, 1000)).toBe(200);
   });
   it('is null without income', () => {
