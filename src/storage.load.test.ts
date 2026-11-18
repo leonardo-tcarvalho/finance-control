@@ -62,9 +62,9 @@ describe('loadData', () => {
 
 describe('saveRestorePoint', () => {
   it('writes the given state to a restore file that loadData can fall back to', async () => {
-    await saveRestorePoint({ schemaVersion: 2, cards: [], transactions: [], updatedAt: 'u' });
+    await saveRestorePoint({ schemaVersion: 2, cards: [], transactions: [{ id: 'restore-point', date: '2026-01-15', createdAt: 'c', type: 'expense', amountCents: 100, category: 'x', description: 'x' }], updatedAt: 'u' });
     const names = [...fs.files.keys()].filter((k) => k.startsWith(`${D}/backups/antes-de-restaurar-`));
     expect(names).toHaveLength(1);
-    expect(await loadData()).toMatchObject({ transactions: [] });
+    expect((await loadData()).transactions[0].id).toBe('restore-point');
   });
 });
