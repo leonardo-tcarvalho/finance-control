@@ -284,14 +284,14 @@ export function reserveLevel(months: number): { level: ReserveLevel; text: strin
 export type GoalLevel = 'abaixo' | 'perto' | 'passou';
 
 /**
- * Progress of the month's spending toward the goal: whole percent (spent / goal, rounded) and its level, judged on that
- * rounded percent so it matches what is shown: under 80 'abaixo', 80 up to 100 'perto', above 100 'passou'.
+ * Progress of the month's spending toward the goal: whole percent (spent / goal, rounded) and its level. 'passou' is decided
+ * on the exact amounts (spent above the goal, even by one cent); 'perto' (80% or more) and 'abaixo' use the rounded percent shown.
  * `spent` is every expense of the month, paid or pending. null when there is no goal.
  */
 export function goalProgress(spent: number, goalCents?: number): { pct: number; level: GoalLevel } | null {
   if (!goalCents || goalCents <= 0) return null;
   const pct = Math.round((spent / goalCents) * 100);
-  return { pct, level: pct > 100 ? 'passou' : pct >= 80 ? 'perto' : 'abaixo' };
+  return { pct, level: spent > goalCents ? 'passou' : pct >= 80 ? 'perto' : 'abaixo' };
 }
 
 /**
@@ -306,4 +306,11 @@ export function installmentCommitment(rows: Transaction[], limitPct?: number): {
   const { installment: installments } = spendByOrigin(rows);
   const pct = Math.round((installments / income) * 100);
   return { installments, income, pct, over: limitPct !== undefined && pct > limitPct };
+}
+
+/** One descriptive sentence for the goal card: what is left, how close it is, or by how much it was passed. */
+export function goalMessage(spent: number, goalCents: number, p: { pct: number; level: GoalLevel }): string {
+  if (p.level === 'passou') return `Passou da meta em ${brl(spent - goalCents)}.`;
+  if (p.level === 'perto') return `Chegando perto da meta: ${p.pct}% usado.`;
+  return `Faltam ${brl(goalCents - spent)} para a meta.`;
 }
