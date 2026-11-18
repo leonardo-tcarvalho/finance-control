@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { annualTotals, availableYears, monthlySeries, spendByCategory, spendByOrigin, spendByPayment, splitPercents, topExpenses, yearRows } from './calc';
+import { annualTotals, availableYears, gainText, monthlySeries, portfolioTotals, spendByCategory, spendByOrigin, spendByPayment, splitPercents, topExpenses, yearRows } from './calc';
 import { Bars, Card, Evolution, Kpi, makeStyles } from './Summary';
 import { useTheme } from './theme';
 import { Card as CardData, Method, Transaction } from './types';
@@ -31,6 +31,7 @@ export default function AnnualReport({ list, cards, cardName, methodName }: Prop
   const byPayment = useMemo(() => spendByPayment(rows, cardName, methodName), [rows, cardName, methodName]);
   const top = useMemo(() => topExpenses(rows, 5), [rows]);
   const origin = useMemo(() => spendByOrigin(rows), [rows]);
+  const portfolio = useMemo(() => portfolioTotals(list), [list]);
 
   if (!year) {
     return (
@@ -70,7 +71,13 @@ export default function AnnualReport({ list, cards, cardName, methodName }: Prop
           <Kpi s={s} label="Saldo" value={brl(totals.balance)} color={totals.balance >= 0 ? t.green : t.red} />
           <Kpi s={s} label="Média mensal de gastos" value={brl(totals.monthlyAverage)} color={t.text} />
         </View>
-        <Text style={s.note}>A média considera só os meses com gasto.</Text>
+        {(totals.invested > 0 || portfolio.applied > 0) && (
+          <View style={s.kpis}>
+            <Kpi s={s} label="Investido no ano" value={brl(totals.invested)} color={t.primary} />
+            <Kpi s={s} label="Rendimento da carteira" value={gainText(portfolio.gain, portfolio.gainPct)} color={portfolio.gain < 0 ? t.red : portfolio.gain > 0 ? t.green : t.text} />
+          </View>
+        )}
+        <Text style={s.note}>A média considera só os meses com gasto.{totals.invested > 0 ? ' O saldo já desconta o que foi investido no ano. O rendimento é o da carteira inteira, de todos os anos.' : ''}</Text>
       </Card>
 
       <Card title="Meses de maior e menor gasto" s={s}>
