@@ -56,6 +56,8 @@ export interface AppData {
 export const SCHEMA_VERSION = 2;
 /** Income has no category of its own to pick: every income carries this one, and its description says what it is. */
 export const INCOME_CATEGORY = 'Receita';
+/** Every investment carries this category: what it is goes in the description and the bank. */
+export const INVESTMENT_CATEGORY = 'Investimento';
 
 export interface Categories {
   /** used by expenses */
@@ -70,6 +72,7 @@ export const DEFAULT_CATEGORIES: Categories = {
 
 /** The list to offer for an entry type, plus the entry's current category when it is no longer in the list. */
 export function categoriesFor(cats: Categories | undefined, type: TxType, current?: string): string[] {
+  if (type === 'investment') return []; // investments have no category to choose from
   const list = (cats ?? DEFAULT_CATEGORIES)[type === 'income' ? 'income' : 'expense'];
   return current && !list.includes(current) ? [...list, current] : list;
 }
