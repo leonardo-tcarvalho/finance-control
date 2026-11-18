@@ -42,6 +42,14 @@ _Evitar_: Economia
 Quantos meses de gastos a carteira cobre: o valor atual de todos os investimentos dividido pela média mensal de gastos dos últimos 6 meses (só meses com gasto). Abaixo de 3 meses é baixa, de 3 a 6 é boa, 6 ou mais é ótima. É um indicador, não um conselho financeiro.
 _Evitar_: Colchão
 
+**Meta de gastos**:
+Valor que a pessoa define no menu, em Opções, para os gastos de cada mês; vazio é sem meta. Conta todos os gastos do mês, pagos ou pendentes. Aparece nos Relatórios, com barra de progresso, em três níveis: abaixo (menos de 80% da meta), perto (a partir de 80%, até chegar na meta) e passou (o gasto é maior que a meta, mesmo que por centavos). É só um acompanhamento, não um conselho financeiro.
+_Evitar_: Orçamento, teto
+
+**Limite de parcelas na renda**:
+Porcentagem da renda do mês, de 1 a 100, que a pessoa define no menu, em Opções, como referência para as parcelas; vazio é sem limite. A parcela é todo gasto parcelado do mês, pago ou pendente, e a renda é a soma das receitas do mês. A linha de parcelas, na Saúde financeira dos Relatórios, mostra a parte da renda em parcelas e, quando o valor passa do limite, avisa em reais quanto passou. Só aparece com renda e parcelas no mês; sem limite, a linha aparece mesmo assim, sem comparação, e com limite mostra "Limite: X%" e, se passar, quanto passou, em reais. É um indicador, não um conselho financeiro.
+_Evitar_: Endividamento
+
 **Pendente**:
 Situação de um gasto que ainda não foi pago. Todo gasto nasce pendente, inclusive o pago por Pix. Receitas não têm situação.
 _Evitar_: A pagar, em aberto

@@ -22,12 +22,13 @@ O APK da versão atual fica nas [Releases](https://github.com/leonardo-tcarvalho
 - **Principal:** Receitas, Gastos e Saldo do mês, lista de lançamentos com busca e filtro por categoria, aviso de vencidos.
 - **Lançamentos:** gasto e receita, com data, categoria e forma de pagamento (Pix, Débito, Dinheiro, Boleto, Outro ou cartão). Os gastos podem ser parcelados (informando quantas parcelas já foram pagas, se a compra já estava em andamento) ou recorrentes por um número de meses. Uma compra no cartão aparece no mês da fatura. O investimento tem só data, valor, banco e, se você quiser, valor atual e taxa.
 - **Investimentos:** terceiro tipo de lançamento, com banco, valor aplicado e valor atual informado por você (o rendimento é a diferença). Não conta como gasto nem receita, mas o Saldo desconta o que foi aplicado. A Principal mostra o investido no mês e a carteira.
-- **Saúde financeira:** nos Relatórios, taxa de poupança, parte da renda aplicada e reserva de emergência em meses de gasto; o relatório anual mostra o investido no ano e onde a carteira está.
+- **Saúde financeira:** nos Relatórios, taxa de poupança, parte da renda aplicada e reserva de emergência em meses de gasto e, quando o mês tem renda e parcelas, a parte da renda comprometida com parcelas; o relatório anual mostra o investido no ano e onde a carteira está.
 - **Pendente e pago:** todo gasto nasce pendente. Gastos sem cartão podem ser marcados como pagos e ter vencimento; passado o vencimento sem pagar, a linha fica vermelha.
 - **Cartões:** limite, dia de fechamento e dia de vencimento obrigatórios. Cada cartão mostra a fatura do mês, o limite disponível e um botão para marcar a fatura como paga; uma compra no cartão só deixa de ser pendente quando a fatura é paga.
 - **Relatórios:** gastos por categoria, por forma de pagamento e dos últimos meses.
+- **Limites opcionais:** no menu, em Opções, você define uma meta de gastos do mês (valor em reais, contando todos os gastos do mês, pagos ou pendentes) e um limite de parcelas na renda (porcentagem de 1 a 100). A meta aparece nos Relatórios com barra de progresso e aviso a partir de 80% e ao passar; o limite é comparado na linha de parcelas da Saúde financeira. Sem meta definida, o card da meta não aparece; sem limite, a linha de parcelas aparece sem comparação. Eles ficam nos dados e entram no backup.
 - **Relatório anual:** totais e média mensal do ano, meses de maior e menor gasto, gráfico dos 12 meses, categorias, forma de pagamento, maiores gastos e quanto veio de parcelas, recorrências e compras avulsas (só leitura).
-- **Menu lateral:** Principal, Relatórios, Relatório anual, cartões (do maior limite ao menor), tema claro/escuro, exportar e restaurar backup.
+- **Menu lateral:** Principal, Relatórios, Relatório anual, cartões (do maior limite ao menor), tema claro/escuro, meta de gastos e limite de parcelas, exportar e restaurar backup.
 
 As regras de negócio e o vocabulário estão em [`GLOSSARY.md`](./GLOSSARY.md). Ideias adiadas ficam em [`docs/PENDENCIAS.md`](./docs/PENDENCIAS.md).
 
