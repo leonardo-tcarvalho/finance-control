@@ -39,7 +39,7 @@ As receitas do mês menos os gastos do mês que não estão pendentes; muda conf
 _Evitar_: Balanço, resultado
 
 **Compra parcelada**:
-Um gasto cujo valor total é dividido em vários meses, uma parcela por mês. Se parte já estava paga ao cadastrar, o app cria só as parcelas que faltam, numeradas a partir da próxima.
+Um gasto pago em várias parcelas, uma por mês. Informa-se o valor da parcela e o número de parcelas, e o total é parcela × número. Se parte já estava paga ao cadastrar, o app cria só as parcelas que faltam, numeradas a partir da próxima.
 _Evitar_: Parcelamento
 
 **Lançamento recorrente**:

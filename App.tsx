@@ -132,10 +132,6 @@ function Main() {
       Alert.alert('Parcelas pagas inválidas', `Informe de 0 a ${times - 1}: precisa sobrar pelo menos uma parcela a pagar.`);
       return false;
     }
-    if (mode === 'installment' && Math.floor(cents / times) < 1) {
-      Alert.alert('Valor pequeno demais', 'Cada parcela precisa ter pelo menos R$ 0,01.');
-      return false;
-    }
     const groupId = newId();
     const created = buildEntries(
       { type: v.type, amountCents: cents, description: v.desc.trim(), category: v.category, date: v.date, cardId, method: v.method ?? undefined, due: v.due || undefined, times, mode, paidCount },
