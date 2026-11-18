@@ -242,10 +242,11 @@ export const gainOf = (t: Transaction) => (t.type === 'investment' && t.currentV
 /** The yield as a whole percent of what was applied (0 when nothing was applied). */
 export const gainPctOf = (t: Transaction) => (t.amountCents > 0 ? Math.round((gainOf(t) / t.amountCents) * 100) : 0);
 
-/** "+ R$ 10,00 (+10%)", "− R$ 5,00 (−5%)"; no sign when the yield is zero. */
+/** "+ R$ 10,00 (+10%)", "− R$ 5,00 (−5%)"; no sign when the yield is zero, and no percent when it rounds to 0 but the yield is not. */
 export function gainText(gain: number, pct: number): string {
   const sign = gain > 0 ? '+' : gain < 0 ? '−' : '';
-  return `${sign ? sign + ' ' : ''}${brl(Math.abs(gain))} (${sign}${Math.abs(pct)}%)`;
+  const value = `${sign ? sign + ' ' : ''}${brl(Math.abs(gain))}`;
+  return gain !== 0 && pct === 0 ? value : `${value} (${sign}${Math.abs(pct)}%)`; // a tiny yield would read as "(+0%)"
 }
 
 export const gainLabel = (t: Transaction) => gainText(gainOf(t), gainPctOf(t));
