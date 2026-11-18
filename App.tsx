@@ -582,6 +582,7 @@ function Main() {
               <View style={s.listFoot}>
                 <Text style={s.footLabel}>
                   {filtering ? 'Filtrado' : 'Total'} · {shownRows.length} {shownRows.length === 1 ? 'linha' : 'linhas'}
+                  {!onCard && shownTotals.invested > 0 ? ' · já desconta o investido' : ''}
                 </Text>
                 <Text style={[s.footValue, { color: onCard ? t.red : shownTotals.balance >= 0 ? t.green : t.red }]}>{brl(onCard ? shownTotals.expense : shownTotals.balance)}</Text>
               </View>
