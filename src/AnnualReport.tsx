@@ -50,12 +50,12 @@ export default function AnnualReport({ list, cards, cardName, methodName }: Prop
 
   return (
     <ScrollView style={s.flex1} contentContainerStyle={s.body} showsVerticalScrollIndicator={false}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-        <Pressable hitSlop={8} disabled={i >= years.length - 1} onPress={() => setPicked(years[i + 1])} accessibilityRole="button" accessibilityLabel="Ano anterior" style={{ opacity: i >= years.length - 1 ? 0.3 : 1 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+        <Pressable hitSlop={8} disabled={i >= years.length - 1} onPress={() => setPicked(years[i + 1])} accessibilityRole="button" accessibilityLabel="Ano anterior" style={{ paddingHorizontal: 12, paddingVertical: 4, opacity: i >= years.length - 1 ? 0.3 : 1 }}>
           <Text style={{ color: t.text, fontSize: 22 }}>‹</Text>
         </Pressable>
         <Text style={{ color: t.text, fontSize: 18, fontWeight: '800' }}>{year}</Text>
-        <Pressable hitSlop={8} disabled={i <= 0} onPress={() => setPicked(years[i - 1])} accessibilityRole="button" accessibilityLabel="Próximo ano" style={{ opacity: i <= 0 ? 0.3 : 1 }}>
+        <Pressable hitSlop={8} disabled={i <= 0} onPress={() => setPicked(years[i - 1])} accessibilityRole="button" accessibilityLabel="Próximo ano" style={{ paddingHorizontal: 12, paddingVertical: 4, opacity: i <= 0 ? 0.3 : 1 }}>
           <Text style={{ color: t.text, fontSize: 22 }}>›</Text>
         </Pressable>
       </View>
