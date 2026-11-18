@@ -1,6 +1,6 @@
 import { ReactNode, useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { MonthPoint, Slice, investedShare, reserveLevel, savingsRate, totalsOf } from './calc';
+import { MonthPoint, Slice, goalMessage, goalProgress, investedShare, reserveLevel, savingsRate, totalsOf } from './calc';
 import { Theme, useTheme } from './theme';
 import { Transaction } from './types';
 import { MONTHS, brl, signedPct } from './utils';
@@ -14,11 +14,13 @@ interface Props {
   byPayment: Slice[];
   /** months of spending the investments cover, or null when it cannot be computed */
   reserveMonths: number | null;
+  /** monthly spending goal in cents; absent = no goal, no card */
+  goalCents?: number;
 }
 
 export const monthShort = (key: string) => MONTHS[Number(key.slice(5, 7)) - 1].slice(0, 3);
 
-export default function Summary({ rows, series, byCategory, byPayment, reserveMonths }: Props) {
+export default function Summary({ rows, series, byCategory, byPayment, reserveMonths, goalCents }: Props) {
   const t = useTheme();
   const s = useMemo(() => makeStyles(t), [t]);
   const totals = totalsOf(rows);
@@ -29,6 +31,7 @@ export default function Summary({ rows, series, byCategory, byPayment, reserveMo
   const reserve = reserveMonths !== null && reserveMonths > 0 ? { months: reserveMonths, ...reserveLevel(reserveMonths) } : null;
   const showShare = share !== null && totals.invested > 0;
   const saved = savingsRate(current.income, current.expense);
+  const goal = goalProgress(totals.expense, goalCents); // every expense of the month, paid or pending
 
   return (
     <ScrollView style={s.flex1} contentContainerStyle={s.body} showsVerticalScrollIndicator={false}>
@@ -46,6 +49,21 @@ export default function Summary({ rows, series, byCategory, byPayment, reserveMo
           <Text style={s.note}>{saved >= 0 ? `Sobrou ${saved}% da renda do mês.` : `Os gastos passaram ${Math.abs(saved)}% da renda do mês.`}</Text>
         )}
       </Card>
+
+      {goal && goalCents && (
+        <Card title="Meta de gastos" s={s}>
+          <View style={s.barHead}>
+            <Text style={s.barLabel}>
+              {brl(totals.expense)} de {brl(goalCents)}
+            </Text>
+            <Text style={s.barValue}>{goal.pct}%</Text>
+          </View>
+          <View style={s.track}>
+            <View style={[s.fill, { width: `${Math.min(100, goal.pct)}%`, backgroundColor: goal.level === 'passou' ? t.red : goal.level === 'perto' ? t.amber : t.primary }]} />
+          </View>
+          <Text style={s.note}>{goalMessage(totals.expense, goalCents, goal)}</Text>
+        </Card>
+      )}
 
       {(saved !== null || showShare || reserve) && (
         <Card title="Saúde financeira" s={s}>

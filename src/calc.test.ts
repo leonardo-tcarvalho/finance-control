@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dueDate, filterRows, goalProgress, installmentCommitment, gainLabel, investedShare, gainOf, gainPctOf, invoiceKey, titleOf } from './calc';
+import { dueDate, filterRows, goalMessage, goalProgress, installmentCommitment, gainLabel, investedShare, gainOf, gainPctOf, invoiceKey, titleOf } from './calc';
 import { Transaction } from './types';
 
 describe('invoiceKey', () => {
@@ -103,6 +103,10 @@ describe('goalProgress', () => {
     expect(lvl(10000)).toEqual({ pct: 100, level: 'perto' });
     expect(lvl(10100)).toEqual({ pct: 101, level: 'passou' });
   });
+  it('passing the goal by one cent is passou, even though the percent still reads 100', () => {
+    expect(goalProgress(10001, 10000)).toEqual({ pct: 100, level: 'passou' });
+    expect(goalProgress(10000, 10000)?.level).toBe('perto');
+  });
   it('rounds to the nearest percent, not down', () => {
     expect(goalProgress(2, 3)?.pct).toBe(67);
     expect(goalProgress(7950, 10000)).toEqual({ pct: 80, level: 'perto' });
@@ -135,5 +139,20 @@ describe('installmentCommitment', () => {
   });
   it('rounds to the nearest percent, not down', () => {
     expect(installmentCommitment([mk('income', 3), parc(2)])?.pct).toBe(67);
+  });
+});
+
+describe('goalMessage', () => {
+  const msg = (spent: number) => goalMessage(spent, 10000, goalProgress(spent, 10000)!).replace(/\s/g, ' ');
+  it('says what is left below 80%', () => {
+    expect(msg(7900)).toBe('Faltam R$ 21,00 para a meta.');
+  });
+  it('says how close it is from 80% up to the goal', () => {
+    expect(msg(8000)).toBe('Chegando perto da meta: 80% usado.');
+    expect(msg(10000)).toBe('Chegando perto da meta: 100% usado.');
+  });
+  it('says by how much it was passed above 100%', () => {
+    expect(msg(10100)).toBe('Passou da meta em R$ 1,00.');
+    expect(msg(10001)).toBe('Passou da meta em R$ 0,01.');
   });
 });
