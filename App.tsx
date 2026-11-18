@@ -241,15 +241,19 @@ function Main() {
           { text: 'Cancelar', style: 'cancel' },
           {
             text: 'Restaurar',
-            onPress: async () => {
-              try {
-                await queue.current; // let pending saves land so the copy is the latest state
-                await saveRestorePoint(data);
-              } catch (e) {
-                Alert.alert('Não foi possível guardar o estado atual', `A restauração foi cancelada. ${e instanceof Error ? e.message : String(e)}`);
-                return;
-              }
-              persist(imported);
+            // runs in the write queue (which never rejects, so an earlier failed save cannot block it): the copy
+            // must land first, and when it fails the imported data is neither shown nor saved
+            onPress: () => {
+              queue.current = queue.current.then(async () => {
+                try {
+                  await saveRestorePoint(data);
+                } catch (e) {
+                  Alert.alert('Não foi possível guardar o estado atual', `A restauração foi cancelada. ${e instanceof Error ? e.message : String(e)}`);
+                  return;
+                }
+                setData(imported);
+                await saveData(imported).catch((e) => Alert.alert('Erro ao salvar', String(e?.message ?? e)));
+              });
             },
           },
         ],
