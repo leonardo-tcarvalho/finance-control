@@ -1,6 +1,6 @@
 import { Directory, File, Paths } from 'expo-file-system';
-import { AppData, Limits, SCHEMA_VERSION, emptyData } from './domain/types';
-import { today } from './utils';
+import { AppData, Limits, SCHEMA_VERSION, emptyData } from '../domain/types';
+import { today } from '../utils';
 
 /**
  * Persistence strategy (local only, no network):
