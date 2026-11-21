@@ -3,7 +3,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { annualTotals, availableYears, gainText, monthlySeries, portfolioByBank, portfolioTotals, spendByCategory, spendByOrigin, spendByPayment, splitPercents, topExpenses, yearRows } from './calc';
 import { Bars, Card, Evolution, Kpi, makeStyles } from './Summary';
 import { useTheme } from './theme';
-import { Card as CardData, Method, Transaction } from './types';
+import { Card as CardData, Method, Transaction } from './domain/types';
 import { brl, formatDateBR, monthLabel, today } from './utils';
 
 interface Props {

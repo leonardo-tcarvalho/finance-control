@@ -3,7 +3,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import Field from './Field';
 import Sheet from './Sheet';
 import { Theme, useTheme } from './theme';
-import { Card } from './types';
+import { Card } from './domain/types';
 import { centsToField, parseMoneyToCents } from './utils';
 
 export interface CardValues {

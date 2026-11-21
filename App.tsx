@@ -18,7 +18,7 @@ import { dueOf, isOverdue, isPending, monthTotals, movedIntoPaidInvoice, overdue
 import AnnualReport from './src/AnnualReport';
 import Summary from './src/Summary';
 import { Theme, ThemeContext, darkTheme, lightTheme } from './src/theme';
-import { AppData, Card, DEFAULT_CATEGORIES, Limits, INVESTMENT_CATEGORY, Transaction, Method, methodLabel } from './src/types';
+import { AppData, Card, DEFAULT_CATEGORIES, Limits, INVESTMENT_CATEGORY, Transaction, Method, methodLabel } from './src/domain/types';
 import { MAX_INSTALLMENTS, MAX_RECURRING, brl, centsToField, formatDateBR, monthLabel, parseMoneyToCents, shiftMonth, shortDate, today } from './src/utils';
 
 const newId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;

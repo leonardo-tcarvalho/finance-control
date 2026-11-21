@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { dueOf, isOverdue, isPending, monthTotals, overdueSummary, payKind } from './status';
-import { Card, Transaction } from './types';
+import { Card, Transaction } from './domain/types';
 
 const base = { id: 'a', description: 'x', category: 'x', date: '2026-01-10', createdAt: 'c' };
 const inv: Transaction = { ...base, type: 'investment', amountCents: 500, bank: 'Nubank' };

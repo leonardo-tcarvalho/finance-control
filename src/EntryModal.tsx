@@ -4,7 +4,7 @@ import { gainText } from './calc';
 import Field, { Label } from './Field';
 import Sheet from './Sheet';
 import { Theme, useTheme } from './theme';
-import { BANKS, Card, Categories, DEFAULT_CATEGORIES, INCOME_CATEGORY, INVESTMENT_CATEGORY, METHODS, OTHER_BANK, Method, Transaction, TxType, categoriesFor } from './types';
+import { BANKS, Card, Categories, DEFAULT_CATEGORIES, INCOME_CATEGORY, INVESTMENT_CATEGORY, METHODS, OTHER_BANK, Method, Transaction, TxType, categoriesFor } from './domain/types';
 import { MAX_INSTALLMENTS, MAX_RECURRING, addDays, addMonths, brl, centsToField, formatDateBR, maskDate, monthYear, parseDateBR, parseMoneyToCents, today } from './utils';
 
 export type Repeat = 'once' | 'installment' | 'recurring';

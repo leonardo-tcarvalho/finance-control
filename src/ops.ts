@@ -1,5 +1,5 @@
 import { PayKind, payKind } from './status';
-import { Limits, Method, Transaction, TxType } from './types';
+import { Limits, Method, Transaction, TxType } from './domain/types';
 import { addMonths, parseMoneyToCents } from './utils';
 
 export interface EntryInput {

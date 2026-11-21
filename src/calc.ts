@@ -1,4 +1,4 @@
-import { Card, Transaction, Method } from './types';
+import { Card, Transaction, Method } from './domain/types';
 import { brl, shiftMonth } from './utils';
 
 /** How much a row adds to spending: only an expense does. */

@@ -1,5 +1,5 @@
 import { dueDate, invoiceKey, isPaid, incomeOf, investedOf, monthOf, spendOf } from './calc';
-import { Card, Transaction } from './types';
+import { Card, Transaction } from './domain/types';
 
 /** What decides whether an entry is paid: nothing (income and investment), its card's invoice, or its own flag. */
 export type PayKind = 'none' | 'card' | 'other';
