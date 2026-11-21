@@ -5,11 +5,11 @@ import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View, useColor
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { exportBackup, pickBackup, shareRawData } from './src/services/backup';
 import CardModal, { CardValues } from './src/CardModal';
-import Drawer, { DrawerDivider, DrawerItem, DrawerSection } from './src/Drawer';
-import { PlusIcon, TrayArrow } from './src/Icons';
+import Drawer, { DrawerDivider, DrawerItem, DrawerSection } from './src/components/common/Drawer';
+import { PlusIcon, TrayArrow } from './src/components/common/Icons';
 import RowActions from './src/RowActions';
-import Sheet from './src/Sheet';
-import Field from './src/Field';
+import Sheet from './src/components/common/Sheet';
+import Field from './src/components/common/Field';
 import EntryModal, { EntryValues } from './src/EntryModal';
 import { committedOnCard, emergencyReserveMonths, gainLabel, gainOf, gainText, portfolioTotals, titleOf, sortCardsByLimit, dueDate, filterRows, invoiceRows, isPaid, monthOf, monthlySeries, spendByCategory, spendByPayment, spendOf } from './src/domain/calc';
 import { applyEdit, buildEntries, groupOf, parseLimitText, setLimit, updateCurrentValue } from './src/domain/ops';
