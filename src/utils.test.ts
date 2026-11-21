@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addMonths, parseMoneyToCents, signedPct } from './utils';
+import { MAX_MONEY_CENTS, addMonths, parseMoneyToCents, signedPct } from './utils';
 
 describe('parseMoneyToCents', () => {
   it('reads Brazilian and thousands formats', () => {
@@ -10,6 +10,14 @@ describe('parseMoneyToCents', () => {
   it('rejects negatives and extra decimals', () => {
     expect(parseMoneyToCents('-50')).toBeNaN();
     expect(parseMoneyToCents('1,500')).toBeNaN();
+  });
+});
+
+describe('parseMoneyToCents limit', () => {
+  it('accepts up to the cap and rejects beyond it', () => {
+    expect(parseMoneyToCents('100.000.000.000,00')).toBe(MAX_MONEY_CENTS);
+    expect(Number.isNaN(parseMoneyToCents('100.000.000.000,01'))).toBe(true);
+    expect(Number.isNaN(parseMoneyToCents('99999999999999999999'))).toBe(true);
   });
 });
 
