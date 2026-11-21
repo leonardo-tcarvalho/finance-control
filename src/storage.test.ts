@@ -67,6 +67,13 @@ describe('parseData with limits', () => {
   });
 });
 
+describe('parseData transaction ids', () => {
+  it('rejects two transactions with the same id', () => {
+    const t = { id: 'x', date: '2026-01-15', createdAt: 'c', type: 'expense', amountCents: 100 };
+    expect(() => parseData(JSON.stringify({ transactions: [t, { ...t }] }))).toThrow('Formato inválido');
+  });
+});
+
 describe('parseData cards', () => {
   const tx = { id: 't', date: '2026-01-15', createdAt: 'c', type: 'expense', amountCents: 100 };
   const parse = (cards: unknown[]) => parseData(JSON.stringify({ transactions: [tx], cards }));
