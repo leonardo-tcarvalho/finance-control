@@ -95,6 +95,8 @@ export function parseData(raw: string): AppData {
   const valid = (t: any) =>
     typeof t?.id === 'string' && typeof t.date === 'string' && typeof t.createdAt === 'string' && (t.type === 'expense' || t.type === 'income' || t.type === 'investment') && Number.isInteger(t.amountCents) && t.amountCents >= 0 && isRealDate(t.date) && (t.type !== 'investment' || validInvestment(t));
   if (!transactions.every(valid)) throw new Error('Formato inválido');
+  // ids are FlatList keys and what edit/delete match on: a repeated one would act on the wrong row
+  if (new Set(transactions.map((t: any) => t.id)).size !== transactions.length) throw new Error('Formato inválido');
   return {
     schemaVersion: SCHEMA_VERSION,
     cards,
