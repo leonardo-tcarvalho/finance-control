@@ -2,11 +2,11 @@ Status: implementado
 
 # Levantamento: parcela pelo valor da parcela e relatório anual
 
-Resultado da leitura de `App.tsx`, `src/EntryModal.tsx`, `src/ops.ts`, `src/calc.ts` e `src/Summary.tsx`. Decisões tomadas onde o pedido deixava aberto; qualquer uma pode ser mudada antes da implementação.
+Resultado da leitura de `App.tsx`, `src/components/modals/EntryModal.tsx`, `src/domain/ops.ts`, `src/domain/calc.ts` e `src/screens/Summary.tsx`. Decisões tomadas onde o pedido deixava aberto; qualquer uma pode ser mudada antes da implementação.
 
 ## 1. Parcela pelo valor da parcela
 
-**Hoje:** no popup, "Parcelado" pede o **valor total** e o **número de parcelas**. `buildEntries` (`src/ops.ts`) divide o total em centavos e põe a sobra na primeira parcela. `App.tsx` recusa a compra se a parcela der menos de R$ 0,01.
+**Hoje:** no popup, "Parcelado" pede o **valor total** e o **número de parcelas**. `buildEntries` (`src/domain/ops.ts`) divide o total em centavos e põe a sobra na primeira parcela. `App.tsx` recusa a compra se a parcela der menos de R$ 0,01.
 
 **Novo:** "Parcelado" pede o **valor da parcela** e o **número de parcelas**. O app calcula o total (parcela × número) e mostra no formulário ("Total: R$ X").
 
@@ -18,7 +18,7 @@ Resultado da leitura de `App.tsx`, `src/EntryModal.tsx`, `src/ops.ts`, `src/calc
 - Dados já salvos não mudam (cada linha já guarda seu valor).
 - "Recorrente" não muda (já é um valor por mês).
 
-**Arquivos:** `src/ops.ts` (`buildEntries`), `src/EntryModal.tsx` (rótulo, texto de ajuda, prévia do total), `App.tsx` (`saveEntry`), testes em `src/ops.test.ts`.
+**Arquivos:** `src/domain/ops.ts` (`buildEntries`), `src/components/modals/EntryModal.tsx` (rótulo, texto de ajuda, prévia do total), `App.tsx` (`saveEntry`), testes em `src/ops.test.ts`.
 
 ## 2. Relatório anual
 
@@ -35,7 +35,7 @@ Resultado da leitura de `App.tsx`, `src/EntryModal.tsx`, `src/ops.ts`, `src/calc
 **Decisões:**
 - Um lançamento conta no ano do seu mês de referência (`monthOf`): uma compra de cartão de dezembro após o fechamento conta em janeiro do ano seguinte, como já acontece nos relatórios mensais.
 - Só leitura: o relatório não grava nada nos dados.
-- Funções novas e testadas em `src/calc.ts`; a tela em `src/AnnualReport.tsx`, ligada em `App.tsx` e no menu (`Drawer`).
+- Funções novas e testadas em `src/domain/calc.ts`; a tela em `src/screens/AnnualReport.tsx`, ligada em `App.tsx` e no menu (`Drawer`).
 - Fora de escopo: exportar o relatório, comparar com o ano anterior, filtros.
 
 ## 3. Plano de entrega (uma PR por passo)

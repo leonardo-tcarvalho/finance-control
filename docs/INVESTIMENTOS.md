@@ -2,7 +2,7 @@ Status: implementado
 
 # Levantamento: investimentos e saúde financeira
 
-Resultado da leitura de `src/types.ts`, `src/storage.ts`, `src/ops.ts`, `src/status.ts`, `src/calc.ts`, `src/EntryModal.tsx`, `src/Summary.tsx`, `src/AnnualReport.tsx` e `App.tsx`. Onde o pedido deixava algo aberto, a decisão está escrita aqui e pode ser mudada antes da implementação.
+Resultado da leitura de `src/domain/types.ts`, `src/services/storage.ts`, `src/domain/ops.ts`, `src/domain/status.ts`, `src/domain/calc.ts`, `src/components/modals/EntryModal.tsx`, `src/screens/Summary.tsx`, `src/screens/AnnualReport.tsx` e `App.tsx`. Onde o pedido deixava algo aberto, a decisão está escrita aqui e pode ser mudada antes da implementação.
 
 ## 1. Pontos de saúde financeira avaliados
 

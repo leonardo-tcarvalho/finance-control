@@ -34,12 +34,12 @@ As regras de negócio e o vocabulário estão em [`GLOSSARY.md`](./GLOSSARY.md).
 
 ## Como o requisito "nunca perder dados" é atendido
 
-- Arquivo principal `data.json` na pasta de documentos do app (`src/storage.ts`).
+- Arquivo principal `data.json` na pasta de documentos do app (`src/services/storage.ts`).
 - Gravação atômica: escreve em arquivo temporário, valida, só então substitui o principal.
 - Cópia da versão anterior (`data.prev.json`) a cada gravação.
 - Um snapshot por dia em `backups/`, mantendo os 30 mais recentes.
 - Na abertura, se o arquivo principal estiver ausente ou corrompido, recupera do `prev` e depois do backup mais recente.
-- Exportar/restaurar backup manual via compartilhamento do sistema (Drive, iCloud, Arquivos...) em `src/backup.ts`. O arquivo inteiro é exportado e restaurado. É a proteção contra desinstalação ou perda do aparelho.
+- Exportar/restaurar backup manual via compartilhamento do sistema (Drive, iCloud, Arquivos...) em `src/services/backup.ts`. O arquivo inteiro é exportado e restaurado. É a proteção contra desinstalação ou perda do aparelho.
 - Arquivos antigos continuam abrindo: campos novos são opcionais, e um gasto sem situação conta como pago.
 
 ## Rodando
@@ -52,16 +52,30 @@ npx tsc --noEmit # typecheck
 
 ## Estrutura
 
+```
+App.tsx, index.ts        entrada do Expo
+src/domain/             regra de negócio pura (types, calc, ops, status) e seus testes
+src/services/           persistência e backup (arquivos do aparelho)
+src/utils/              dinheiro, datas e formatação
+src/theme/              paletas clara e escura
+src/components/common/  peças reutilizáveis (Field, Sheet, Drawer, Icons)
+src/components/modals/  popups (EntryModal, CardModal, RowActions)
+src/screens/            telas de Relatórios e Relatório anual
+```
+
+Os testes ficam ao lado do código que testam (`*.test.ts`).
+
+
 - `App.tsx`: tela principal, navegação e ligação entre as partes
-- `src/types.ts`: modelo de dados
-- `src/storage.ts`: persistência em JSON com recuperação
-- `src/backup.ts`: exportar/importar backup
-- `src/calc.ts`: totais, faturas, limite, filtros e agregações dos relatórios
-- `src/status.ts`: pendente, pago, vencimento, vencido e Saldo
-- `src/ops.ts`: criar e editar lançamentos (parcelas, recorrência, situação)
-- `src/utils.ts`: datas, dinheiro e formatação
-- `src/theme.ts`: paletas clara e escura
-- `src/Drawer.tsx`, `src/Sheet.tsx`, `src/Field.tsx`: menu lateral, popup e campo de texto reutilizáveis
-- `src/EntryModal.tsx`, `src/CardModal.tsx`: formulários de lançamento e de cartão
-- `src/Summary.tsx`: tela de Relatórios
+- `src/domain/types.ts`: modelo de dados
+- `src/services/storage.ts`: persistência em JSON com recuperação
+- `src/services/backup.ts`: exportar/importar backup
+- `src/domain/calc.ts`: totais, faturas, limite, filtros e agregações dos relatórios
+- `src/domain/status.ts`: pendente, pago, vencimento, vencido e Saldo
+- `src/domain/ops.ts`: criar e editar lançamentos (parcelas, recorrência, situação)
+- `src/utils/index.ts`: datas, dinheiro e formatação
+- `src/theme/index.ts`: paletas clara e escura
+- `src/components/common/Drawer.tsx`, `src/components/common/Sheet.tsx`, `src/components/common/Field.tsx`: menu lateral, popup e campo de texto reutilizáveis
+- `src/components/modals/EntryModal.tsx`, `src/components/modals/CardModal.tsx`: formulários de lançamento e de cartão
+- `src/screens/Summary.tsx`: tela de Relatórios
 - `GLOSSARY.md`, `docs/PENDENCIAS.md`: vocabulário do domínio e pendências futuras
