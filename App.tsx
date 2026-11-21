@@ -71,8 +71,9 @@ function Main() {
 
   const cats = data?.categories ?? DEFAULT_CATEGORIES;
 
-  const addCategory = (kind: 'expense' | 'income', name: string) => {
-    if (!data) return;
+  const addCategory = (kind: 'expense' | 'income', raw: string) => {
+    const name = raw.trim();
+    if (!data || !name) return; // an empty name would add a blank chip
     const list = cats[kind];
     if (list.some((c) => c.toLowerCase() === name.toLowerCase())) return; // already there
     persist({ ...data, categories: { ...cats, [kind]: [...list, name] } });
