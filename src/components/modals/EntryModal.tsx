@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { gainText } from './domain/calc';
-import Field, { Label } from './components/common/Field';
-import Sheet from './components/common/Sheet';
-import { Theme, useTheme } from './theme';
-import { BANKS, Card, Categories, DEFAULT_CATEGORIES, INCOME_CATEGORY, INVESTMENT_CATEGORY, METHODS, OTHER_BANK, Method, Transaction, TxType, categoriesFor } from './domain/types';
-import { MAX_INSTALLMENTS, MAX_RECURRING, addDays, addMonths, brl, centsToField, formatDateBR, maskDate, monthYear, parseDateBR, parseMoneyToCents, today } from './utils';
+import { gainText } from '../../domain/calc';
+import Field, { Label } from '../common/Field';
+import Sheet from '../common/Sheet';
+import { Theme, useTheme } from '../../theme';
+import { BANKS, Card, Categories, DEFAULT_CATEGORIES, INCOME_CATEGORY, INVESTMENT_CATEGORY, METHODS, OTHER_BANK, Method, Transaction, TxType, categoriesFor } from '../../domain/types';
+import { MAX_INSTALLMENTS, MAX_RECURRING, addDays, addMonths, brl, centsToField, formatDateBR, maskDate, monthYear, parseDateBR, parseMoneyToCents, today } from '../../utils';
 
 export type Repeat = 'once' | 'installment' | 'recurring';
 
