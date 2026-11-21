@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { gainLabel, gainOf, titleOf } from './domain/calc';
-import Field from './Field';
-import Sheet from './Sheet';
+import Field from './components/common/Field';
+import Sheet from './components/common/Sheet';
 import { isPending, payKind } from './domain/status';
 import { Theme, useTheme } from './theme';
 import { Card, Transaction } from './domain/types';

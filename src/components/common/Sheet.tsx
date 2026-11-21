@@ -1,7 +1,7 @@
 import { ComponentRef, ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Theme, useTheme } from './theme';
+import { Theme, useTheme } from '../../theme';
 
 interface Props {
   visible: boolean;

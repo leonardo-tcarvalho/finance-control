@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { KeyboardTypeOptions, StyleProp, StyleSheet, Text, TextInput, View, ViewStyle } from 'react-native';
-import { Theme, useTheme } from './theme';
+import { Theme, useTheme } from '../../theme';
 
 function useStyles() {
   const t = useTheme();
