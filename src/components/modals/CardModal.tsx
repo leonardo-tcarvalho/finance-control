@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
-import Field from './components/common/Field';
-import Sheet from './components/common/Sheet';
-import { Theme, useTheme } from './theme';
-import { Card } from './domain/types';
-import { centsToField, parseMoneyToCents } from './utils';
+import Field from '../common/Field';
+import Sheet from '../common/Sheet';
+import { Theme, useTheme } from '../../theme';
+import { Card } from '../../domain/types';
+import { centsToField, parseMoneyToCents } from '../../utils';
 
 export interface CardValues {
   name: string;

@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
-import { gainLabel, gainOf, titleOf } from './domain/calc';
-import Field from './components/common/Field';
-import Sheet from './components/common/Sheet';
-import { isPending, payKind } from './domain/status';
-import { Theme, useTheme } from './theme';
-import { Card, Transaction } from './domain/types';
-import { brl, centsToField, parseMoneyToCents, shortDate } from './utils';
+import { gainLabel, gainOf, titleOf } from '../../domain/calc';
+import Field from '../common/Field';
+import Sheet from '../common/Sheet';
+import { isPending, payKind } from '../../domain/status';
+import { Theme, useTheme } from '../../theme';
+import { Card, Transaction } from '../../domain/types';
+import { brl, centsToField, parseMoneyToCents, shortDate } from '../../utils';
 
 interface Props {
   /** the row that was tapped, or null when closed */
