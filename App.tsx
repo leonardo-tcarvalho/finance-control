@@ -48,6 +48,7 @@ export default function App() {
 function Main() {
   const [data, setData] = useState<AppData | null>(null);
   const [loadFailed, setLoadFailed] = useState(false); // data stays null then, so every edit and persist is blocked
+  const [slowLoad, setSlowLoad] = useState(false); // reading the saved data is taking a while
   const [month, setMonth] = useState(today().slice(0, 7));
   const [tab, setTab] = useState('all'); // 'all', 'summary', 'annual' or a card id
   const [menuOpen, setMenuOpen] = useState(false);
@@ -72,6 +73,8 @@ function Main() {
 
   useEffect(() => {
     loadData().then(setData).catch(() => setLoadFailed(true));
+    const id = setTimeout(() => setSlowLoad(true), 8000);
+    return () => clearTimeout(id);
   }, []);
 
   // serialize writes so concurrent edits never interleave on disk
@@ -398,7 +401,7 @@ function Main() {
     return { total, used, available: total - used, pct: Math.max(0, Math.min(1, used / total)) };
   }, [data, activeCard, todayIso]);
 
-  if (!data && !loadFailed) return <LoadingScreen />;
+  if (!data && !loadFailed) return <LoadingScreen slow={slowLoad} />;
   if (!data)
     return (
       <SafeAreaView style={s.center}>

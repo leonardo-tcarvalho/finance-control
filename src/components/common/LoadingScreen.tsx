@@ -6,7 +6,8 @@ const logo = require('../../../assets/splash-icon.png');
  * Shown while the saved data is being read. It repeats the native splash (same color, same centered logo), so the
  * change between them is not noticeable. The native splash itself is hidden by App, not here.
  */
-export default function LoadingScreen() {
+/** `slow`: reading the data is taking longer than expected; says so instead of looking frozen. */
+export default function LoadingScreen({ slow = false }: { slow?: boolean }) {
   return (
     <View style={s.root}>
       <Image source={logo} style={s.logo} resizeMode="contain" accessibilityIgnoresInvertColors />
@@ -14,6 +15,7 @@ export default function LoadingScreen() {
         <Text style={s.title}>Controle de Gastos</Text>
         <Text style={s.tagline}>Suas finanças, simples e no seu bolso</Text>
         <ActivityIndicator color="#e0e7ff" style={s.spinner} accessibilityLabel="Carregando" />
+        {slow && <Text style={s.slow}>Está demorando mais que o normal. Seus dados não foram alterados; aguarde ou feche e abra o app.</Text>}
       </View>
     </View>
   );
@@ -26,4 +28,5 @@ const s = StyleSheet.create({
   title: { fontSize: 26, fontWeight: '800', color: '#ffffff', textAlign: 'center' },
   tagline: { fontSize: 14, color: '#e0e7ffe6', marginTop: 6, textAlign: 'center' },
   spinner: { marginTop: 28 },
+  slow: { fontSize: 13, color: '#e0e7ff', marginTop: 20, textAlign: 'center', lineHeight: 18 },
 });
