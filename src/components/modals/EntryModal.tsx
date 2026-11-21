@@ -408,7 +408,11 @@ export default function EntryModal({ visible, cards, categories, onAddCategory, 
                 accessibilityRole="radio"
                 accessibilityState={{ checked: selectedCard === c.id }}
               >
-                <Text style={[s.chipText, selectedCard === c.id && s.chipTextOn]}>💳 {c.name}</Text>
+                <View style={s.cardChipRow}>
+                  {/* the emoji has its own Text: on some phones text after an emoji in the same Text loses its color */}
+                  <Text style={s.chipText}>💳</Text>
+                  <Text style={[s.chipText, selectedCard === c.id && s.chipTextOn]}>{c.name}</Text>
+                </View>
               </Pressable>
             ))}
             <Pressable
@@ -485,6 +489,7 @@ const makeStyles = (t: Theme) =>
     chipOn: { backgroundColor: t.primary, borderColor: t.primary },
     chipText: { fontSize: 14, color: t.text, fontWeight: '600' },
     chipTextOn: { color: t.onPrimary, fontWeight: '800' },
+    cardChipRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     newCardBox: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderColor: t.link, borderRadius: 20, paddingHorizontal: 14, backgroundColor: t.surface },
     newCardInput: { minWidth: 130, fontSize: 14, paddingVertical: 6, color: t.text },
 
