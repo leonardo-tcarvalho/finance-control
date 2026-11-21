@@ -369,8 +369,10 @@ function Main() {
   const reserveMonths = useMemo(() => emergencyReserveMonths(data?.transactions ?? [], data?.cards ?? [], month), [data, month]);
   const byPayment = useMemo(() => spendByPayment(rows, cardNameOf, methodNameOf), [rows, data]);
 
+  // read once per render: the memos below depend on it, so an app left open past midnight stops showing yesterday's overdue list
+  const todayIso = today();
   // overdue expenses of every month, so a late bill is never hidden in a month that is not on screen
-  const overdue = useMemo(() => overdueSummary(data?.transactions ?? [], data?.cards ?? [], today()), [data]);
+  const overdue = useMemo(() => overdueSummary(data?.transactions ?? [], data?.cards ?? [], todayIso), [data, todayIso]);
 
   const invoicePaid = !!activeCard && isPaid(activeCard, month);
   const invoiceDue = activeCard ? dueDate(activeCard, month) : null;
@@ -378,10 +380,10 @@ function Main() {
   // Limit usage (see committedOnCard for what counts as committed).
   const limit = useMemo(() => {
     if (!activeCard?.limitCents || !data) return null;
-    const used = committedOnCard(data.transactions, activeCard, today());
+    const used = committedOnCard(data.transactions, activeCard, todayIso);
     const total = activeCard.limitCents;
     return { total, used, available: total - used, pct: Math.max(0, Math.min(1, used / total)) };
-  }, [data, activeCard]);
+  }, [data, activeCard, todayIso]);
 
   if (!data)
     return (
@@ -558,7 +560,7 @@ function Main() {
                   const card = item.cardId ? data.cards.find((c) => c.id === item.cardId) : undefined;
                   const kind = payKind(item);
                   const pending = isPending(item, data.cards);
-                  const overdue = isOverdue(item, data.cards, today());
+                  const overdue = isOverdue(item, data.cards, todayIso);
                   const due = dueOf(item, data.cards);
                   // income carries no status; every expense is paid, pending or overdue
                   const status = kind === 'none' ? null : overdue ? 'overdue' : pending ? 'pending' : 'paid';
