@@ -74,6 +74,15 @@ describe('parseData transaction ids', () => {
   });
 });
 
+describe('parseData settings', () => {
+  const parseWith = (settings: unknown) => parseData(JSON.stringify({ transactions: [], settings }));
+  it('keeps a known theme', () => expect(parseWith({ theme: 'dark' })?.settings).toEqual({ theme: 'dark' }));
+  it('drops an unknown theme and non-object settings', () => {
+    expect(parseWith({ theme: 'sepia' }).settings).toBeUndefined();
+    expect(parseWith('dark').settings).toBeUndefined();
+  });
+});
+
 describe('parseData cards', () => {
   const tx = { id: 't', date: '2026-01-15', createdAt: 'c', type: 'expense', amountCents: 100 };
   const parse = (cards: unknown[]) => parseData(JSON.stringify({ transactions: [tx], cards }));
