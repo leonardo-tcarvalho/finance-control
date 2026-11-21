@@ -1,10 +1,12 @@
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
 import * as SystemUI from 'expo-system-ui';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View, useColorScheme } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { exportBackup, pickBackup, shareRawData } from './src/services/backup';
 import CardModal, { CardValues } from './src/components/modals/CardModal';
+import LoadingScreen from './src/components/common/LoadingScreen';
 import Drawer, { DrawerDivider, DrawerItem, DrawerSection } from './src/components/common/Drawer';
 import { PlusIcon, TrayArrow } from './src/components/common/Icons';
 import RowActions from './src/components/modals/RowActions';
@@ -20,6 +22,9 @@ import Summary from './src/screens/Summary';
 import { Theme, ThemeContext, darkTheme, lightTheme } from './src/theme';
 import { AppData, Card, DEFAULT_CATEGORIES, Limits, INVESTMENT_CATEGORY, Transaction, Method, methodLabel } from './src/domain/types';
 import { MAX_INSTALLMENTS, MAX_RECURRING, brl, centsToField, formatDateBR, monthLabel, parseMoneyToCents, shiftMonth, shortDate, today } from './src/utils';
+
+// keep the native splash up until LoadingScreen (or the load-error screen) is on screen; called at module scope, as the docs advise
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const newId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 const byNewest = (a: Transaction, b: Transaction) => (a.date === b.date ? b.createdAt.localeCompare(a.createdAt) : b.date.localeCompare(a.date));
@@ -60,6 +65,9 @@ function Main() {
   useEffect(() => {
     loadData().then(setData).catch(() => setLoadFailed(true));
   }, []);
+  useEffect(() => {
+    if (loadFailed) SplashScreen.hideAsync().catch(() => {}); // the error screen replaces LoadingScreen, which would have hidden it
+  }, [loadFailed]);
 
   // serialize writes so concurrent edits never interleave on disk
   const persist = useCallback((next: AppData) => {
@@ -385,17 +393,16 @@ function Main() {
     return { total, used, available: total - used, pct: Math.max(0, Math.min(1, used / total)) };
   }, [data, activeCard, todayIso]);
 
+  if (!data && !loadFailed) return <LoadingScreen />;
   if (!data)
     return (
       <SafeAreaView style={s.center}>
         <Text style={{ color: t.text, textAlign: 'center', padding: 24 }}>
-          {loadFailed ? 'Não foi possível ler seus dados. Seus arquivos não foram alterados e nada será gravado enquanto este aviso aparecer. Você pode fechar e abrir o app para tentar de novo ou compartilhar o arquivo de dados para guardá-lo.' : 'Carregando…'}
+          Não foi possível ler seus dados. Seus arquivos não foram alterados e nada será gravado enquanto este aviso aparecer. Você pode fechar e abrir o app para tentar de novo ou compartilhar o arquivo de dados para guardá-lo.
         </Text>
-        {loadFailed && (
-          <Pressable onPress={() => shareRawData().catch((e) => Alert.alert('Erro', String(e?.message ?? e)))} accessibilityRole="button" style={{ padding: 12 }}>
-            <Text style={{ color: t.text, textDecorationLine: 'underline' }}>Compartilhar arquivo de dados</Text>
-          </Pressable>
-        )}
+        <Pressable onPress={() => shareRawData().catch((e) => Alert.alert('Erro', String(e?.message ?? e)))} accessibilityRole="button" style={{ padding: 12 }}>
+          <Text style={{ color: t.text, textDecorationLine: 'underline' }}>Compartilhar arquivo de dados</Text>
+        </Pressable>
       </SafeAreaView>
     );
 
