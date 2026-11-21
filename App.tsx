@@ -23,17 +23,25 @@ import { Theme, ThemeContext, darkTheme, lightTheme } from './src/theme';
 import { AppData, Card, DEFAULT_CATEGORIES, Limits, INVESTMENT_CATEGORY, Transaction, Method, methodLabel } from './src/domain/types';
 import { MAX_INSTALLMENTS, MAX_RECURRING, brl, centsToField, formatDateBR, monthLabel, parseMoneyToCents, shiftMonth, shortDate, today } from './src/utils';
 
-// keep the native splash up until LoadingScreen (or the load-error screen) is on screen; called at module scope, as the docs advise
+// keep the native splash up until App mounts and hides it; called at module scope, as the docs advise
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const newId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 const byNewest = (a: Transaction, b: Transaction) => (a.date === b.date ? b.createdAt.localeCompare(a.createdAt) : b.date.localeCompare(a.date));
 
 export default function App() {
+  // Hidden from the root on purpose: SafeAreaProvider renders nothing until it has measured the screen, and the native
+  // splash can hold back that first frame, so waiting for anything inside it could leave the splash up forever.
+  useEffect(() => {
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
   return (
-    <SafeAreaProvider>
-      <Main />
-    </SafeAreaProvider>
+    // same color as the splash, so a frame drawn before the content is ready is not a white flash
+    <View style={{ flex: 1, backgroundColor: '#4f46e5' }}>
+      <SafeAreaProvider>
+        <Main />
+      </SafeAreaProvider>
+    </View>
   );
 }
 
