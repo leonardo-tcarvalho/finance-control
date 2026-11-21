@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { MonthPoint, annualTotals, emergencyReserveMonths, reserveLevel, savingsRate, portfolioByBank, portfolioTotals, splitPercents, totalsOf, availableYears, spendByOrigin, spendOf, topExpenses, yearRows } from './calc';
-import { Card, Transaction } from './domain/types';
+import { Card, Transaction } from './types';
 
 let n = 0;
 const tx = (o: Partial<Transaction>): Transaction => ({ id: `t${n++}`, type: 'expense', amountCents: 100, category: 'x', description: 'x', date: '2026-01-10', createdAt: 'c', ...o });

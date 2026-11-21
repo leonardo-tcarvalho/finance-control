@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { annualTotals, availableYears, gainText, monthlySeries, portfolioByBank, portfolioTotals, spendByCategory, spendByOrigin, spendByPayment, splitPercents, topExpenses, yearRows } from './calc';
+import { annualTotals, availableYears, gainText, monthlySeries, portfolioByBank, portfolioTotals, spendByCategory, spendByOrigin, spendByPayment, splitPercents, topExpenses, yearRows } from './domain/calc';
 import { Bars, Card, Evolution, Kpi, makeStyles } from './Summary';
 import { useTheme } from './theme';
 import { Card as CardData, Method, Transaction } from './domain/types';
