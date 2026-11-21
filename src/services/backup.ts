@@ -1,9 +1,9 @@
 import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
 import { File, Paths } from 'expo-file-system';
-import { AppData } from './domain/types';
+import { AppData } from '../domain/types';
 import { parseData, rescueFile } from './storage';
-import { today } from './utils';
+import { today } from '../utils';
 
 /** Best effort: the copy in the cache dir holds the person's finances and must not stay behind. */
 const discard = (f: File) => {
