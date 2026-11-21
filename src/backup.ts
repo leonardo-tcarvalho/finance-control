@@ -5,26 +5,39 @@ import { AppData } from './types';
 import { parseData, rescueFile } from './storage';
 import { today } from './utils';
 
+/** Best effort: the copy in the cache dir holds the person's finances and must not stay behind. */
+const discard = (f: File) => {
+  try {
+    if (f.exists) f.delete();
+  } catch {}
+};
+
 /** Opens the share sheet so the user can save the JSON to Drive/iCloud/Files/WhatsApp, etc. */
 export async function exportBackup(data: AppData): Promise<void> {
   const f = new File(Paths.cache, `finance-control-backup-${today()}.json`);
   if (f.exists) f.delete();
   f.create();
-  await f.write(JSON.stringify(data, null, 2)); // async: must finish before sharing
-  if (!(await Sharing.isAvailableAsync())) throw new Error('Compartilhamento indisponível neste dispositivo');
-  await Sharing.shareAsync(f.uri, { mimeType: 'application/json', dialogTitle: 'Salvar backup' });
+  try {
+    await f.write(JSON.stringify(data, null, 2)); // async: must finish before sharing
+    if (!(await Sharing.isAvailableAsync())) throw new Error('Compartilhamento indisponível neste dispositivo');
+    await Sharing.shareAsync(f.uri, { mimeType: 'application/json', dialogTitle: 'Salvar backup' });
+  } finally {
+    discard(f);
+  }
 }
 
 /** Lets the user pick a previously exported JSON file. Returns null if cancelled. */
 export async function pickBackup(): Promise<AppData | null> {
   const res = await DocumentPicker.getDocumentAsync({ type: ['application/json', 'text/*', '*/*'], copyToCacheDirectory: true });
   if (res.canceled) return null;
-  const text = await new File(res.assets[0].uri).text();
+  const picked = new File(res.assets[0].uri);
   try {
-    return parseData(text);
+    return parseData(await picked.text());
   } catch (e) {
     if (e instanceof SyntaxError) throw new Error('O arquivo não é um backup válido do app.');
     throw e;
+  } finally {
+    discard(picked); // copyToCacheDirectory made this a private copy: the original file is untouched
   }
 }
 
