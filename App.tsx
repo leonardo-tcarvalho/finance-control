@@ -89,7 +89,7 @@ function Main() {
   const saveEntry = (v: EntryValues, editing: Transaction | null): boolean => {
     const cents = parseMoneyToCents(v.amount);
     if (!data || !Number.isFinite(cents) || cents <= 0) {
-      Alert.alert('Valor inválido', 'Informe um valor maior que zero.');
+      Alert.alert('Valor inválido', 'Informe um valor maior que zero e de até R$ 100 bilhões.');
       return false;
     }
     // an investment has no card, method, vencimento or repetition, whatever the form still holds

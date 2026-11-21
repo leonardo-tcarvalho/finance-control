@@ -31,11 +31,15 @@ export const shiftMonth = (key: string, delta: number) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
 };
 
+/** Highest amount accepted when typing money: R$ 100 bilhões, in cents. Beyond ~R$ 90 trilhões a float cannot hold whole cents. */
+export const MAX_MONEY_CENTS = 10_000_000_000_000;
+
 /**
  * Turns what a person types as money into cents, or NaN when it is not a number.
  * Accepts "25,90", "25.90", "1.234,56", "1,234.56", "12.500" (thousands) and "R$ 10".
  * With both separators the last one is the decimal. A lone dot followed by exactly three
  * digits is read as a thousands separator, so "12.500" is 12500 and "25.5" is 25.5.
+ * Amounts above MAX_MONEY_CENTS are NaN.
  */
 export const parseMoneyToCents = (raw: string): number => {
   if (raw.includes('-')) return NaN; // a minus sign must not turn "-50" into 50
@@ -55,7 +59,8 @@ export const parseMoneyToCents = (raw: string): number => {
   }
   if ((s.split('.')[1] ?? '').length > 2) return NaN; // "1,500" must not be silently rounded to 1,50
   const n = parseFloat(s);
-  return Number.isFinite(n) ? Math.round(n * 100) : NaN;
+  const cents = Math.round(n * 100);
+  return Number.isFinite(n) && cents <= MAX_MONEY_CENTS ? cents : NaN; // "99999999999999999999" must not become an imprecise integer
 };
 
 export const formatDateBR = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
