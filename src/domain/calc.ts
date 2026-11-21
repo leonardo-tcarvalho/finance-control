@@ -1,5 +1,5 @@
-import { Card, Transaction, Method } from './domain/types';
-import { brl, shiftMonth } from './utils';
+import { Card, Transaction, Method } from './types';
+import { brl, shiftMonth } from '../utils';
 
 /** How much a row adds to spending: only an expense does. */
 export const spendOf = (t: Transaction) => (t.type === 'expense' ? t.amountCents : 0);
