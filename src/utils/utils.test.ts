@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_MONEY_CENTS, addMonths, parseMoneyToCents, signedPct } from './utils';
+import { MAX_MONEY_CENTS, addMonths, parseMoneyToCents, signedPct } from './index';
 
 describe('parseMoneyToCents', () => {
   it('reads Brazilian and thousands formats', () => {
