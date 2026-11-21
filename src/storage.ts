@@ -70,15 +70,26 @@ function dropInvestmentExpenseFields(t: any) {
   return rest;
 }
 
+/** Day of the month 1-31 as a whole number, or undefined: an out-of-range value in a file must not break invoice dates. */
+const validDay = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 31 ? v : undefined);
+
+/** Keeps a card's limit and closing/due days only when they are valid; the rest is dropped instead of failing the load. */
+function cleanCard(c: any) {
+  if (!c || typeof c !== 'object') return c;
+  const limitCents = typeof c.limitCents === 'number' && Number.isInteger(c.limitCents) && c.limitCents > 0 ? c.limitCents : undefined;
+  return { ...c, limitCents, closingDay: validDay(c.closingDay), dueDay: validDay(c.dueDay) };
+}
+
 export function parseData(raw: string): AppData {
   const obj = JSON.parse(raw);
   if (!obj || !Array.isArray(obj.transactions)) throw new Error('Formato inválido');
   // v1 -> v2: `cards` did not exist, old transactions simply have no cardId
-  const cards = Array.isArray(obj.cards) ? obj.cards : [];
+  const cards = (Array.isArray(obj.cards) ? obj.cards : []).map(cleanCard);
   // a card without id/name or with a non-array `paid` would crash the screens that sort and read it
   if (!cards.every((c: any) => typeof c?.id === 'string' && typeof c?.name === 'string' && (c.paid === undefined || Array.isArray(c.paid)))) {
     throw new Error('Formato inválido');
   }
+  if (new Set(cards.map((c: any) => c.id)).size !== cards.length) throw new Error('Formato inválido');
   const transactions = obj.transactions.map(dropRefund).map(dropInvestmentExpenseFields);
   // a transaction without these fields passes the loader but crashes the sort and the totals on every launch
   const valid = (t: any) =>

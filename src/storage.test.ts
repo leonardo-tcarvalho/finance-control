@@ -66,3 +66,24 @@ describe('parseData with limits', () => {
     expect(lim({ spendingGoalCents: 'a', installmentPct: 20 })).toEqual({ installmentPct: 20 });
   });
 });
+
+describe('parseData cards', () => {
+  const tx = { id: 't', date: '2026-01-15', createdAt: 'c', type: 'expense', amountCents: 100 };
+  const parse = (cards: unknown[]) => parseData(JSON.stringify({ transactions: [tx], cards }));
+
+  it('drops an out-of-range closing/due day and an invalid limit instead of keeping them', () => {
+    const [c] = parse([{ id: 'a', name: 'A', limitCents: -5, closingDay: 45, dueDay: 0 }]).cards;
+    expect(c.limitCents).toBeUndefined();
+    expect(c.closingDay).toBeUndefined();
+    expect(c.dueDay).toBeUndefined();
+  });
+
+  it('keeps valid values', () => {
+    const [c] = parse([{ id: 'a', name: 'A', limitCents: 500000, closingDay: 10, dueDay: 17 }]).cards;
+    expect(c).toMatchObject({ limitCents: 500000, closingDay: 10, dueDay: 17 });
+  });
+
+  it('rejects two cards with the same id', () => {
+    expect(() => parse([{ id: 'a', name: 'A' }, { id: 'a', name: 'B' }])).toThrow('Formato inválido');
+  });
+});
