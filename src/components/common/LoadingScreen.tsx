@@ -1,15 +1,14 @@
 import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
-import * as SplashScreen from 'expo-splash-screen';
 
 const logo = require('../../../assets/splash-icon.png');
 
 /**
- * Shown while the saved data is being read. It repeats the native splash (same color, same centered logo), so
- * the native splash is hidden only once this is on screen and the change between them is not noticeable.
+ * Shown while the saved data is being read. It repeats the native splash (same color, same centered logo), so the
+ * change between them is not noticeable. The native splash itself is hidden by App, not here.
  */
 export default function LoadingScreen() {
   return (
-    <View style={s.root} onLayout={() => SplashScreen.hideAsync().catch(() => {})}>
+    <View style={s.root}>
       <Image source={logo} style={s.logo} resizeMode="contain" accessibilityIgnoresInvertColors />
       <View style={s.textBox}>
         <Text style={s.title}>Controle de Gastos</Text>
