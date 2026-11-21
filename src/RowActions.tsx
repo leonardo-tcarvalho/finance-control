@@ -5,7 +5,7 @@ import Field from './Field';
 import Sheet from './Sheet';
 import { isPending, payKind } from './status';
 import { Theme, useTheme } from './theme';
-import { Card, Transaction } from './types';
+import { Card, Transaction } from './domain/types';
 import { brl, centsToField, parseMoneyToCents, shortDate } from './utils';
 
 interface Props {

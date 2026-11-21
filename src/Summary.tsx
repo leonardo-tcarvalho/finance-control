@@ -2,7 +2,7 @@ import { ReactNode, useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MonthPoint, Slice, goalMessage, goalProgress, installmentCommitment, installmentText, investedShare, reserveLevel, savingsRate, totalsOf } from './calc';
 import { Theme, useTheme } from './theme';
-import { Transaction } from './types';
+import { Transaction } from './domain/types';
 import { MONTHS, brl, signedPct } from './utils';
 
 interface Props {

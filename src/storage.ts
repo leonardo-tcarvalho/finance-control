@@ -1,5 +1,5 @@
 import { Directory, File, Paths } from 'expo-file-system';
-import { AppData, Limits, SCHEMA_VERSION, emptyData } from './types';
+import { AppData, Limits, SCHEMA_VERSION, emptyData } from './domain/types';
 import { today } from './utils';
 
 /**

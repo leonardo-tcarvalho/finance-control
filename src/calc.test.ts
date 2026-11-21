@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { dueDate, filterRows, goalMessage, goalProgress, installmentCommitment, installmentText, gainLabel, investedShare, gainOf, gainPctOf, invoiceKey, titleOf } from './calc';
-import { Transaction } from './types';
+import { Transaction } from './domain/types';
 
 describe('invoiceKey', () => {
   it('closing day 31 in February means the last day of the month', () => {
