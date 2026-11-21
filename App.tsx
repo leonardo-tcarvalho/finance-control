@@ -73,9 +73,6 @@ function Main() {
   useEffect(() => {
     loadData().then(setData).catch(() => setLoadFailed(true));
   }, []);
-  useEffect(() => {
-    if (loadFailed) SplashScreen.hideAsync().catch(() => {}); // the error screen replaces LoadingScreen, which would have hidden it
-  }, [loadFailed]);
 
   // serialize writes so concurrent edits never interleave on disk
   const persist = useCallback((next: AppData) => {
