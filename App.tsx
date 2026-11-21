@@ -45,6 +45,8 @@ function Main() {
   const [entryForm, setEntryForm] = useState<{ tx: Transaction | null } | null>(null); // null = closed; tx null = new entry
   const [cardForm, setCardForm] = useState<{ card: Card | null; onCreated?: (id: string) => void } | null>(null); // null = closed; card null = new
   const queue = useRef<Promise<unknown>>(Promise.resolve());
+  const latest = useRef<AppData | null>(null); // newest state, for callbacks that run after the render that created them
+  latest.current = data;
 
   // theme: the saved choice wins, otherwise follow the device
   const system = useColorScheme();
@@ -279,7 +281,8 @@ function Main() {
             onPress: () => {
               queue.current = queue.current.then(async () => {
                 try {
-                  await saveRestorePoint(data);
+                  // the state when the person confirmed, not when the file was picked: edits made meanwhile must be in the copy
+                  await saveRestorePoint(latest.current ?? data);
                 } catch (e) {
                   Alert.alert('Não foi possível guardar o estado atual', `A restauração foi cancelada. ${e instanceof Error ? e.message : String(e)}`);
                   return;
