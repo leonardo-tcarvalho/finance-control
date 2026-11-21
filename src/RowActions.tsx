@@ -51,7 +51,7 @@ export default function RowActions({ tx, cards, onClose, onTogglePaid, onUpdateV
               style={[s.cancel, { backgroundColor: t.primary, borderColor: t.primary, flex: 2 }]}
               accessibilityRole="button"
             >
-              <Text style={[s.cancelText, { color: '#fff' }]}>Salvar valor atual</Text>
+              <Text style={[s.cancelText, { color: t.onPrimary }]}>Salvar valor atual</Text>
             </Pressable>
           )}
         </>
