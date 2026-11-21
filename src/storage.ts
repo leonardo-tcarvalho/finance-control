@@ -80,6 +80,12 @@ function cleanCard(c: any) {
   return { ...c, limitCents, closingDay: validDay(c.closingDay), dueDay: validDay(c.dueDay) };
 }
 
+/** Only a known theme is kept; anything else falls back to following the device. */
+function parseSettings(raw: unknown): AppData['settings'] {
+  const theme = (raw as { theme?: unknown } | null | undefined)?.theme;
+  return theme === 'light' || theme === 'dark' ? { theme } : undefined;
+}
+
 export function parseData(raw: string): AppData {
   const obj = JSON.parse(raw);
   if (!obj || !Array.isArray(obj.transactions)) throw new Error('Formato inválido');
@@ -100,7 +106,7 @@ export function parseData(raw: string): AppData {
   return {
     schemaVersion: SCHEMA_VERSION,
     cards,
-    settings: obj.settings && typeof obj.settings === 'object' ? obj.settings : undefined,
+    settings: parseSettings(obj.settings),
     categories: parseCategories(obj.categories),
     limits: parseLimits(obj.limits),
     transactions,
